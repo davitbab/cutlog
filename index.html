@@ -335,7 +335,7 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card" id="syncCard">
       <span class="lab">Sync via GitHub</span>
-      <p class="tiny mb">Keeps one <b class="num">log.json</b> in a repo you own, so every device reads and writes the same data and nothing is lost when a browser clears its storage. Use a <b>private</b> repo and a fine-grained token limited to that one repo with <b>Contents: Read and write</b>. The token is stored only on this device and is never part of an export.</p>
+      <p class="tiny mb">Keeps one <b class="num">log.json</b> in a repo you own, so every device reads and writes the same data and nothing is lost when a browser clears its storage. Use a <b>private</b> repo and a fine-grained token limited to that one repo with <b>Contents: Read and write</b>. The token is typed here on each device, stored only on that device, and is never part of an export &mdash; never paste it into the HTML, which is public. Keep the <b>data</b> repo private even when the repo serving this page is public; they can be two different repos.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
         <div><label class="f" for="syRepo">Repository</label><input type="text" id="syRepo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="cutlog-data"></div>
@@ -350,6 +350,7 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="syNow">Sync now</button>
         <button class="btn sec" id="sySave" style="flex:0 0 104px">Save</button>
       </div>
+      <div class="tiny" id="syWarn" hidden style="margin-top:8px;color:var(--bad);font-weight:600"></div>
       <div class="tiny" id="syMsg" style="margin-top:8px"></div>
       <div class="tiny" id="syState" style="margin-top:4px;color:var(--muted)"></div>
       <div id="syOffWrap" hidden><div style="height:10px"></div><button class="linkbtn" id="syOff">Disconnect and forget the token</button></div>
@@ -1378,7 +1379,9 @@ button{user-select:none;-webkit-user-select:none}
      can both read and write cross-origin, and its Contents API returns the blob
      sha, which gives real conflict detection instead of last-writer-wins.
      Everything here is per-device config - nothing is hardcoded. */
-  var SY = { owner: "", repo: "", path: "log.json", branch: "main", token: "" };
+  // Prefilled with everything that is NOT a secret. The token is deliberately
+  // absent and must never be hardcoded here: this file is public.
+  var SY = { owner: "davitbab", repo: "", path: "log.json", branch: "main", token: "" };
   var syBusy = false, syTimer = null, syLast = "", syPending = false;
 
   function inClaude() { return !!(window.claude && typeof window.claude.use === "function"); }
@@ -1427,10 +1430,24 @@ button{user-select:none;-webkit-user-select:none}
     if (status === 409 || status === 422) return "conflict";
     return "GitHub returned " + status + ".";
   }
-  function repoExists() {
+  function repoInfo() {
     return fetch("https://api.github.com/repos/" + encodeURIComponent(SY.owner) + "/" + encodeURIComponent(SY.repo),
                  { headers: ghHead(false), cache: "no-store" })
-      .then(function (r) { return r.ok; }, function () { return false; });
+      .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; });
+  }
+  function repoExists() { return repoInfo().then(function (j) { return !!j; }); }
+  /* A public repo would publish the log to anyone who guesses the URL, and
+     nothing else in the app would ever mention it. Check once, at connect. */
+  function warnIfPublic() {
+    return repoInfo().then(function (j) {
+      if (j && j.private === false) {
+        $("syWarn").hidden = false;
+        $("syWarn").textContent = "This repo is public, so anyone with the URL can read your log. " +
+          "Make it private in Settings, or point the app at a private repo.";
+      } else {
+        $("syWarn").hidden = true;
+      }
+    }, function () {});
   }
   /* A missing file and a missing repo both come back 404, and they need very
      different messages - so check the repo before blaming the path. */
@@ -1605,7 +1622,7 @@ button{user-select:none;-webkit-user-select:none}
     if (m) { SY.owner = m[1]; SY.repo = m[2].replace(/\.git$/, ""); }
     syStore(); fillSyncForm(); renderSync();
     if (!syOn()) { syMsg("Enter the user, repository, file path and token.", "var(--bad)"); return; }
-    syncNow();
+    syncNow().then(function (ok) { if (ok) warnIfPublic(); });
   });
   $("syNow").addEventListener("click", function () { syncNow(); });
   $("syOff").addEventListener("click", function () {
@@ -1779,7 +1796,7 @@ button{user-select:none;-webkit-user-select:none}
   showEngine();
   // Discover how (or whether) Claude can be reached, then correct the copy.
   renderSync();
-  if (syOn()) syncNow();
+  if (syOn()) syncNow().then(function (ok) { if (ok) warnIfPublic(); });
   probeClaude().then(function () { showEngine(); if (!editFood) resetFoodForm(); });
 })();
 </script>
