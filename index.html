@@ -352,7 +352,7 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card">
       <span class="lab">Export</span>
-      <p class="tiny mb">Save a file with every weigh-in, food entry and remembered food. Keep it in Files, iCloud or Drive &mdash; this is your safety net and how you move to another device.</p>
+      <p class="tiny mb">Save a file with every weigh-in, food entry and remembered food. Keep it in Files, iCloud or Drive &mdash; this is your safety net and how you move to another device. On iPhone and iPad this opens the share sheet: choose <b>Save to Files</b>. If the file just opens on screen instead, use <b>Copy &amp; paste backup</b> below &mdash; it carries exactly the same data.</p>
       <button class="btn" id="exFile">Export to a file</button>
       <div class="tiny" id="exMsg" style="margin-top:8px"></div>
     </div>
@@ -1334,38 +1334,72 @@ button{user-select:none;-webkit-user-select:none}
     msgEl.style.color = "var(--accent-ink)";
   }
 
+  /* iOS Safari ignores the download attribute on a blob link: it navigates to
+     the file and renders the JSON instead of saving it. So on a device with a
+     share sheet, hand the file to that instead. It must be called inside the
+     click handler with no await before it, or the gesture is spent and iOS
+     refuses. */
+  function shareFile(name, data, msg) {
+    var file = null;
+    try { file = new File([data], name, { type: "application/json" }); } catch (e) { return false; }
+    if (!(navigator.canShare && navigator.share && navigator.canShare({ files: [file] }))) return false;
+    msg.style.color = "var(--muted)";
+    msg.textContent = "Opening the share sheet - choose Save to Files.";
+    navigator.share({ files: [file], title: name }).then(function () {
+      msg.style.color = "var(--accent-ink)";
+      msg.textContent = "Shared " + name + ".";
+    }, function () {
+      msg.style.color = "var(--muted)";
+      msg.textContent = "Export cancelled. Copy & paste backup below also works.";
+    });
+    return true;
+  }
+
+  function blobDownload(name, data, msg) {
+    var url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    var a = document.createElement("a");
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    msg.style.color = "var(--accent-ink)";
+    msg.textContent = "Saved as " + name + " (check your downloads). If it just opened on screen instead, use Copy & paste backup below.";
+  }
+
   $("exFile").addEventListener("click", function () {
     var msg = $("exMsg");
     var name = "cut-log-" + iso(new Date()) + ".json";
     var data = $("bkText").value;
+
+    // Inside the Claude viewer a page cannot start its own download, so use the
+    // downloads capability. Everywhere else: share sheet, then blob link.
+    var hasCap = (typeof window !== "undefined" && window.claude && typeof window.claude.use === "function");
+    if (!hasCap) {
+      if (!shareFile(name, data, msg)) blobDownload(name, data, msg);
+      return;
+    }
+
     msg.style.color = "var(--muted)";
     msg.textContent = "Preparing the file...";
-
-    // In the artifact viewer a page cannot start its own download, so go
-    // through the downloads capability. Outside it (standalone file), fall
-    // back to an ordinary blob link.
-    var api = (typeof window !== "undefined" && window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads") : null;
-    Promise.resolve(api).then(function (dl) {
+    Promise.resolve(window.claude.use("downloads")).then(function (dl) {
       if (dl && typeof dl.save === "function") {
         return dl.save({ filename: name, data: data }).then(function () {
-          msg.textContent = "Saved as " + name;
           msg.style.color = "var(--accent-ink)";
+          msg.textContent = "Saved as " + name + ".";
         }, function (err) {
           var code = err && err.code;
-          msg.style.color = "var(--bad)";
-          msg.textContent = code === "declined" ? "Export cancelled."
-            : code === "rate_limited" ? "A save prompt is already open. Try again in a moment."
-            : "Could not save the file. Use Copy backup below instead.";
+          if (code === "declined") {
+            msg.style.color = "var(--muted)";
+            msg.textContent = "Export cancelled.";
+          } else if (code === "rate_limited") {
+            msg.style.color = "var(--bad)";
+            msg.textContent = "A save prompt is already open. Try again in a moment.";
+          } else {
+            msg.style.color = "var(--bad)";
+            msg.textContent = "Could not save the file here. Use Copy & paste backup below.";
+          }
         });
       }
-      // standalone fallback
-      var url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
-      var a = document.createElement("a");
-      a.href = url; a.download = name; document.body.appendChild(a); a.click();
-      document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
-      msg.textContent = "Saved as " + name + " (check your downloads).";
-      msg.style.color = "var(--accent-ink)";
+      if (!shareFile(name, data, msg)) blobDownload(name, data, msg);
     });
   });
 
