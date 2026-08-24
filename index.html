@@ -97,7 +97,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
 .card > .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
-input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
   width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--surface);
   border:1px solid var(--line-2);border-radius:9px;padding:9px 10px;
 }
@@ -333,6 +333,27 @@ button{user-select:none;-webkit-user-select:none}
       <button class="btn sec" id="engineTest">Test a lookup</button>
       <div class="tiny" id="engineMsg" style="margin-top:8px"></div>
     </div>
+    <div class="card" id="syncCard">
+      <span class="lab">Sync via GitHub</span>
+      <p class="tiny mb">Keeps one <b class="num">log.json</b> in a repo you own, so every device reads and writes the same data and nothing is lost when a browser clears its storage. Use a <b>private</b> repo and a fine-grained token limited to that one repo with <b>Contents: Read and write</b>. The token is stored only on this device and is never part of an export.</p>
+      <div class="grid2 mb">
+        <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
+        <div><label class="f" for="syRepo">Repository</label><input type="text" id="syRepo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="cutlog-data"></div>
+      </div>
+      <div class="grid2 mb">
+        <div><label class="f" for="syPath">File in the repo</label><input type="text" id="syPath" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="log.json"></div>
+        <div><label class="f" for="syBranch">Branch</label><input type="text" id="syBranch" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="main"></div>
+      </div>
+      <label class="f" for="syToken">Access token</label>
+      <input type="password" id="syToken" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." class="mb">
+      <div class="btnrow">
+        <button class="btn" id="syNow">Sync now</button>
+        <button class="btn sec" id="sySave" style="flex:0 0 104px">Save</button>
+      </div>
+      <div class="tiny" id="syMsg" style="margin-top:8px"></div>
+      <div class="tiny" id="syState" style="margin-top:4px;color:var(--muted)"></div>
+      <div id="syOffWrap" hidden><div style="height:10px"></div><button class="linkbtn" id="syOff">Disconnect and forget the token</button></div>
+    </div>
     <div class="card" id="goalCard">
       <span class="lab">Goal</span>
       <p class="tiny mb">Every number, the chart and the projection recalculate from these four.</p>
@@ -358,7 +379,7 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card">
       <span class="lab">Import</span>
-      <p class="tiny mb">Load an exported file. This replaces everything currently in the app.</p>
+      <p class="tiny mb">Load an exported file. This replaces everything currently in the app &mdash; and if sync is on, the next sync merges it into your repo rather than replacing what is there.</p>
       <input type="file" id="imFile" accept=".json,application/json,text/plain" class="mb">
       <div class="tiny" id="imMsg"></div>
     </div>
@@ -376,7 +397,7 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card">
       <span class="lab">Reset</span>
-      <p class="tiny mb">Deletes every weigh-in and food entry on this device. Back up first &mdash; this cannot be undone.</p>
+      <p class="tiny mb">Deletes every weigh-in and food entry, and if sync is on it deletes them from your repo and every other device too. Back up first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
     </div>
   </section>
@@ -435,6 +456,36 @@ button{user-select:none;-webkit-user-select:none}
   // iframes (it returns false without ever showing a dialog), so deletes have
   // to be confirmed in the page itself.
   var pendingDel = null, pendingFDel = null, pendingWipe = false;
+  // Sync writes back into save(), so it needs a way to stop the recursion.
+  var syErr = "", suppressSync = false;
+
+  /* Per-record modified stamps, so a merge can tell a real edit from a stale
+     copy. Rather than touching every mutation site, save() compares each
+     record against the last version it wrote and stamps only what changed. */
+  var snap = {}, metaSnap = "", dirty = {}, metaDirty = false;
+  function recKey(r) { var c = {}; for (var k in r) if (k !== "mt") c[k] = r[k]; return JSON.stringify(c); }
+  function metaKey() { return JSON.stringify([S.goal, S.maintenance]); }
+  function reseedSnap() {
+    snap = {};
+    S.entries.concat(S.foods).forEach(function (r) {
+      snap[r.id] = recKey(r);
+      if (typeof r.mt !== "number") r.mt = 0;
+    });
+    metaSnap = metaKey();
+  }
+  function stampChanges() {
+    var now = Date.now(), seen = {};
+    S.entries.concat(S.foods).forEach(function (r) {
+      var k = recKey(r);
+      seen[r.id] = k;
+      // Changed on this device and not yet pushed: dirty until it lands.
+      if (snap[r.id] !== k) { r.mt = now; dirty[r.id] = 1; }
+      else if (typeof r.mt !== "number") r.mt = 0;
+    });
+    snap = seen;
+    var mk = metaKey();
+    if (mk !== metaSnap) { metaDirty = true; metaSnap = mk; }
+  }
 
   function load() {
     try { var a = JSON.parse(sget("cut-entries") || "[]"); if (Array.isArray(a)) S.entries = a; } catch (e) {}
@@ -447,8 +498,10 @@ button{user-select:none;-webkit-user-select:none}
     // Migrate older records: they keyed on date alone, with no id or time.
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
+    reseedSnap();
   }
   function save() {
+    stampChanges();
     S.updatedAt = new Date().toISOString();
     sset("cut-updated", S.updatedAt);
     sset("cut-deleted", JSON.stringify(S.deleted));
@@ -457,6 +510,7 @@ button{user-select:none;-webkit-user-select:none}
              sset("cut-food-cache", JSON.stringify(S.cache)) &&
              sset("cut-goal", JSON.stringify(S.goal)) &&
              sset("cut-maintenance", String(S.maintenance));
+    if (!suppressSync) syncSoon();
     saveErr = ok ? "" : "This browser is not letting the app store data, so today's entries live only until you close the tab. Open Data and copy your backup.";
   }
 
@@ -554,6 +608,8 @@ button{user-select:none;-webkit-user-select:none}
     var nz = "";
     if (saveErr) nz += '<div class="notice e"><div>' + esc(saveErr) + ' <button class="linkbtn" data-goto="data">Open Data</button></div></div>';
     else if (!persistent) nz += '<div class="notice w"><div>This browser blocks local storage here, so entries last only for this session. <button class="linkbtn" data-goto="data">Copy a backup</button> before you close it.</div></div>';
+    if (syErr) nz += '<div class="notice w"><div>Sync: ' + esc(syErr) +
+      ' <button class="linkbtn" data-goto="data">Open Data</button></div></div>';
     $("notices").innerHTML = nz;
 
     // Tiles run off the most recent DAY AVERAGE, not the last single reading \u2014
@@ -1317,6 +1373,253 @@ button{user-select:none;-webkit-user-select:none}
     $("gMsg").textContent = "Back to the defaults.";
   });
 
+  /* ---------- sync: one JSON file in a GitHub repo ---------- */
+  /* Why GitHub: api.github.com is one of the few free stores a plain web page
+     can both read and write cross-origin, and its Contents API returns the blob
+     sha, which gives real conflict detection instead of last-writer-wins.
+     Everything here is per-device config - nothing is hardcoded. */
+  var SY = { owner: "", repo: "", path: "log.json", branch: "main", token: "" };
+  var syBusy = false, syTimer = null, syLast = "", syPending = false;
+
+  function inClaude() { return !!(window.claude && typeof window.claude.use === "function"); }
+  function syOn() { return !!(SY.owner && SY.repo && SY.path && SY.token); }
+  function syLoad() {
+    try {
+      var c = JSON.parse(sget("cut-sync") || "null");
+      if (c && typeof c === "object") {
+        SY.owner = String(c.owner || ""); SY.repo = String(c.repo || "");
+        SY.path = String(c.path || "log.json"); SY.branch = String(c.branch || "main");
+        SY.token = String(c.token || "");
+      }
+    } catch (e) {}
+    syLast = sget("cut-sync-at") || "";
+  }
+  function syStore() { sset("cut-sync", JSON.stringify(SY)); }
+  function syMsg(text, color) { var m = $("syMsg"); m.style.color = color || "var(--muted)"; m.textContent = text; }
+
+  /* base64 both ways, UTF-8 safe: btoa alone mangles anything above U+00FF,
+     and a food note can easily carry an accent. */
+  function b64enc(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+  function b64dec(b64) {
+    var bin = atob(String(b64).replace(/\s+/g, ""));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function ghHead(json) {
+    var h = { "Authorization": "Bearer " + SY.token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+    if (json) h["Content-Type"] = "application/json";
+    return h;
+  }
+  function ghUrl() {
+    return "https://api.github.com/repos/" + encodeURIComponent(SY.owner) + "/" + encodeURIComponent(SY.repo) +
+           "/contents/" + SY.path.split("/").map(encodeURIComponent).join("/");
+  }
+  function ghSay(status) {
+    if (status === 401) return "Token rejected. Create a new fine-grained token with Contents: Read and write.";
+    if (status === 403) return "GitHub refused this. The token probably lacks Contents: Read and write for that repo.";
+    if (status === 404) return "Not found. Check the user and repository names, and that the token lists that repo.";
+    if (status === 409 || status === 422) return "conflict";
+    return "GitHub returned " + status + ".";
+  }
+  function repoExists() {
+    return fetch("https://api.github.com/repos/" + encodeURIComponent(SY.owner) + "/" + encodeURIComponent(SY.repo),
+                 { headers: ghHead(false), cache: "no-store" })
+      .then(function (r) { return r.ok; }, function () { return false; });
+  }
+  /* A missing file and a missing repo both come back 404, and they need very
+     different messages - so check the repo before blaming the path. */
+  function ghRead() {
+    var u = ghUrl() + "?ref=" + encodeURIComponent(SY.branch || "main");
+    return fetch(u, { headers: ghHead(false), cache: "no-store" }).then(function (r) {
+      if (r.status === 404) {
+        return repoExists().then(function (ok) {
+          if (ok) return { text: null, sha: null };
+          throw new Error(ghSay(404));
+        });
+      }
+      if (!r.ok) throw new Error(ghSay(r.status));
+      return r.json().then(function (j) {
+        if (!j.content) throw new Error("That file is too large to read through this API. Use a smaller one.");
+        return { text: b64dec(j.content), sha: j.sha };
+      });
+    });
+  }
+  function ghWrite(text, sha) {
+    var body = { message: "cut log " + new Date().toISOString(), content: b64enc(text), branch: (SY.branch || "main") };
+    if (sha) body.sha = sha;
+    return fetch(ghUrl(), { method: "PUT", headers: ghHead(true), body: JSON.stringify(body) })
+      .then(function (r) { if (!r.ok) throw new Error(ghSay(r.status)); return { skipped: false }; });
+  }
+
+  function payload() {
+    return { v: 2, entries: S.entries, foods: S.foods, deleted: S.deleted,
+             maintenance: S.maintenance, cache: S.cache, goal: S.goal, updatedAt: S.updatedAt };
+  }
+  /* Content signature, deliberately excluding updatedAt: with it in, every
+     device would commit on every boot just because the clock had moved. */
+  function sig(o) {
+    return JSON.stringify([o.entries || [], o.foods || [], (o.deleted || []).slice().sort(),
+                           o.maintenance || 0, o.goal || null, Object.keys(o.cache || {}).sort()]);
+  }
+
+  /* Union merge. Records are identified by id and carry a modified stamp, so an
+     edit on one device beats a stale copy on another; a delete leaves a
+     tombstone, which is what stops it coming back down from the cloud. */
+  function mergeRemote(rem) {
+    var before = sig(payload());
+    var tomb = {};
+    (S.deleted || []).concat(Array.isArray(rem.deleted) ? rem.deleted : []).forEach(function (id) { tomb[id] = 1; });
+
+    function union(localArr, remArr) {
+      var by = {}, order = [];
+      function put(r, isRemote) {
+        if (!r || !r.id || tomb[r.id]) return;
+        // An edit made here and not yet pushed beats the remote copy, whatever
+        // the two clocks say. Without this the newer edit silently reverts.
+        if (isRemote && dirty[r.id]) return;
+        var prev = by[r.id];
+        if (!prev) { by[r.id] = r; order.push(r.id); return; }
+        if ((typeof r.mt === "number" ? r.mt : 0) > (typeof prev.mt === "number" ? prev.mt : 0)) by[r.id] = r;
+      }
+      localArr.forEach(function (r) { put(r, false); });
+      (Array.isArray(remArr) ? remArr : []).forEach(function (r) { put(r, true); });
+      return order.map(function (id) { return by[id]; });
+    }
+
+    S.entries = union(S.entries, rem.entries);
+    S.foods = union(S.foods, rem.foods);
+    S.deleted = Object.keys(tomb).slice(-800);   // tombstones must not grow forever
+    // Goal and maintenance are single values with no id to merge on, so the
+    // newer file simply wins.
+    if (!metaDirty && String(rem.updatedAt || "") > String(S.updatedAt || "")) {
+      if (rem.maintenance > 0) S.maintenance = rem.maintenance;
+      if (rem.goal && typeof rem.goal === "object") S.goal = rem.goal;
+    }
+    // The food cache is only a memo of past lookups: take whatever is missing.
+    if (rem.cache && typeof rem.cache === "object") {
+      for (var k in rem.cache) if (!(k in S.cache)) S.cache[k] = rem.cache[k];
+    }
+    S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
+    S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
+    return sig(payload()) !== before;
+  }
+
+  function syncNow() {
+    if (!syOn()) { syMsg("Fill in the fields above and your token, then tap Save.", "var(--bad)"); return Promise.resolve(false); }
+    if (syBusy) { syPending = true; return Promise.resolve(false); }
+    syBusy = true; renderSync(); syMsg("Syncing...", "var(--muted)");
+
+    var tries = 0;
+    function round() {
+      tries++;
+      return ghRead().then(function (got) {
+        var rem = null;
+        if (got.text) {
+          try { rem = JSON.parse(got.text); }
+          catch (e) { throw new Error("The file in the repo is not valid JSON. Delete or rename it, then sync again."); }
+        }
+        if (rem && mergeRemote(rem)) {
+          // Adopt the merged records own stamps before saving, or save() would
+          // restamp everything just pulled down as if it were a local edit.
+          reseedSnap();
+          suppressSync = true; save(); suppressSync = false;
+          resetWeightForm(); resetFoodForm(); fillGoalForm(); render();
+        }
+        if (rem && sig(rem) === sig(payload())) return { skipped: true };
+        return ghWrite(JSON.stringify(payload(), null, 1) + "\n", got.sha);
+      }).catch(function (err) {
+        // 409 means another device wrote between our read and our write: read
+        // again, merge again, push again.
+        if (String(err && err.message) === "conflict" && tries < 4) return round();
+        throw err;
+      });
+    }
+
+    return round().then(function (res) {
+      syErr = "";
+      dirty = {}; metaDirty = false;
+      syLast = new Date().toISOString();
+      sset("cut-sync-at", syLast);
+      syBusy = false;
+      syMsg(res && res.skipped ? "Already up to date." : "Synced.", "var(--accent-ink)");
+      renderSync(); render();
+      if (syPending) { syPending = false; syncSoon(); }
+      return true;
+    }, function (err) {
+      var m = String((err && err.message) || err);
+      if (m === "conflict") m = "Another device kept writing at the same time. Tap Sync now again.";
+      if (/failed to fetch|load failed|networkerror|not allowed|network request/i.test(m)) {
+        m = inClaude()
+          ? "Blocked here. The Claude preview cannot reach api.github.com - sync works when you open the app from your own URL or home screen."
+          : "Could not reach api.github.com. Check the connection and try again.";
+      }
+      syErr = m; syBusy = false; syPending = false;
+      syMsg(m, "var(--bad)");
+      renderSync(); render();
+      return false;
+    });
+  }
+
+  function syncSoon() {
+    if (!syOn()) return;
+    clearTimeout(syTimer);
+    syTimer = setTimeout(function () { syncNow(); }, 2500);
+  }
+
+  function fillSyncForm() {
+    $("syOwner").value = SY.owner; $("syRepo").value = SY.repo;
+    $("syPath").value = SY.path; $("syBranch").value = SY.branch; $("syToken").value = SY.token;
+  }
+  function renderSync() {
+    var st = $("syState");
+    if (!syOn()) {
+      st.textContent = inClaude()
+        ? "Not connected. Sync cannot run inside the Claude preview - set it up on your own URL or home-screen app."
+        : "Not connected. Entries live on this device only.";
+    } else if (syBusy) {
+      st.textContent = "Working...";
+    } else {
+      st.textContent = (syLast ? "Last synced " + new Date(syLast).toLocaleString() : "Connected, not synced yet") +
+        " \u00b7 " + SY.owner + "/" + SY.repo + "/" + SY.path;
+    }
+    $("syOffWrap").hidden = !(SY.owner || SY.repo || SY.token);
+    $("syNow").textContent = syBusy ? "Syncing..." : "Sync now";
+    $("syNow").disabled = syBusy;
+  }
+
+  $("sySave").addEventListener("click", function () {
+    SY.owner = $("syOwner").value.trim().replace(/^@/, "");
+    SY.repo = $("syRepo").value.trim().replace(/\.git$/, "");
+    SY.path = ($("syPath").value.trim() || "log.json").replace(/^\/+/, "");
+    SY.branch = $("syBranch").value.trim() || "main";
+    SY.token = $("syToken").value.trim();
+    // Pasting the whole repo URL into one field is the likeliest slip, so
+    // unpick it rather than fail with a 404.
+    var m = SY.owner.match(/github\.com\/([^\/]+)\/([^\/\s]+)/) || SY.repo.match(/github\.com\/([^\/]+)\/([^\/\s]+)/);
+    if (m) { SY.owner = m[1]; SY.repo = m[2].replace(/\.git$/, ""); }
+    syStore(); fillSyncForm(); renderSync();
+    if (!syOn()) { syMsg("Enter the user, repository, file path and token.", "var(--bad)"); return; }
+    syncNow();
+  });
+  $("syNow").addEventListener("click", function () { syncNow(); });
+  $("syOff").addEventListener("click", function () {
+    SY = { owner: "", repo: "", path: "log.json", branch: "main", token: "" };
+    syErr = ""; syLast = "";
+    sset("cut-sync", ""); sset("cut-sync-at", "");
+    fillSyncForm(); renderSync(); render();
+    syMsg("Disconnected and the token is forgotten. Your entries stay on this device.", "var(--muted)");
+  });
+  // Coming back to the app on one device should pick up the other device writes.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && syOn() && !syBusy) syncNow();
+  });
+
   /* ---- export / import as a real file ---- */
   function applyImport(text, msgEl) {
     var p = JSON.parse(text);
@@ -1456,6 +1759,8 @@ button{user-select:none;-webkit-user-select:none}
     }
     pendingWipe = false;
     this.textContent = "Delete all data"; this.style.color = "";
+    // Tombstone everything first, or the next sync pulls it all back down.
+    S.entries.concat(S.foods).forEach(function (r) { if (S.deleted.indexOf(r.id) < 0) S.deleted.push(r.id); });
     S.entries = []; S.foods = []; S.cache = {}; save(); resetWeightForm(); resetFoodForm(); render();
   });
 
@@ -1464,6 +1769,8 @@ button{user-select:none;-webkit-user-select:none}
 
   /* ---------- boot ---------- */
   load();
+  syLoad();
+  fillSyncForm();
   $("fDate").value = iso(new Date());
   resetWeightForm();
   resetFoodForm();
@@ -1471,6 +1778,8 @@ button{user-select:none;-webkit-user-select:none}
   render();
   showEngine();
   // Discover how (or whether) Claude can be reached, then correct the copy.
+  renderSync();
+  if (syOn()) syncNow();
   probeClaude().then(function () { showEngine(); if (!editFood) resetFoodForm(); });
 })();
 </script>
