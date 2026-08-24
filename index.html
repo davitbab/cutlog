@@ -204,7 +204,10 @@ button{user-select:none;-webkit-user-select:none}
     <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" style="font-size:12px;margin-left:4px">Change</button></div>
-    <div style="margin-top:9px"><span id="storePill" class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
+    <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">
+      <span id="storePill" class="pill"><span class="dot"></span><span id="storeTxt"></span></span>
+      <span id="syncPill" class="pill" hidden><span class="dot"></span><span id="syncTxt"></span></span>
+    </div>
   </header>
 
   <div id="notices"></div>
@@ -254,6 +257,7 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="wSave">Save weigh-in</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
+      <div class="tiny" id="wMsg" style="margin-top:8px"></div>
     </div>
     <div class="lab-h"><span>History</span><span id="histCount" class="num"></span></div>
     <div id="histList"></div>
@@ -324,6 +328,15 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- DATA -->
   <section id="p-data" hidden>
+    <div class="card">
+      <span class="lab">Sync across devices</span>
+      <p class="tiny mb">On the Claude artifact link, your log is kept with the artifact itself, so every device signed into your account sees the same data. Saves happen a few seconds after each change.</p>
+      <div class="tiny" id="syncLine" style="margin-bottom:10px"></div>
+      <div class="btnrow">
+        <button class="btn" id="syncNow">Save now</button>
+        <button class="btn sec" id="syncGet">Refresh</button>
+      </div>
+    </div>
     <div class="card">
       <span class="lab">Nutrition engine</span>
       <p class="tiny mb">Where the calories come from on this device.</p>
@@ -428,8 +441,12 @@ button{user-select:none;-webkit-user-select:none}
   function sget(k) { try { return persistent ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { persistent = false; return mem[k] || null; } }
   function sset(k, v) { try { if (persistent) { localStorage.setItem(k, v); return true; } } catch (e) { persistent = false; } mem[k] = v; return persistent; }
 
-  var S = { entries: [], foods: [], maintenance: 2700, cache: {}, goal: null };
+  var S = { entries: [], foods: [], maintenance: 2700, cache: {}, goal: null, deleted: [], updatedAt: "" };
   var editEntry = null, editFood = null, tab = "weight", saveErr = "";
+  // Inline confirmation state. window.confirm() is blocked in sandboxed
+  // iframes (it returns false without ever showing a dialog), so deletes have
+  // to be confirmed in the page itself.
+  var pendingDel = null, pendingFDel = null, pendingWipe = false;
 
   function load() {
     try { var a = JSON.parse(sget("cut-entries") || "[]"); if (Array.isArray(a)) S.entries = a; } catch (e) {}
@@ -437,17 +454,25 @@ button{user-select:none;-webkit-user-select:none}
     var m = parseInt(sget("cut-maintenance"), 10); if (m > 0) S.maintenance = m;
     try { var c = JSON.parse(sget("cut-food-cache") || "{}"); if (c && typeof c === "object") S.cache = c; } catch (e) {}
     try { var g = JSON.parse(sget("cut-goal") || "null"); if (g && typeof g === "object") S.goal = g; } catch (e) {}
+    try { var d = JSON.parse(sget("cut-deleted") || "[]"); if (Array.isArray(d)) S.deleted = d; } catch (e) {}
+    S.updatedAt = sget("cut-updated") || "";
     // Migrate older records: they keyed on date alone, with no id or time.
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
   }
+  var applying = false;   // true while adopting a remote copy, so it is not echoed back
+
   function save() {
+    if (!applying) S.updatedAt = new Date().toISOString();
+    sset("cut-updated", S.updatedAt);
+    sset("cut-deleted", JSON.stringify(S.deleted));
     var ok = sset("cut-entries", JSON.stringify(S.entries)) &&
              sset("cut-foods", JSON.stringify(S.foods)) &&
              sset("cut-food-cache", JSON.stringify(S.cache)) &&
              sset("cut-goal", JSON.stringify(S.goal)) &&
              sset("cut-maintenance", String(S.maintenance));
     saveErr = ok ? "" : "This browser is not letting the app store data, so today's entries live only until you close the tab. Open Data and copy your backup.";
+    if (!applying) queuePush();
   }
 
   /* ---------- derived ---------- */
@@ -597,13 +622,18 @@ button{user-select:none;-webkit-user-select:none}
         (list.length > 1 ? 'avg ' + avg.toFixed(2) + ' kg' : '') +
         (ft.calories ? ' \u00b7 ' + ft.calories + ' kcal' : '') + '</span></div>';
       var rows = list.map(function (e) {
+        var ask = pendingDel === e.id;
         return '<div class="row' + (editEntry === e.id ? ' editing' : '') + '">' +
           '<div><div class="w num">' + e.weight.toFixed(1) + ' kg</div>' +
-          '<div class="meta">' + esc(e.time) + (e.note ? ' \u00b7 ' + esc(e.note) : '') + '</div></div>' +
-          (e.trained ? '<span class="tag">TRAINED</span>' : '') +
+          '<div class="meta">' + (ask ? 'Delete this reading?' : esc(e.time) + (e.note ? ' \u00b7 ' + esc(e.note) : '')) + '</div></div>' +
+          (e.trained && !ask ? '<span class="tag">TRAINED</span>' : '') +
           '<div class="sp"></div>' +
-          '<button class="iconbtn" data-edit="' + e.id + '" aria-label="Edit">Edit</button>' +
-          '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button></div>';
+          (ask
+            ? '<button class="iconbtn" data-delno="1">Keep</button>' +
+              '<button class="iconbtn" data-delyes="' + e.id + '" style="color:var(--bad)">Delete</button>'
+            : '<button class="iconbtn" data-edit="' + e.id + '" aria-label="Edit">Edit</button>' +
+              '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button>') +
+          '</div>';
       }).join("");
       return '<div class="daygroup">' + head + rows + '</div>';
     }).join("");
@@ -622,9 +652,13 @@ button{user-select:none;-webkit-user-select:none}
       return '<div class="row' + (editFood === f.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(f.name) +
         ' <span style="color:var(--muted);font-weight:400" class="num">\u00b7 ' + f.grams + ' g</span></div>' +
         '<div class="meta num">' + f.calories + ' kcal \u00b7 ' + f.protein + ' P \u00b7 ' + f.carbs + ' C \u00b7 ' + f.fat + ' F</div></div>' +
-        (SRC[f.src] ? '<span class="tag">' + SRC[f.src] + '</span>' : '') +
-        '<div class="sp"></div><button class="iconbtn" data-fedit="' + f.id + '">Edit</button>' +
-        '<button class="iconbtn del" data-fdel="' + f.id + '">\u2715</button></div>';
+        (SRC[f.src] && pendingFDel !== f.id ? '<span class="tag">' + SRC[f.src] + '</span>' : '') +
+        '<div class="sp"></div>' +
+        (pendingFDel === f.id
+          ? '<button class="iconbtn" data-fdelno="1">Keep</button>' +
+            '<button class="iconbtn" data-fdelyes="' + f.id + '" style="color:var(--bad)">Delete</button>'
+          : '<button class="iconbtn" data-fedit="' + f.id + '">Edit</button>' +
+            '<button class="iconbtn del" data-fdel="' + f.id + '">\u2715</button>') + '</div>';
     }).join("") : '<div class="empty">Nothing logged for this day.</div>';
     updatePreview();
   }
@@ -751,6 +785,7 @@ button{user-select:none;-webkit-user-select:none}
     $("wCancel").style.display = "none";
     $("wTrained").checked = false;
     $("wNote").value = "";
+    if ($("wMsg")) $("wMsg").textContent = "";
     var now = new Date();
     $("wDate").value = iso(now);
     $("wTime").value = hhmm(now);
@@ -780,7 +815,14 @@ button{user-select:none;-webkit-user-select:none}
 
   $("wSave").addEventListener("click", function () {
     var w = parseFloat($("wVal").value);
-    if (isNaN(w) || w < 30 || w > 250) { alert("Enter a weight between 30 and 250 kg."); return; }
+    var wm = $("wMsg");
+    // alert() is inert in a sandboxed iframe, so validation speaks in the page.
+    if (isNaN(w) || w < 30 || w > 250) {
+      wm.style.color = "var(--bad)";
+      wm.textContent = "Enter a weight between 30 and 250 kg.";
+      return;
+    }
+    wm.textContent = "";
     var rec = {
       id: editEntry || uid(), date: $("wDate").value || iso(new Date()),
       time: $("wTime").value || hhmm(new Date()), weight: clampW(w),
@@ -810,13 +852,17 @@ button{user-select:none;-webkit-user-select:none}
       render();
       $("wFormTitle").scrollIntoView({ block: "center", behavior: "smooth" });
     }
-    if (dl) {
-      var t = S.entries.filter(function (x) { return x.id === dl.dataset.del; })[0];
-      if (t && confirm("Delete the " + t.weight.toFixed(1) + " kg reading from " + fmtD(t.date) + "?")) {
-        S.entries = S.entries.filter(function (x) { return x.id !== dl.dataset.del; });
-        if (editEntry === dl.dataset.del) resetWeightForm();
-        save(); render();
-      }
+    // Two taps, both in-page: \u2715 asks, Delete confirms.
+    if (dl) { pendingDel = dl.dataset.del; render(); return; }
+    if (ev.target.closest("[data-delno]")) { pendingDel = null; render(); return; }
+    var yes = ev.target.closest("[data-delyes]");
+    if (yes) {
+      var id = yes.dataset.delyes;
+      S.entries = S.entries.filter(function (x) { return x.id !== id; });
+      if (S.deleted.indexOf(id) < 0) S.deleted.push(id);
+      if (editEntry === id) resetWeightForm();
+      pendingDel = null;
+      save(); render();
     }
   });
 
@@ -1181,9 +1227,15 @@ button{user-select:none;-webkit-user-select:none}
       render();
       $("fFormTitle").scrollIntoView({ block: "center", behavior: "smooth" });
     }
-    if (dl && confirm("Delete this food entry?")) {
-      S.foods = S.foods.filter(function (x) { return x.id !== dl.dataset.fdel; });
-      if (editFood === dl.dataset.fdel) resetFoodForm();
+    if (dl) { pendingFDel = dl.dataset.fdel; render(); return; }
+    if (ev.target.closest("[data-fdelno]")) { pendingFDel = null; render(); return; }
+    var fyes = ev.target.closest("[data-fdelyes]");
+    if (fyes) {
+      var fid = fyes.dataset.fdelyes;
+      S.foods = S.foods.filter(function (x) { return x.id !== fid; });
+      if (S.deleted.indexOf(fid) < 0) S.deleted.push(fid);
+      if (editFood === fid) resetFoodForm();
+      pendingFDel = null;
       save(); render();
     }
   });
@@ -1204,6 +1256,160 @@ button{user-select:none;-webkit-user-select:none}
   });
   $("notices").addEventListener("click", function (e) {
     var b = e.target.closest("[data-goto]"); if (b) setTab(b.dataset.goto);
+  });
+
+  /* ---- cross-device sync ----------------------------------------------
+     Uses the artifact capability's FILES form: it writes only data/log.json,
+     so the page itself is untouched and \u2014 unlike an html publish \u2014 this view
+     keeps running instead of reloading. Other open views reload to the new
+     version, which is what makes the sync feel automatic. Only works on the
+     Claude-hosted artifact; anywhere else there is nothing writable. */
+  var SYNC = { ns: null, on: false, state: "off", why: "not running inside Claude", timer: null, busy: false, dirty: false, at: "" };
+  var PATH = "data/log.json";
+
+  function showSync() {
+    var pill = $("syncPill"), txt = $("syncTxt"), line = $("syncLine");
+    if (!pill) return;
+    pill.hidden = !SYNC.on && SYNC.state !== "readonly";
+    var label = SYNC.state === "saving" ? "Saving..."
+      : SYNC.state === "pending" ? "Unsaved changes"
+      : SYNC.state === "synced" ? "Synced"
+      : SYNC.state === "readonly" ? "Read-only"
+      : SYNC.state === "error" ? "Sync problem" : "Sync off";
+    if (txt) txt.textContent = label;
+    pill.className = "pill" + (SYNC.state === "synced" ? "" : " warn");
+    if (line) {
+      line.textContent = SYNC.on
+        ? label + (SYNC.at ? " - last saved " + SYNC.at : "") + " (" + SYNC.why + ")"
+        : "Off - " + SYNC.why;
+      line.style.color = SYNC.on && SYNC.state === "synced" ? "var(--accent-ink)" : "var(--muted)";
+    }
+    var btn = $("syncNow");
+    if (btn) btn.disabled = !SYNC.on || SYNC.busy;
+  }
+
+  function syncInit() {
+    var c = (typeof window !== "undefined") ? window.claude : null;
+    if (!c || typeof c.use !== "function") { showSync(); return Promise.resolve(); }
+    return Promise.resolve(c.use("artifact")).then(function (ns) {
+      if (!ns || typeof ns.publish !== "function") {
+        SYNC.why = "this page cannot save to itself"; showSync(); return;
+      }
+      SYNC.ns = ns; SYNC.on = true; SYNC.state = "synced"; SYNC.why = "ready";
+      showSync();
+      return syncPull(true);
+    }, function () { SYNC.why = "sync capability unavailable"; showSync(); });
+  }
+
+  function syncPull(quiet) {
+    if (!SYNC.on) return Promise.resolve();
+    return fetch("./" + PATH + "?t=" + encodeURIComponent(S.updatedAt || "0"), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("no file"); return r.json(); })
+      .then(function (remote) {
+        var changed = mergeRemote(remote);
+        SYNC.why = changed ? "merged the shared copy" : "up to date";
+        SYNC.state = SYNC.dirty ? "pending" : "synced";
+        showSync();
+        // Local edits newer than the shared copy get pushed straight back.
+        if (S.updatedAt && (!remote || S.updatedAt > (remote.updatedAt || ""))) queuePush(500);
+      })
+      .catch(function () {
+        SYNC.why = quiet ? "no shared copy yet - first save will make one" : "could not read the shared copy";
+        showSync();
+      });
+  }
+
+  /* Union by id, honouring tombstones, so an entry added on one device is not
+     lost when the other device saves. */
+  function mergeRemote(r) {
+    if (!r || typeof r !== "object") return false;
+    var localNewer = (S.updatedAt || "") > (r.updatedAt || "");
+    var tomb = {};
+    (S.deleted || []).concat(r.deleted || []).forEach(function (id) { tomb[id] = 1; });
+
+    var index = function (arr) {
+      var m = {};
+      (arr || []).forEach(function (x) { if (x && x.id) m[x.id] = x; });
+      return m;
+    };
+    var union = function (mine, theirs) {
+      var a = index(mine), b = index(theirs), out = [];
+      Object.keys(b).forEach(function (k) { if (!a[k] || !localNewer) a[k] = b[k]; });
+      Object.keys(a).forEach(function (k) { if (!tomb[k]) out.push(a[k]); });
+      return out;
+    };
+
+    var before = JSON.stringify([S.entries.length, S.foods.length, S.maintenance, S.goal]);
+    applying = true;
+    S.entries = union(S.entries, r.entries);
+    S.foods = union(S.foods, r.foods);
+    S.cache = localNewer
+      ? Object.assign({}, r.cache || {}, S.cache)
+      : Object.assign({}, S.cache, r.cache || {});
+    if (!localNewer) {
+      if (r.maintenance > 0) S.maintenance = r.maintenance;
+      if (r.goal && typeof r.goal === "object") S.goal = r.goal;
+      if (r.updatedAt) S.updatedAt = r.updatedAt;
+    }
+    S.deleted = Object.keys(tomb);
+    S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
+    S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
+    save();
+    applying = false;
+    render(); fillGoalForm();
+    return JSON.stringify([S.entries.length, S.foods.length, S.maintenance, S.goal]) !== before;
+  }
+
+  function queuePush(delay) {
+    if (!SYNC.on) return;
+    SYNC.dirty = true;
+    if (SYNC.state !== "saving") { SYNC.state = "pending"; showSync(); }
+    if (SYNC.timer) clearTimeout(SYNC.timer);
+    SYNC.timer = setTimeout(syncPush, delay || 3000);   // one save per pause, never per keystroke
+  }
+
+  function syncPush() {
+    if (!SYNC.on || SYNC.busy) return;
+    SYNC.busy = true; SYNC.state = "saving"; showSync();
+    var files = {};
+    files[PATH] = JSON.stringify({
+      entries: S.entries, foods: S.foods, maintenance: S.maintenance,
+      cache: S.cache, goal: S.goal, deleted: S.deleted, updatedAt: S.updatedAt
+    });
+    SYNC.ns.publish(files).then(function () {
+      SYNC.busy = false; SYNC.dirty = false;
+      SYNC.state = "synced"; SYNC.why = "saved to your Claude account";
+      SYNC.at = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+      showSync();
+    }, function (err) {
+      SYNC.busy = false;
+      var code = (err && err.code) || "upstream_error";
+      if (code === "conflict") {
+        // Routine: another device saved first. Take their version, then re-send.
+        SYNC.state = "pending"; SYNC.why = "another device saved first - merging";
+        showSync(); syncPull();
+      } else if (code === "rate_limited") {
+        SYNC.state = "pending"; SYNC.why = "saving too often - slowing down";
+        showSync(); if (SYNC.timer) clearTimeout(SYNC.timer);
+        SYNC.timer = setTimeout(syncPush, 20000);
+      } else if (code === "upstream_error") {
+        SYNC.state = "error"; SYNC.why = "save failed - trying once more";
+        showSync(); if (SYNC.timer) clearTimeout(SYNC.timer);
+        SYNC.timer = setTimeout(syncPush, 5000);
+      } else if (code === "not_writer" || code === "not_granted" || code === "consent_required") {
+        SYNC.on = false; SYNC.state = "readonly"; SYNC.why = "this view can read but not save";
+        showSync();
+      } else {
+        SYNC.on = false; SYNC.state = "off"; SYNC.why = "not available here (" + code + ")";
+        showSync();
+      }
+    });
+  }
+
+  // Best-effort save when the app is backgrounded on a phone.
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden" && SYNC.dirty && !SYNC.busy) syncPush();
+    if (document.visibilityState === "visible" && SYNC.on && !SYNC.dirty) syncPull(true);
   });
 
   /* ---- nutrition engine diagnostic ---- */
@@ -1371,7 +1577,20 @@ button{user-select:none;-webkit-user-select:none}
     }
   });
   $("wipe").addEventListener("click", function () {
-    if (!confirm("Delete every weigh-in and food entry on this device? This cannot be undone.")) return;
+    // Two-tap confirmation, since confirm() cannot be shown here.
+    if (!pendingWipe) {
+      pendingWipe = true;
+      this.textContent = "Tap again to delete everything";
+      this.style.color = "var(--bad)";
+      var b = this;
+      setTimeout(function () {
+        if (!pendingWipe) return;
+        pendingWipe = false; b.textContent = "Delete all data"; b.style.color = "";
+      }, 5000);
+      return;
+    }
+    pendingWipe = false;
+    this.textContent = "Delete all data"; this.style.color = "";
     S.entries = []; S.foods = []; S.cache = {}; save(); resetWeightForm(); resetFoodForm(); render();
   });
 
@@ -1386,7 +1605,11 @@ button{user-select:none;-webkit-user-select:none}
   fillGoalForm();
   render();
   showEngine();
+  showSync();
+  $("syncNow").addEventListener("click", function () { if (SYNC.timer) clearTimeout(SYNC.timer); syncPush(); });
+  $("syncGet").addEventListener("click", function () { syncPull(); });
   // Discover how (or whether) Claude can be reached, then correct the copy.
   probeClaude().then(function () { showEngine(); if (!editFood) resetFoodForm(); });
+  syncInit();
 })();
 </script>
