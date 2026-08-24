@@ -204,10 +204,7 @@ button{user-select:none;-webkit-user-select:none}
     <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" style="font-size:12px;margin-left:4px">Change</button></div>
-    <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">
-      <span id="storePill" class="pill"><span class="dot"></span><span id="storeTxt"></span></span>
-      <span id="syncPill" class="pill" hidden><span class="dot"></span><span id="syncTxt"></span></span>
-    </div>
+    <div style="margin-top:9px"><span id="storePill" class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
   </header>
 
   <div id="notices"></div>
@@ -328,15 +325,6 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- DATA -->
   <section id="p-data" hidden>
-    <div class="card">
-      <span class="lab">Sync across devices</span>
-      <p class="tiny mb">On the Claude artifact link, your log is kept with the artifact itself, so every device signed into your account sees the same data. Saves happen a few seconds after each change.</p>
-      <div class="tiny" id="syncLine" style="margin-bottom:10px"></div>
-      <div class="btnrow">
-        <button class="btn" id="syncNow">Save now</button>
-        <button class="btn sec" id="syncGet">Refresh</button>
-      </div>
-    </div>
     <div class="card">
       <span class="lab">Nutrition engine</span>
       <p class="tiny mb">Where the calories come from on this device.</p>
@@ -460,10 +448,8 @@ button{user-select:none;-webkit-user-select:none}
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
   }
-  var applying = false;   // true while adopting a remote copy, so it is not echoed back
-
   function save() {
-    if (!applying) S.updatedAt = new Date().toISOString();
+    S.updatedAt = new Date().toISOString();
     sset("cut-updated", S.updatedAt);
     sset("cut-deleted", JSON.stringify(S.deleted));
     var ok = sset("cut-entries", JSON.stringify(S.entries)) &&
@@ -472,7 +458,6 @@ button{user-select:none;-webkit-user-select:none}
              sset("cut-goal", JSON.stringify(S.goal)) &&
              sset("cut-maintenance", String(S.maintenance));
     saveErr = ok ? "" : "This browser is not letting the app store data, so today's entries live only until you close the tab. Open Data and copy your backup.";
-    if (!applying) queuePush();
   }
 
   /* ---------- derived ---------- */
@@ -1258,160 +1243,6 @@ button{user-select:none;-webkit-user-select:none}
     var b = e.target.closest("[data-goto]"); if (b) setTab(b.dataset.goto);
   });
 
-  /* ---- cross-device sync ----------------------------------------------
-     Uses the artifact capability's FILES form: it writes only data/log.json,
-     so the page itself is untouched and \u2014 unlike an html publish \u2014 this view
-     keeps running instead of reloading. Other open views reload to the new
-     version, which is what makes the sync feel automatic. Only works on the
-     Claude-hosted artifact; anywhere else there is nothing writable. */
-  var SYNC = { ns: null, on: false, state: "off", why: "not running inside Claude", timer: null, busy: false, dirty: false, at: "" };
-  var PATH = "data/log.json";
-
-  function showSync() {
-    var pill = $("syncPill"), txt = $("syncTxt"), line = $("syncLine");
-    if (!pill) return;
-    pill.hidden = !SYNC.on && SYNC.state !== "readonly";
-    var label = SYNC.state === "saving" ? "Saving..."
-      : SYNC.state === "pending" ? "Unsaved changes"
-      : SYNC.state === "synced" ? "Synced"
-      : SYNC.state === "readonly" ? "Read-only"
-      : SYNC.state === "error" ? "Sync problem" : "Sync off";
-    if (txt) txt.textContent = label;
-    pill.className = "pill" + (SYNC.state === "synced" ? "" : " warn");
-    if (line) {
-      line.textContent = SYNC.on
-        ? label + (SYNC.at ? " - last saved " + SYNC.at : "") + " (" + SYNC.why + ")"
-        : "Off - " + SYNC.why;
-      line.style.color = SYNC.on && SYNC.state === "synced" ? "var(--accent-ink)" : "var(--muted)";
-    }
-    var btn = $("syncNow");
-    if (btn) btn.disabled = !SYNC.on || SYNC.busy;
-  }
-
-  function syncInit() {
-    var c = (typeof window !== "undefined") ? window.claude : null;
-    if (!c || typeof c.use !== "function") { showSync(); return Promise.resolve(); }
-    return Promise.resolve(c.use("artifact")).then(function (ns) {
-      if (!ns || typeof ns.publish !== "function") {
-        SYNC.why = "this page cannot save to itself"; showSync(); return;
-      }
-      SYNC.ns = ns; SYNC.on = true; SYNC.state = "synced"; SYNC.why = "ready";
-      showSync();
-      return syncPull(true);
-    }, function () { SYNC.why = "sync capability unavailable"; showSync(); });
-  }
-
-  function syncPull(quiet) {
-    if (!SYNC.on) return Promise.resolve();
-    return fetch("./" + PATH + "?t=" + encodeURIComponent(S.updatedAt || "0"), { cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error("no file"); return r.json(); })
-      .then(function (remote) {
-        var changed = mergeRemote(remote);
-        SYNC.why = changed ? "merged the shared copy" : "up to date";
-        SYNC.state = SYNC.dirty ? "pending" : "synced";
-        showSync();
-        // Local edits newer than the shared copy get pushed straight back.
-        if (S.updatedAt && (!remote || S.updatedAt > (remote.updatedAt || ""))) queuePush(500);
-      })
-      .catch(function () {
-        SYNC.why = quiet ? "no shared copy yet - first save will make one" : "could not read the shared copy";
-        showSync();
-      });
-  }
-
-  /* Union by id, honouring tombstones, so an entry added on one device is not
-     lost when the other device saves. */
-  function mergeRemote(r) {
-    if (!r || typeof r !== "object") return false;
-    var localNewer = (S.updatedAt || "") > (r.updatedAt || "");
-    var tomb = {};
-    (S.deleted || []).concat(r.deleted || []).forEach(function (id) { tomb[id] = 1; });
-
-    var index = function (arr) {
-      var m = {};
-      (arr || []).forEach(function (x) { if (x && x.id) m[x.id] = x; });
-      return m;
-    };
-    var union = function (mine, theirs) {
-      var a = index(mine), b = index(theirs), out = [];
-      Object.keys(b).forEach(function (k) { if (!a[k] || !localNewer) a[k] = b[k]; });
-      Object.keys(a).forEach(function (k) { if (!tomb[k]) out.push(a[k]); });
-      return out;
-    };
-
-    var before = JSON.stringify([S.entries.length, S.foods.length, S.maintenance, S.goal]);
-    applying = true;
-    S.entries = union(S.entries, r.entries);
-    S.foods = union(S.foods, r.foods);
-    S.cache = localNewer
-      ? Object.assign({}, r.cache || {}, S.cache)
-      : Object.assign({}, S.cache, r.cache || {});
-    if (!localNewer) {
-      if (r.maintenance > 0) S.maintenance = r.maintenance;
-      if (r.goal && typeof r.goal === "object") S.goal = r.goal;
-      if (r.updatedAt) S.updatedAt = r.updatedAt;
-    }
-    S.deleted = Object.keys(tomb);
-    S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
-    S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
-    save();
-    applying = false;
-    render(); fillGoalForm();
-    return JSON.stringify([S.entries.length, S.foods.length, S.maintenance, S.goal]) !== before;
-  }
-
-  function queuePush(delay) {
-    if (!SYNC.on) return;
-    SYNC.dirty = true;
-    if (SYNC.state !== "saving") { SYNC.state = "pending"; showSync(); }
-    if (SYNC.timer) clearTimeout(SYNC.timer);
-    SYNC.timer = setTimeout(syncPush, delay || 3000);   // one save per pause, never per keystroke
-  }
-
-  function syncPush() {
-    if (!SYNC.on || SYNC.busy) return;
-    SYNC.busy = true; SYNC.state = "saving"; showSync();
-    var files = {};
-    files[PATH] = JSON.stringify({
-      entries: S.entries, foods: S.foods, maintenance: S.maintenance,
-      cache: S.cache, goal: S.goal, deleted: S.deleted, updatedAt: S.updatedAt
-    });
-    SYNC.ns.publish(files).then(function () {
-      SYNC.busy = false; SYNC.dirty = false;
-      SYNC.state = "synced"; SYNC.why = "saved to your Claude account";
-      SYNC.at = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-      showSync();
-    }, function (err) {
-      SYNC.busy = false;
-      var code = (err && err.code) || "upstream_error";
-      if (code === "conflict") {
-        // Routine: another device saved first. Take their version, then re-send.
-        SYNC.state = "pending"; SYNC.why = "another device saved first - merging";
-        showSync(); syncPull();
-      } else if (code === "rate_limited") {
-        SYNC.state = "pending"; SYNC.why = "saving too often - slowing down";
-        showSync(); if (SYNC.timer) clearTimeout(SYNC.timer);
-        SYNC.timer = setTimeout(syncPush, 20000);
-      } else if (code === "upstream_error") {
-        SYNC.state = "error"; SYNC.why = "save failed - trying once more";
-        showSync(); if (SYNC.timer) clearTimeout(SYNC.timer);
-        SYNC.timer = setTimeout(syncPush, 5000);
-      } else if (code === "not_writer" || code === "not_granted" || code === "consent_required") {
-        SYNC.on = false; SYNC.state = "readonly"; SYNC.why = "this view can read but not save";
-        showSync();
-      } else {
-        SYNC.on = false; SYNC.state = "off"; SYNC.why = "not available here (" + code + ")";
-        showSync();
-      }
-    });
-  }
-
-  // Best-effort save when the app is backgrounded on a phone.
-  document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "hidden" && SYNC.dirty && !SYNC.busy) syncPush();
-    if (document.visibilityState === "visible" && SYNC.on && !SYNC.dirty) syncPull(true);
-  });
-
   /* ---- nutrition engine diagnostic ---- */
   function showEngine() {
     var w = $("engineWhat"), k = $("engineKeys");
@@ -1605,11 +1436,7 @@ button{user-select:none;-webkit-user-select:none}
   fillGoalForm();
   render();
   showEngine();
-  showSync();
-  $("syncNow").addEventListener("click", function () { if (SYNC.timer) clearTimeout(SYNC.timer); syncPush(); });
-  $("syncGet").addEventListener("click", function () { syncPull(); });
   // Discover how (or whether) Claude can be reached, then correct the copy.
   probeClaude().then(function () { showEngine(); if (!editFood) resetFoodForm(); });
-  syncInit();
 })();
 </script>
