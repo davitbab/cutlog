@@ -221,7 +221,7 @@ button{user-select:none;-webkit-user-select:none}
     <div class="note" id="projNote"></div>
     <div class="mrow">
       <span>Maintenance</span>
-      <input type="number" id="maint" class="num" style="width:92px;padding:5px 8px;font-size:13px" inputmode="numeric">
+      <input type="text" id="maint" class="num" style="width:92px;padding:5px 8px;font-size:13px" inputmode="numeric" autocomplete="off">
       <span>kcal/day</span>
     </div>
   </div>
@@ -244,7 +244,7 @@ button{user-select:none;-webkit-user-select:none}
       <label class="f">Weight</label>
       <div class="stepper">
         <div class="col"><button type="button" data-step="-1">&minus;1</button><button type="button" data-step="-0.1">&minus;0.1</button></div>
-        <div class="rd"><input type="number" id="wVal" step="0.1" min="30" max="250" inputmode="decimal"><span class="u">kg</span></div>
+        <div class="rd"><input type="text" id="wVal" inputmode="decimal" autocomplete="off" aria-label="Weight in kg"><span class="u">kg</span></div>
         <div class="col"><button type="button" data-step="1">+1</button><button type="button" data-step="0.1">+0.1</button></div>
       </div>
       <div class="quick" id="quickRow"></div>
@@ -266,7 +266,7 @@ button{user-select:none;-webkit-user-select:none}
       <span class="lab" id="fFormTitle">Log food</span>
       <div class="grid2 mb">
         <div><label class="f" for="fDate">Date</label><input type="date" id="fDate"></div>
-        <div><label class="f" for="fGrams">Grams <span style="opacity:.7">(optional)</span></label><input type="number" id="fGrams" inputmode="decimal" placeholder="leave empty"></div>
+        <div><label class="f" for="fGrams">Grams <span style="opacity:.7">(optional)</span></label><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="leave empty"></div>
       </div>
       <label class="f" for="fName">What did you eat</label>
       <input type="text" id="fName" class="mb" placeholder="2 eggs, or an apple, or 250 g shawarma" autocomplete="off">
@@ -280,10 +280,10 @@ button{user-select:none;-webkit-user-select:none}
         <div style="height:12px"></div>
         <label class="f" id="fManualLab">Per 100 g</label>
         <div class="grid4 mb">
-          <div><label class="f" for="fKcal">kcal</label><input type="number" id="fKcal" inputmode="decimal" placeholder="165"></div>
-          <div><label class="f" for="fP">P</label><input type="number" id="fP" inputmode="decimal" placeholder="31"></div>
-          <div><label class="f" for="fC">C</label><input type="number" id="fC" inputmode="decimal" placeholder="0"></div>
-          <div><label class="f" for="fF">F</label><input type="number" id="fF" inputmode="decimal" placeholder="3.6"></div>
+          <div><label class="f" for="fKcal">kcal</label><input type="text" id="fKcal" inputmode="decimal" autocomplete="off" placeholder="165"></div>
+          <div><label class="f" for="fP">P</label><input type="text" id="fP" inputmode="decimal" autocomplete="off" placeholder="31"></div>
+          <div><label class="f" for="fC">C</label><input type="text" id="fC" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+          <div><label class="f" for="fF">F</label><input type="text" id="fF" inputmode="decimal" autocomplete="off" placeholder="3.6"></div>
         </div>
         <div class="tiny mb" id="fPreview"></div>
         <button class="btn sec" id="fManualSave">Add with these values</button>
@@ -359,8 +359,8 @@ button{user-select:none;-webkit-user-select:none}
       <span class="lab">Goal</span>
       <p class="tiny mb">Every number, the chart and the projection recalculate from these four.</p>
       <div class="grid2 mb">
-        <div><label class="f" for="gStart">Starting weight (kg)</label><input type="number" id="gStart" step="0.1" inputmode="decimal"></div>
-        <div><label class="f" for="gTarget">Target weight (kg)</label><input type="number" id="gTarget" step="0.1" inputmode="decimal"></div>
+        <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
+        <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
       </div>
       <div class="grid2 mb">
         <div><label class="f" for="gFrom">Start date</label><input type="date" id="gFrom"></div>
@@ -422,6 +422,29 @@ button{user-select:none;-webkit-user-select:none}
   function fmtD(s) { return parseD(s).toLocaleDateString(undefined, { day: "2-digit", month: "short" }); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  /* ---------- numbers typed by a human ----------
+     An iPhone keyboard follows the phone's locale: where the locale uses a
+     comma for decimals the numeric pad offers "," and no ".", and a
+     type="number" field silently rejects it -- so "10,4" arrives as an empty
+     value and the entry looks broken. Every number field is therefore plain
+     text with inputmode="decimal", and every read goes through here, so
+     "10.4", "10,4" and "1 234,5" all mean what they look like. */
+  function num(v) {
+    if (typeof v === "number") return v;
+    var s = String(v == null ? "" : v).replace(/[\s\u00a0'\u2019]/g, "");
+    var lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
+    if (lc >= 0 && ld >= 0) {
+      // Both present: the one further right is the decimal point.
+      s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+    } else if (lc >= 0) {
+      // Commas only: several of them can only be thousands separators.
+      s = s.indexOf(",") === lc ? s.replace(",", ".") : s.replace(/,/g, "");
+    }
+    var x = parseFloat(s);
+    return isFinite(x) ? x : NaN;
+  }
+  function numOf(id) { return num($(id).value); }
 
   /* The goal is user-editable; everything downstream reads it through here so a
      half-filled or nonsensical setting can never produce a broken chart. */
@@ -689,7 +712,7 @@ button{user-select:none;-webkit-user-select:none}
     $("ftK").textContent = t.calories; $("ftP").textContent = Math.round(t.protein);
     $("ftC").textContent = Math.round(t.carbs); $("ftF").textContent = Math.round(t.fat);
     var list = S.foods.filter(function (f) { return f.date === d; });
-    var SRC = { claude: "Claude", table: "Built-in", manual: "Yours" };
+    var SRC = { claude: "Claude", off: "Food Facts", table: "Built-in", manual: "Yours" };
     $("foodList").innerHTML = list.length ? list.map(function (f) {
       return '<div class="row' + (editFood === f.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(f.name) +
         ' <span style="color:var(--muted);font-weight:400" class="num">\u00b7 ' + f.grams + ' g</span></div>' +
@@ -706,7 +729,7 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   function updatePreview() {
-    var g = parseFloat($("fGrams").value), k = parseFloat($("fKcal").value);
+    var g = numOf("fGrams"), k = numOf("fKcal");
     if (g > 0 && k >= 0) {
       var f = g / 100;
       $("fPreview").innerHTML = "That is <b style='color:var(--ink)'>" + Math.round(k * f) + " kcal</b> for " + g + " g.";
@@ -850,13 +873,13 @@ button{user-select:none;-webkit-user-select:none}
   });
   document.querySelectorAll("[data-step]").forEach(function (b) {
     b.addEventListener("click", function () {
-      var cur = parseFloat($("wVal").value); if (isNaN(cur)) cur = 90;
+      var cur = numOf("wVal"); if (isNaN(cur)) cur = 90;
       $("wVal").value = clampW(cur + parseFloat(b.dataset.step)).toFixed(1);
     });
   });
 
   $("wSave").addEventListener("click", function () {
-    var w = parseFloat($("wVal").value);
+    var w = numOf("wVal");
     var wm = $("wMsg");
     // alert() is inert in a sandboxed iframe, so validation speaks in the page.
     if (isNaN(w) || w < 30 || w > 250) {
@@ -929,7 +952,7 @@ button{user-select:none;-webkit-user-select:none}
     showManual(false);
     setStatus(claudeAvailable()
       ? "Type what you ate \u2014 \u201c2 eggs\u201d, \u201can apple\u201d, \u201c250 g shawarma\u201d. Grams are optional; Claude works out the portion and the macros."
-      : "Type what you ate \u2014 \u201c2 eggs\u201d, \u201can apple\u201d. Grams are optional for common items. This page cannot reach Claude, so it uses the built-in figures, or asks you once.");
+      : "Type what you ate \u2014 \u201c2 eggs\u201d, \u201can apple\u201d, or a brand name. Grams are optional for common items. This page cannot reach Claude, so it looks in the built-in list and then in Open Food Facts.");
     updatePreview();
   }
   ["fGrams", "fKcal"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
@@ -1006,22 +1029,34 @@ button{user-select:none;-webkit-user-select:none}
     return best ? { unit: PORTIONS[best], matched: best } : null;
   }
 
-  /* Fuzzy match against the built-in table: score by shared words, so
-     "grilled chicken" still finds "Chicken breast, grilled". */
-  function tableLookup(name) {
+  /* How much of the query a label accounts for: 1 = every meaningful word of
+     "grilled chicken" appears in "Chicken breast, grilled". */
+  function matchScore(words, label) {
+    if (!words.length) return 0;
+    var hay = singular(norm(label)), hits = 0;
+    words.forEach(function (w) { if (hay.indexOf(w) >= 0) hits++; });
+    return hits / words.length;
+  }
+  function keyWords(name) {
     // Match on the name with any count and plural removed, so "2 eggs",
     // "three eggs" and "1 egg" all reach the same row.
-    var q = foodKey(name).split(" ").filter(function (w) { return w.length > 2; });
+    return foodKey(name).split(" ").filter(function (w) { return w.length > 2; });
+  }
+
+  /* Fuzzy match against the built-in table. The score comes back with the row:
+     a confident hit on this curated table is better than a web lookup, a vague
+     one is not. */
+  function tableLookup(name) {
+    var q = keyWords(name);
     if (!q.length) return null;
     var best = null, bestScore = 0;
     DB.forEach(function (r) {
-      var hay = singular(norm(r[0])), hits = 0;
-      q.forEach(function (w) { if (hay.indexOf(w) >= 0) hits++; });
-      var score = hits / q.length;
+      var score = matchScore(q, r[0]);
       if (score > bestScore) { bestScore = score; best = r; }
     });
     if (!best || bestScore < 0.5) return null;
-    return { calories: best[1], protein: best[2], carbs: best[3], fat: best[4], src: "table", matched: best[0] };
+    return { calories: best[1], protein: best[2], carbs: best[3], fat: best[4],
+             src: "table", matched: best[0], score: bestScore };
   }
 
   function plausible(o) {
@@ -1033,6 +1068,115 @@ button{user-select:none;-webkit-user-select:none}
     }
     // Per 100 g nothing exceeds ~900 kcal (pure fat is 884) or 100 g of a macro.
     return o.calories <= 950 && o.protein <= 100 && o.carbs <= 100 && o.fat <= 100;
+  }
+
+  /* ---------- Open Food Facts ----------
+     The table above is a few dozen staples. Open Food Facts is the largest
+     openly licensed food database there is - millions of products under the
+     ODbL, no key, no sign-up, and CORS left open - so it covers everything
+     the table misses, branded items included. It does throttle: a handful of
+     searches a minute per address, which is far more than logging a meal
+     needs, and answers already used are remembered in S.cache anyway.
+
+     Its rows are crowd-entered, so no single row is trusted: a candidate has
+     to match the name, pass plausible(), and have macros that actually explain
+     its kcal. What gets used is the median of the survivors, so one sloppy
+     entry cannot move the answer. */
+  var OFF = { host: "https://world.openfoodfacts.org", reached: null, why: "" };
+
+  function median(a) {
+    var v = a.slice().sort(function (x, y) { return x - y; }), m = v.length >> 1;
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+  function fetchJSON(url, ms) {
+    if (typeof fetch !== "function") return Promise.reject(new Error("this page has no fetch"));
+    var ctl = (typeof AbortController === "function") ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 9000);
+    return fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+      clearTimeout(timer);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }, function (e) { clearTimeout(timer); throw e; });
+  }
+  /* Contributors enter energy in kcal, in kJ, or in a field carrying whichever
+     unit they picked, so all three are read. */
+  function offKcal(nu) {
+    var k = +nu["energy-kcal_100g"];
+    if (isFinite(k) && k > 0) return k;
+    var kj = +nu["energy-kj_100g"];
+    if (isFinite(kj) && kj > 0) return kj / 4.184;
+    var e = +nu.energy_100g;
+    if (isFinite(e) && e > 0) {
+      return String(nu.energy_unit || "kj").toLowerCase().indexOf("cal") >= 0 ? e : e / 4.184;
+    }
+    return NaN;
+  }
+
+  function offLookup(name) {
+    var terms = foodKey(name);
+    if (!terms) return Promise.resolve(null);
+    var url = OFF.host + "/cgi/search.pl?search_simple=1&action=process&json=1&page_size=24" +
+      "&fields=" + encodeURIComponent("product_name,product_name_en,generic_name,brands,nutriments,serving_quantity") +
+      "&search_terms=" + encodeURIComponent(terms);
+    // Searches are capped at a handful a minute per address, and a throttled
+    // 503 arrives without CORS headers, so the browser cannot tell it from
+    // being offline - both look like "Failed to fetch". One blind retry it is.
+    var get = fetchJSON(url, 9000).catch(function () {
+      return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return fetchJSON(url, 9000); });
+    });
+    return get.then(function (j) {
+      OFF.reached = true;
+      var q = keyWords(name), cand = [];
+      ((j && j.products) || []).forEach(function (pr) {
+        // Rows entered per serving still carry _100g figures, derived from the
+        // serving size, so they count too.
+        var nu = pr.nutriments || {};
+        var o = { calories: offKcal(nu), protein: +nu.proteins_100g,
+                  carbs: +nu.carbohydrates_100g, fat: +nu.fat_100g };
+        if (!plausible(o)) return;
+        // A typo shows up as macros that do not add back up to the kcal.
+        if (Math.abs(4 * o.protein + 4 * o.carbs + 9 * o.fat - o.calories) > Math.max(40, 0.3 * o.calories)) return;
+        var label = String(pr.product_name_en || pr.product_name || pr.generic_name || "").trim();
+        if (!label) return;
+        // The brand sometimes carries the match ("Skyr" is a brand as well as a
+        // food), but a hit on the product name is the stronger signal.
+        o.score = Math.max(matchScore(q, label), 0.9 * matchScore(q, label + " " + (pr.brands || "")));
+        o.label = label;
+        o.serving = +pr.serving_quantity;
+        // Words the label adds on top of the query. "Sardines in olive oil"
+        // scores as highly for "olive oil" as "Mabrouka olive oil" does, and
+        // this is what tells them apart.
+        o.extra = singular(norm(label + " " + (pr.brands || ""))).split(" ").filter(function (w) {
+          return w.length > 2 && q.indexOf(w) < 0;
+        }).length;
+        cand.push(o);
+      });
+      if (!cand.length) return null;
+      cand.sort(function (a, b) { return (b.score - a.score) || (a.extra - b.extra); });
+      var top = cand[0].score;
+      if (top < 0.6) return null;                  // nothing here is really the food asked for
+      var band = cand.filter(function (c) { return c.score >= Math.max(0.6, top - 0.2); });
+      var lean = band[0].extra;
+      var keep = band.filter(function (c) { return c.extra <= lean + 1; }).slice(0, 9);
+      var pick = function (f) { return keep.map(f); };
+      var med1 = function (xs) { return Math.round(median(xs) * 10) / 10; };
+      var r = {
+        calories: Math.round(median(pick(function (c) { return c.calories; }))),
+        protein: med1(pick(function (c) { return c.protein; })),
+        carbs: med1(pick(function (c) { return c.carbs; })),
+        fat: med1(pick(function (c) { return c.fat; })),
+        src: "off", matched: keep[0].label, n: keep.length
+      };
+      // Where the products agree on a serving size, that doubles as the weight
+      // of one of the thing.
+      var sv = pick(function (c) { return c.serving; }).filter(function (v) { return isFinite(v) && v >= 5 && v <= 1500; });
+      if (sv.length) r.unit = Math.round(median(sv));
+      return plausible(r) ? r : null;
+    }).catch(function (e) {
+      OFF.reached = false;
+      OFF.why = String((e && e.message) || e);
+      return null;
+    });
   }
 
   /* Ask Claude, if this runtime exposes a completion call. Published artifact
@@ -1161,8 +1305,49 @@ button{user-select:none;-webkit-user-select:none}
     setStatus(why, "bad");
   }
 
+  /* Where the numbers come from, in order of how much they can be trusted:
+     Claude, then a confident hit on the curated table, then Open Food Facts,
+     then a vague hit on the table. Each step yields the per-100 g figures plus
+     "unit" - the weight of ONE of the item, which is only needed when the
+     grams field was left empty. */
+  function resolveFood(nm, needWeight, count) {
+    var tbl = tableLookup(nm);
+    var por = portionGrams(nm);
+    var unitFrom = function (o) { return por ? por.unit : (o && o.unit > 0 ? o.unit : 0); };
+
+    return probeClaude().then(function () {
+      setStatus(CLAUDE.fn
+        ? (needWeight ? "Asking Claude for the portion size and the numbers\u2026" : "Asking Claude for the numbers\u2026")
+        : "Checking the built-in figures\u2026");
+      return claudeLookup(nm, needWeight);
+    }).then(function (res) {
+      if (res) {
+        return { per100: res, unit: needWeight ? res.grams / (count || 1) : unitFrom(null),
+                 how: "Claude worked out the " + (needWeight ? "portion and macros" : "macros") + "." };
+      }
+      if (tbl && tbl.score >= 0.85) {
+        return { per100: tbl, unit: unitFrom(null),
+                 how: "using the built-in figures for \u201c" + esc(tbl.matched) + "\u201d." };
+      }
+      setStatus("Searching Open Food Facts\u2026");
+      return offLookup(nm).then(function (off) {
+        if (off) {
+          return { per100: off, unit: unitFrom(off),
+                   how: "from Open Food Facts: the median of " + off.n +
+                        (off.n === 1 ? " matching product, \u201c" : " matching products, closest \u201c") +
+                        esc(off.matched) + "\u201d." };
+        }
+        if (tbl) {
+          return { per100: tbl, unit: unitFrom(null),
+                   how: "using the built-in figures for \u201c" + esc(tbl.matched) + "\u201d." };
+        }
+        return null;
+      });
+    });
+  }
+
   $("fSave").addEventListener("click", function () {
-    var nm = $("fName").value.trim(), typed = parseFloat($("fGrams").value);
+    var nm = $("fName").value.trim(), typed = numOf("fGrams");
     var date = $("fDate").value || iso(new Date());
     if (!nm) { setStatus("Type what you ate first.", "bad"); return; }
 
@@ -1172,7 +1357,7 @@ button{user-select:none;-webkit-user-select:none}
     var haveG = explicit > 0;
     typed = explicit;
     var key = foodKey(nm);
-    var howMuch = function (grams, unit) {
+    var howMuch = function (grams) {
       return haveG ? "" : " (" + (q.n === 1 ? "one" : q.n) + " \u2248 " + Math.round(grams) + " g)";
     };
 
@@ -1190,57 +1375,46 @@ button{user-select:none;-webkit-user-select:none}
     $("fSave").disabled = true;
     setStatus("Working it out\u2026");
 
-    // 2. Claude \u2014 when grams are blank it estimates the portion weight too
-    probeClaude().then(function () {
-      setStatus(CLAUDE.fn
-        ? (haveG ? "Asking Claude for the numbers\u2026" : "Asking Claude for the portion size and the numbers\u2026")
-        : "Checking the built-in figures\u2026");
-      return claudeLookup(nm, !haveG);
-    }).then(function (res) {
+    resolveFood(nm, !haveG, q.n).then(function (c) {
       $("fSave").disabled = false;
-      if (res) {
-        var g2 = haveG ? typed : res.grams;
-        if (g2 > 0) {
-          var r = commit(res, nm, g2, date, haveG ? 0 : g2 / (q.n || 1));
-          setStatus("Added " + r.calories + " kcal" + howMuch(g2) + " \u2014 Claude worked out the " +
-            (haveG ? "macros" : "portion and macros") + ".", "ok");
+      if (c) {
+        var g = haveG ? typed : (c.unit > 0 ? c.unit * q.n : 0);
+        if (g > 0) {
+          var r = commit(c.per100, nm, g, date, haveG ? 0 : c.unit);
+          setStatus("Added " + r.calories + " kcal" + howMuch(g) + " \u2014 " + c.how +
+            " Edit it if that is not close enough.", "ok");
           return;
         }
-      }
-      // 3. built-in tables: macros from the food list, weight from the portion list
-      var t = tableLookup(nm);
-      var p = portionGrams(nm);
-      var g3 = haveG ? typed : (p ? p.unit * q.n : null);
-      if (t && g3 > 0) {
-        var r2 = commit(t, nm, g3, date, haveG ? 0 : (p ? p.unit : 0));
-        setStatus("Added " + r2.calories + " kcal" + howMuch(g3) + " using the built-in figures for \u201c" +
-          esc(t.matched) + "\u201d. Edit it if that is not close enough.", "ok");
-        return;
-      }
-      // 4. ask \u2014 and say precisely what is missing
-      if (t && !(g3 > 0)) {
+        // 2. Macros found, weight not \u2014 fill them in and ask for the grams only.
         showManual(true);
-        $("fKcal").value = t.calories; $("fP").value = t.protein; $("fC").value = t.carbs; $("fF").value = t.fat;
+        $("fKcal").value = c.per100.calories; $("fP").value = c.per100.protein;
+        $("fC").value = c.per100.carbs; $("fF").value = c.per100.fat;
         updatePreview();
-        setStatus("I have the figures for \u201c" + esc(t.matched) + "\u201d but not the weight of \u201c" + esc(nm) +
-          "\u201d. Type the grams and add it.", "bad");
+        setStatus("Got the per-100 g figures " + c.how + " What is missing is the weight of " +
+          "\u201c" + esc(nm) + "\u201d \u2014 type the grams and add it.", "bad");
         return;
       }
-      askForGrams(nm, claudeAvailable()
-        ? "Claude could not work out \u201c" + esc(nm) + "\u201d, and it is not in the built-in list. Enter the grams and the per-100 g figures once \u2014 both will be remembered."
-        : "This page cannot reach Claude, and \u201c" + esc(nm) + "\u201d is not in the built-in list. Enter the grams and the per-100 g figures once \u2014 both will be remembered.");
+      // 3. Nothing anywhere \u2014 say precisely which lookups came up empty.
+      var why = [];
+      if (!claudeAvailable()) why.push("this page cannot reach Claude");
+      // It allows only a handful of searches a minute, and a refusal is
+      // indistinguishable from being offline, so the message covers both.
+      if (OFF.reached === false) why.push("Open Food Facts did not answer \u2014 it may just be busy, so this can work a minute later");
+      askForGrams(nm, "Could not work out \u201c" + esc(nm) + "\u201d" +
+        (why.length ? " (" + why.join(", ") + ")" : "") +
+        ". Enter the grams and the per-100 g figures once \u2014 both will be remembered.");
     });
   });
 
   $("fManualSave").addEventListener("click", function () {
-    var nm = $("fName").value.trim(), g = parseFloat($("fGrams").value), k = parseFloat($("fKcal").value);
+    var nm = $("fName").value.trim(), g = numOf("fGrams"), k = numOf("fKcal");
     var date = $("fDate").value || iso(new Date());
     if (!nm) { setStatus("Type what you ate first.", "bad"); return; }
     if (!(g > 0)) { setStatus("Enter how many grams you ate.", "bad"); return; }
     if (isNaN(k)) { setStatus("Enter at least the kcal per 100 g.", "bad"); return; }
     var was = !!editFood;
     var q = parseQty(nm);
-    var r = commit({ calories: k, protein: +$("fP").value || 0, carbs: +$("fC").value || 0, fat: +$("fF").value || 0, src: "manual" },
+    var r = commit({ calories: k, protein: numOf("fP") || 0, carbs: numOf("fC") || 0, fat: numOf("fF") || 0, src: "manual" },
                    nm, g, date, g / (q.n || 1));
     setStatus((was ? "Updated" : "Added") + " " + r.calories + " kcal, and saved these figures for \u201c" + esc(nm) + "\u201d.", "ok");
   });
@@ -1284,7 +1458,10 @@ button{user-select:none;-webkit-user-select:none}
 
   /* ---------- maintenance, tabs, data ---------- */
   $("maint").addEventListener("change", function () {
-    var v = parseInt(this.value, 10); if (v > 0) { S.maintenance = v; save(); render(); }
+    // Whole calories only, so a separator here can only be a thousands mark:
+    // "2,450" and "2 450" both mean 2450.
+    var v = parseInt(String(this.value).replace(/[^0-9]/g, ""), 10);
+    if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
   function setTab(t) {
@@ -1351,7 +1528,7 @@ button{user-select:none;-webkit-user-select:none}
   });
   $("gSave").addEventListener("click", function () {
     var msg = $("gMsg");
-    var s = parseFloat($("gStart").value), t = parseFloat($("gTarget").value);
+    var s = numOf("gStart"), t = numOf("gTarget");
     var a = $("gFrom").value, b = $("gTo").value;
     msg.style.color = "var(--bad)";
     if (!(s > 20 && s < 400)) { msg.textContent = "Starting weight should be between 20 and 400 kg."; return; }
