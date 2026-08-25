@@ -643,11 +643,18 @@ button{user-select:none;-webkit-user-select:none}
     var cur = latestDay ? latestDay.w : null;
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
+    var pace = null;
+    if (days.length >= 2) {
+      var firstDay = days[0], lastDay = days[days.length - 1];
+      var elapsedDays = dayDiff(firstDay.date, lastDay.date);
+      if (elapsedDays > 0) pace = (lastDay.w - firstDay.w) / elapsedDays * 7;
+    }
+    $("tPace").innerHTML = pace !== null ? (pace > 0 ? "+" : "") + pace.toFixed(2) + '<small>kg</small>' : "\u2013";
+// Signed on purpose: negative is loss, positive is gain. Hiding the sign
+// would make a gaining week look like a losing one.
 
-    var reg = regression(days.map(function (d, i) { return { x: dayDiff(days[0].date, d.date), y: d.w }; }));
-    // Signed on purpose: negative is loss, positive is gain. Hiding the sign
-    // would make a gaining week look like a losing one.
-    $("tPace").innerHTML = reg ? (reg.m * 7 > 0 ? "+" : "") + (reg.m * 7).toFixed(2) + '<small>kg</small>' : "\u2013";
+
+
 
     // projection from logged intake
     var fd = {}; S.foods.forEach(function (f) { fd[f.date] = (fd[f.date] || 0) + f.calories; });
