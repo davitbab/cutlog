@@ -78,7 +78,7 @@ body{
 .wrap{max-width:520px;margin:0 auto;padding:0 16px 24px}
 /* The tab bar is fixed over the bottom of the viewport, so the page keeps a
    bar's worth of clearance underneath everything. */
-.wrap{padding-bottom:calc(62px + env(safe-area-inset-bottom) + 18px)}
+.wrap{padding-bottom:calc(52px + env(safe-area-inset-bottom) + 18px)}
 
 /* header */
 header{padding:22px 0 14px}
@@ -128,7 +128,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .tabs button{
   flex:1;border:0;border-top:2px solid transparent;background:transparent;color:var(--muted);
   font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:0 2px;
-  cursor:pointer;min-height:56px;
+  cursor:pointer;min-height:46px;
 }
 .tabs button[aria-selected="true"]{color:var(--accent-ink);border-top-color:var(--accent);background:var(--accent-soft)}
 .tabs button:active{background:var(--surface-2)}
@@ -182,7 +182,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
   padding:4px 9px;min-height:32px;font-size:12.5px;color:var(--ink-2);
 }
 .dchip{cursor:pointer}
-.dchip .pen{font-style:normal;font-size:10px;color:var(--muted)}
+.dchip .pen{font-style:normal;font-size:12.5px;color:var(--muted);line-height:1}
 .dchip:active{background:var(--field)}
 .dchip:focus-within,.minif:focus-within{border-color:var(--accent)}
 .dchip input{
@@ -309,8 +309,9 @@ button{user-select:none;-webkit-user-select:none}
     <div class="eyebrow">Cut Log</div>
     <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
-      <button class="linkbtn" id="goalEdit" style="font-size:12px;margin-left:4px">Change</button></div>
-    <div style="margin-top:9px"><span id="storePill" class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
+      <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
+        style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
+    <div id="storeWrap" style="margin-top:9px" hidden><span id="storePill" class="pill warn"><span class="dot"></span><span id="storeTxt"></span></span></div>
   </header>
 
   <div id="notices"></div>
@@ -801,9 +802,10 @@ button{user-select:none;-webkit-user-select:none}
     $("projLab").textContent = "Projected \u00b7 " + fmtShort(G.endDate);
     $("trendCardLab").textContent = "Trend \u00b7 " + fmtShort(G.endDate);
 
-    // storage pill
-    $("storePill").className = "pill" + (persistent ? "" : " warn");
-    $("storeTxt").textContent = persistent ? "Saved on this device" : "Not saving \u2014 back up";
+    // The pill says nothing while storage works -- an app that saves does not
+    // need to announce it. It appears only when saving is blocked.
+    $("storeWrap").hidden = persistent;
+    if (!persistent) $("storeTxt").textContent = "Not saving \u2014 export a copy";
 
     // notices
     var nz = "";
@@ -820,40 +822,36 @@ button{user-select:none;-webkit-user-select:none}
     var cur = latestDay ? latestDay.w : null;
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
-    // Signed on purpose: negative is loss, positive is gain. Hiding the sign
-    // would make a gaining week look like a losing one.
-    var pace = null;
-    if (days.length >= 2) {
-      var firstDay = days[0], lastDay = days[days.length - 1];
-      var elapsedDays = dayDiff(firstDay.date, lastDay.date);
-      if (elapsedDays > 0) pace = (lastDay.w - firstDay.w) / elapsedDays * 7;
-    }
+    /* Speed over the whole period: the starting weight against where you are
+       now, spread over every calendar day since the start date. Days without a
+       weigh-in still count -- they passed either way -- so this is the real
+       average pace, not the pace of the days you happened to log.
+       Signed on purpose: negative is loss, positive is gain. */
+    var sinceStart = dayDiff(G.startDate, today);
+    // Under a week the divisor is too small for the number to mean anything.
+    var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
+    var pace = perDay !== null ? perDay * 7 : null;
     $("tPace").innerHTML = pace !== null ? (pace > 0 ? "+" : "") + pace.toFixed(2) + '<small>kg</small>' : "\u2013";
 
-    // Trend card: the same best-fit line the chart draws, read at the goal
-    // date, so the number does not live only on the charts page.
-    var regD = days.length >= 2
-      ? regression(days.map(function (d) { return { x: dayDiff(days[0].date, d.date), y: d.w }; }))
-      : null;
-    if (regD) {
-      var tEnd = regD.b + regD.m * dayDiff(days[0].date, G.endDate);
-      var wk = regD.m * 7, off = tEnd - G.target;
-      // Elapsed calendar days, which is what the slope is measured against.
-      // The weigh-in count is what fed the fit, and the two are rarely equal.
-      var elapsed = dayDiff(days[0].date, days[days.length - 1].date);
+    /* Trend card: carry that same pace forward to the target date, so the rate
+       shown and the weight shown are one calculation rather than two. */
+    if (perDay !== null) {
+      var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
+      var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
       $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
-      $("trendCardNote").innerHTML = "<b>" + (wk > 0 ? "+" : "") + wk.toFixed(2) + " kg</b>/week over " +
-        elapsed + " days \u00b7 " + days.length + " weigh-in" + (days.length === 1 ? "" : "s") +
+      $("trendCardNote").innerHTML = "<b>" + (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg</b>/week over " + sinceStart + " days" +
         "<br>plan today <b>" + plan.toFixed(1) + " kg</b> \u00b7 " + (Math.abs(gap) < 0.05
           ? "on plan"
           : "<b>" + Math.abs(gap).toFixed(1) + " kg</b> " + (gap > 0 ? "behind" : "ahead"))
         + "<br>" + (Math.abs(off) < 0.05
-          ? "dead on target"
-          : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "above" : "under") + " target");
+          ? "lands on target"
+          : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "short of target" : "past target"));
     } else {
       $("trendCardVal").textContent = "\u2013";
-      $("trendCardNote").textContent = "Two days of weigh-ins draw the trend.";
+      $("trendCardNote").textContent = cur === null
+        ? "Add a weigh-in to draw the trend."
+        : "A week from the start date draws the trend.";
     }
     // Projection from logged intake, net of training. A day with training but
     // no food is left out: the burn is known, the intake is not.
@@ -868,8 +866,15 @@ button{user-select:none;-webkit-user-select:none}
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
       $("projVal").textContent = proj.toFixed(1) + " kg";
-      $("projNote").innerHTML = "<b>" + avgKcal + " kcal</b>" + (trainedKcal > 0 ? " net" : "") + "/day over " + fdays.length + " day" + (fdays.length !== 1 ? "s" : "") +
-        "<br><b>" + (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg</b>/week from " + cur.toFixed(1) + " kg";
+      /* The note is the derivation, in the order the number is built: what you
+         eat, how far that sits from maintenance, and the weekly rate that gap
+         buys at 7 700 kcal per kilo. The big figure above is where it lands. */
+      $("projNote").innerHTML =
+        "<b>" + avgKcal + " kcal</b>" + (trainedKcal > 0 ? " net" : "") + "/day across " + fdays.length + " logged day" + (fdays.length === 1 ? "" : "s") +
+        "<br>" + (Math.abs(def) < 1
+          ? "at maintenance (<b>" + S.maintenance + " kcal</b>)"
+          : "<b>" + Math.abs(def) + " kcal</b> " + (def > 0 ? "under" : "over") + " " + S.maintenance + " maintenance") +
+        "<br>= <b>" + (kgwk > 0 ? "+" : kgwk < 0 ? "\u2212" : "") + Math.abs(kgwk).toFixed(2) + " kg</b>/week from " + cur.toFixed(1) + " kg today";
     } else {
       $("projVal").textContent = "\u2013";
       $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weigh-in and some food to project.";
@@ -1184,7 +1189,7 @@ button{user-select:none;-webkit-user-select:none}
     ["logged", "Weight", "var(--accent)"],
     ["kcal", "Calories", "var(--kcal)"],
     ["ideal", "Ideal pace", "var(--neutral-series)"],
-    ["trend", "Trend", "var(--trend)"]
+    ["trend", "Best fit", "var(--trend)"]
   ];
   function renderLegend() {
     $("legend").innerHTML = SERIES_META.map(function (m) {
