@@ -2034,10 +2034,12 @@ button{user-select:none;-webkit-user-select:none}
     $("appHeader").hidden = (t !== "weight");
     $("tiles").hidden = (t !== "weight");
     $("notices").hidden = (t === "chart");
-    $("projCard").hidden = !(t === "weight" || t === "food");
+    // Weight keeps Trend; the projection sits with the calories it is built
+    // from. One card a page, so the row is always full width.
+    $("projCard").hidden = (t !== "food");
     $("trendCard").hidden = (t !== "weight");
     $("duo").hidden = !(t === "weight" || t === "food");
-    $("duo").className = "duo" + (t === "food" ? " solo" : "");
+    $("duo").className = "duo solo";
     if (t === "chart") renderChart(dayAvgs());
     window.scrollTo(0, 0);
   }
