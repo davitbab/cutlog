@@ -156,6 +156,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   padding:9px 0;border-radius:8px;cursor:pointer;min-height:40px;
 }
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.seg button:active,.subtabs button:active,.legend button:active{filter:brightness(.95)}
 
 /* card + form */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
@@ -226,9 +227,18 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .wunit .rd .u{font-size:12px;color:var(--muted);font-weight:500}
 
 /* buttons */
-.btn{width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--on-accent);min-height:44px}
+/* A tap has to answer for itself: the button dips under the finger, and after
+   the record is written it says so where the finger already is. */
+.btn{
+  width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-size:14.5px;font-weight:600;
+  cursor:pointer;background:var(--accent);color:var(--on-accent);min-height:44px;
+  transition:transform .07s ease, filter .12s ease;
+}
+.btn:active{transform:scale(.98);filter:brightness(.93)}
+.btn.ok{background:var(--good);color:var(--on-accent)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
+.btn.sec:active{background:var(--field)}
 .btnrow{display:flex;gap:8px}
 .chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2);cursor:pointer;margin-bottom:11px}
 .chk input{width:17px;height:17px;accent-color:var(--accent)}
@@ -259,6 +269,7 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .row .sp{flex:1}
 .iconbtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px;border-radius:7px;font-size:12px;font-weight:600;min-width:34px;min-height:34px}
 .iconbtn:hover{color:var(--ink);background:var(--surface-2)}
+.iconbtn:active{color:var(--ink);background:var(--line)}
 .iconbtn.del:hover{color:var(--bad)}
 .tag{font-size:10px;padding:1px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent-ink);font-weight:600;letter-spacing:.03em}
 .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 10px}
@@ -266,14 +277,17 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 /* chart */
 .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--shadow);margin-bottom:12px}
 /* The legend doubles as the switchboard: each entry turns its series on or
-   off, and the chart redraws. */
-.legend{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 10px;font-size:11.5px;color:var(--ink-2)}
+   off, and the chart redraws. The label sits over its own colour so a key is
+   only as wide as its word, which puts all four on one row under the chart. */
+.legend{display:flex;gap:5px;padding:10px 0 2px;font-size:11px;color:var(--ink-2)}
 .legend button{
-  display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11.5px;color:var(--ink-2);
-  background:var(--surface);border:1px solid var(--line-2);border-radius:999px;
-  padding:5px 10px;cursor:pointer;min-height:32px;
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:5px;font:inherit;font-size:11px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line-2);border-radius:8px;
+  padding:6px 4px;cursor:pointer;min-height:36px;
 }
-.legend button i{width:13px;height:3px;border-radius:2px;display:inline-block}
+.legend button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.legend button i{width:100%;height:3px;border-radius:2px;display:block}
 .legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed}
 .legend button[aria-pressed="false"] i{opacity:.3}
 #chartHost{position:relative;overflow-x:auto}
@@ -369,7 +383,7 @@ button{user-select:none;-webkit-user-select:none}
         </div>
       </div>
       <div class="btnrow">
-        <button class="btn" id="wSave">Save weigh-in</button>
+        <button class="btn" id="wSave">Weigh in</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
       <div class="tiny" id="wMsg" style="margin-top:8px"></div>
@@ -462,8 +476,8 @@ button{user-select:none;-webkit-user-select:none}
       <button type="button" data-range="week" aria-pressed="false">Week</button>
     </div>
     <div class="chartcard">
-      <div class="legend" id="legend"></div>
       <div id="chartHost"><div id="tip"></div></div>
+      <div class="legend" id="legend"></div>
     </div>
   </section>
 
@@ -573,6 +587,27 @@ button{user-select:none;-webkit-user-select:none}
     if (sc.scrollTo) sc.scrollTo({ top: top, behavior: "smooth" });
     else sc.scrollTop = top;
   }
+  /* A button reports what happened for a moment, then goes back to its own
+     label. Anything that relabels a button on purpose -- switching to Edit,
+     say -- goes through setBtnLabel, which cancels a pending report first so
+     the two can never fight over the same button. */
+  var flashT = {};
+  function unflash(id) {
+    if (!flashT[id]) return;
+    clearTimeout(flashT[id].t);
+    $(id).classList.remove("ok");
+    delete flashT[id];
+  }
+  function flash(id, msg) {
+    var b = $(id), back = flashT[id] ? flashT[id].label : b.textContent;
+    unflash(id);
+    b.textContent = msg;
+    b.classList.add("ok");
+    flashT[id] = { label: back, t: setTimeout(function () {
+      b.textContent = back; b.classList.remove("ok"); delete flashT[id];
+    }, 1500) };
+  }
+  function setBtnLabel(id, label) { unflash(id); $(id).textContent = label; }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -1073,7 +1108,7 @@ button{user-select:none;-webkit-user-select:none}
   function resetTrainForm() {
     editWork = null;
     $("tFormTitle").textContent = "Log training";
-    $("tSave").textContent = "Add training";
+    setBtnLabel("tSave", "Add training");
     $("tCancel").style.display = "none";
     $("tName").value = ""; $("tKcal").value = "";
     if (!$("tDate").value) $("tDate").value = iso(new Date());
@@ -1159,6 +1194,7 @@ button{user-select:none;-webkit-user-select:none}
     else S.workouts.push(rec);
     openWorkDays[date] = true;
     save(); resetTrainForm(); render();
+    flash("tSave", was ? "Updated \u2713" : "Added \u2713");
     tStatus((was ? "Updated" : "Added") + " \u2212" + k + " kcal \u2014 " + (foodTotals(date).calories
       ? "the net intake for " + fmtD(date) + " is now " + netKcal(date) + " kcal."
       : "it comes off " + fmtD(date) + " as soon as that day's food is logged."), "ok");
@@ -1175,7 +1211,7 @@ button{user-select:none;-webkit-user-select:none}
       var w = S.workouts.filter(function (x) { return x.id === ed.dataset.wedit; })[0]; if (!w) return;
       editWork = w.id;
       $("tFormTitle").textContent = "Edit training";
-      $("tSave").textContent = "Update training";
+      setBtnLabel("tSave", "Update training");
       $("tCancel").style.display = "block";
       $("tDate").value = w.date; $("tName").value = w.name; $("tKcal").value = w.calories;
       tStatus("Change the session or the calories, then update.");
@@ -1208,12 +1244,12 @@ button{user-select:none;-webkit-user-select:none}
     ["logged", "Weight", "var(--accent)"],
     ["kcal", "Calories", "var(--kcal)"],
     ["ideal", "Ideal pace", "var(--neutral-series)"],
-    ["trend", "Best fit", "var(--trend)"]
+    ["trend", "Linear fit", "var(--trend)"]
   ];
   function renderLegend() {
     $("legend").innerHTML = SERIES_META.map(function (m) {
       return '<button type="button" data-series="' + m[0] + '" aria-pressed="' + (SERIES[m[0]] ? "true" : "false") + '">' +
-        '<i style="background:' + m[2] + '"></i>' + m[1] + '</button>';
+        '<span>' + m[1] + '</span><i style="background:' + m[2] + '"></i></button>';
     }).join("");
   }
   $("legend").addEventListener("click", function (ev) {
@@ -1265,9 +1301,11 @@ button{user-select:none;-webkit-user-select:none}
       return;
     }
 
-    // The chart takes the height the page can spare, rather than a fixed 260.
+    /* The chart takes the height the page can spare: the scrolling pane, less
+       the range row, the card's own padding and the legend beneath it. */
     var W = Math.max(300, host.clientWidth || 320);
-    var H = Math.max(300, Math.min(620, (window.innerHeight || 720) - 250));
+    var pane = $("scroll").clientHeight || (window.innerHeight || 720) - 47;
+    var H = Math.max(300, Math.min(620, pane - 172));
     var mL = 34, mR = 10, mT = 10, mB = 24;
     var G = goal();
 
@@ -1346,9 +1384,6 @@ button{user-select:none;-webkit-user-select:none}
           '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
           '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
       });
-      svg.push('<text x="' + (W - mR) + '" y="' + (kTop - 3).toFixed(1) +
-        '" text-anchor="end" font-size="9" font-family="IBM Plex Mono,monospace" fill="var(--kcal)" opacity="0.75">' +
-        kMax + ' kcal</text>');
     }
     // ideal
     if (SERIES.ideal) {
@@ -1462,7 +1497,7 @@ button{user-select:none;-webkit-user-select:none}
   function resetWeightForm() {
     editEntry = null;
     $("wFormTitle").textContent = "Add weigh-in";
-    $("wSave").textContent = "Save weigh-in";
+    setBtnLabel("wSave", "Weigh in");
     $("wCancel").style.display = "none";
     if ($("wMsg")) $("wMsg").textContent = "";
     var now = new Date();
@@ -1485,17 +1520,24 @@ button{user-select:none;-webkit-user-select:none}
       return;
     }
     wm.textContent = "";
+    var wasEdit = !!editEntry;
     var rec = {
       id: editEntry || uid(), date: $("wDate").value || iso(new Date()),
       time: $("wTime").value || hhmm(new Date()), weight: clampW(w),
       note: ""
     };
-    if (editEntry) {
+    if (wasEdit) {
       S.entries = S.entries.map(function (e) { return e.id === editEntry ? rec : e; });
     } else {
       S.entries.push(rec);
     }
     save(); resetWeightForm(); render();
+    // The form has just been cleared, so this line is the only proof the
+    // reading was written. It names it, which saves opening the history.
+    wm.style.color = "var(--accent-ink)";
+    wm.textContent = (wasEdit ? "Updated " : "Saved ") + rec.weight.toFixed(1) + " kg \u00b7 " +
+      dayLabel(rec.date) + " " + rec.time;
+    flash("wSave", wasEdit ? "Updated \u2713" : "Saved \u2713");
   });
   $("wCancel").addEventListener("click", function () { resetWeightForm(); render(); });
 
@@ -1508,7 +1550,7 @@ button{user-select:none;-webkit-user-select:none}
       if (!e) return;
       editEntry = e.id;
       $("wFormTitle").textContent = "Edit weigh-in";
-      $("wSave").textContent = "Update weigh-in";
+      setBtnLabel("wSave", "Update");
       $("wCancel").style.display = "block";
       $("wDate").value = e.date; $("wTime").value = e.time;
       setW(e.weight);
@@ -1540,11 +1582,11 @@ button{user-select:none;-webkit-user-select:none}
   function resetFoodForm() {
     editFood = null;
     $("fFormTitle").textContent = "Log food";
-    $("fSave").textContent = "Add food";
+    setBtnLabel("fSave", "Add food");
     $("fSave").style.display = "";
     $("fSave").disabled = false;
     $("fCancel").style.display = "none";
-    $("fManualSave").textContent = "Add with these values";
+    setBtnLabel("fManualSave", "Add with these values");
     $("fName").value = ""; $("fGrams").value = "";
     $("fKcal").value = ""; $("fP").value = ""; $("fC").value = ""; $("fF").value = "";
     showManual(false);
@@ -1875,6 +1917,7 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   function commit(per100, name, grams, date, unitGrams) {
+    var wasEdit = !!editFood;
     grams = Math.round(grams * 10) / 10;
     var f = grams / 100, r1 = function (x) { return Math.round((+x || 0) * f * 10) / 10; };
     var rec = {
@@ -1894,6 +1937,9 @@ button{user-select:none;-webkit-user-select:none}
       unitGrams: (unitGrams > 0 ? Math.round(unitGrams * 10) / 10 : prev.unitGrams)
     };
     save(); resetFoodForm(); render();
+    // Editing works through the manual button, but that block collapses on
+    // reset -- so confirm on the button that is standing there afterwards.
+    flash("fSave", wasEdit ? "Updated \u2713" : "Added \u2713");
     return rec;
   }
 
@@ -2031,7 +2077,7 @@ button{user-select:none;-webkit-user-select:none}
       $("fFormTitle").textContent = "Edit food";
       $("fCancel").style.display = "block";
       $("fSave").style.display = "none";           // editing works on the numbers directly
-      $("fManualSave").textContent = "Update food";
+      setBtnLabel("fManualSave", "Update food");
       $("fManualLab").textContent = "Per 100 g";
       showManual(true);
       var fac = f.grams / 100;
@@ -2157,6 +2203,7 @@ button{user-select:none;-webkit-user-select:none}
             : S.goal.target > S.goal.start ? "to gain " + (S.goal.target - S.goal.start).toFixed(1)
             : "to hold 0.0";
     msg.textContent = "Saved \u2014 " + dir + " kg over " + dayDiff(a, b) + " days. Everything has been recalculated.";
+    flash("gSave", "Saved \u2713");
   });
   $("gReset").addEventListener("click", function () {
     S.goal = null; save(); render(); fillGoalForm();
@@ -2401,7 +2448,7 @@ button{user-select:none;-webkit-user-select:none}
         " \u00b7 " + SY.owner + "/" + SY.repo + "/" + SY.path;
     }
     $("syOffWrap").hidden = !(SY.owner || SY.repo || SY.token);
-    $("syNow").textContent = syBusy ? "Syncing..." : "Sync now";
+    setBtnLabel("syNow", syBusy ? "Syncing..." : "Sync now");
     $("syNow").disabled = syBusy;
   }
 
@@ -2419,7 +2466,9 @@ button{user-select:none;-webkit-user-select:none}
     if (!syOn()) { syMsg("Enter the user, repository, file path and token.", "var(--bad)"); return; }
     syncNow().then(function (ok) { if (ok) warnIfPublic(); });
   });
-  $("syNow").addEventListener("click", function () { syncNow(); });
+  $("syNow").addEventListener("click", function () {
+    syncNow().then(function (ok) { if (ok) flash("syNow", "Synced \u2713"); });
+  });
   $("syOff").addEventListener("click", function () {
     SY = { owner: "", repo: "", path: "log.json", branch: "main", token: "" };
     syErr = ""; syLast = "";
