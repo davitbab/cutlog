@@ -702,6 +702,16 @@ button{user-select:none;-webkit-user-select:none}
     var m = (n * sxy - sx * sy) / den;
     return { m: m, b: (sy - m * sx) / n };
   }
+  /* The plan is the straight line the chart draws between the two goal posts:
+     the starting weight on the start date, the target on the target date. Read
+     it at any date to get the weight you were meant to be. Outside the window
+     it holds at the nearest post, exactly like the drawn segment. */
+  function plannedWeight(G, date) {
+    var span = dayDiff(G.startDate, G.endDate);
+    if (span <= 0) return G.target;
+    var t = dayDiff(G.startDate, date) / span;
+    return G.start + (G.target - G.start) * Math.max(0, Math.min(1, t));
+  }
   function foodTotals(date) {
     var t = { calories: 0, protein: 0, carbs: 0, fat: 0 };
     S.foods.forEach(function (f) {
@@ -828,9 +838,17 @@ button{user-select:none;-webkit-user-select:none}
     if (regD) {
       var tEnd = regD.b + regD.m * dayDiff(days[0].date, G.endDate);
       var wk = regD.m * 7, off = tEnd - G.target;
+      // Elapsed calendar days, which is what the slope is measured against.
+      // The weigh-in count is what fed the fit, and the two are rarely equal.
+      var elapsed = dayDiff(days[0].date, days[days.length - 1].date);
+      var plan = plannedWeight(G, today), gap = cur - plan;
       $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
       $("trendCardNote").innerHTML = "<b>" + (wk > 0 ? "+" : "") + wk.toFixed(2) + " kg</b>/week over " +
-        days.length + " days<br>" + (Math.abs(off) < 0.05
+        elapsed + " days \u00b7 " + days.length + " weigh-in" + (days.length === 1 ? "" : "s") +
+        "<br>plan today <b>" + plan.toFixed(1) + " kg</b> \u00b7 " + (Math.abs(gap) < 0.05
+          ? "on plan"
+          : "<b>" + Math.abs(gap).toFixed(1) + " kg</b> " + (gap > 0 ? "behind" : "ahead"))
+        + "<br>" + (Math.abs(off) < 0.05
           ? "dead on target"
           : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "above" : "under") + " target");
     } else {
