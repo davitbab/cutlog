@@ -8,6 +8,14 @@
 <link rel="icon" type="image/png" href="IMG_2136.png">
 <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIkN1dCBMb2ciLCAic2hvcnRfbmFtZSI6ICJDdXQgTG9nIiwgInN0YXJ0X3VybCI6ICIuLyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjRmNmY4IiwgInRoZW1lX2NvbG9yIjogIiMwYjhmODQiLCAiaWNvbnMiOiBbeyJzcmMiOiAiZGF0YTppbWFnZS9wbmc7YmFzZTY0LGlWQk9SdzBLR2dvQUFBQU5TVWhFVWdBQUFMUUFBQUMwQ0FJQUFBQ3lyNUZsQUFBQ0cwbEVRVlI0MnUzY1FRNkVJQkJGUWZaZTI3MUh4Z3NRSXk1VStoZDVKK2hVWmthQmFkdXhTOE9hRVFnT3dTRTRCSWZnRUJ5Q1EzQUlEc0Vod1NFNEJJZmdFQnlDUTNBSURzRWhPQ1E0QklmZ0VCeUNRM0FJRHNFaE9BU0hCSWZnRUJ3MzY1TUxEampnZ0FNT09PQ0FBdzQ0NElBRERqamdnQU1PT09DQUF3NDQ0SUFERGpqZ2dBTU9PT0NBQXc0NDRJQUREampnZ0FNT09PQ0FBdzQ0NElBRERqamdnQU1PT09DQUF3NDQ0SUFERGpqZ2dBTU9PT0NBQXc0NDRJQUREampnZ0FNT09PQ0FBdzQ0NElBRERqamdnQU1PT09DQUF3NDQ0SUFERGpqZ2dBTU9PT0NBQXc0NDRJQUREampnZ0FNT09PQ0FBdzQ0NElBRERqamdnQU1PT09DQUF3NDQ0SUFERGpqZ2dBT09OQng5L1FVSEh4VStnVnJDbHdJWldiODV5SUFERGppcSsvQzB3a2UxeDJBNDRLajdFb3dNT0piMDRRMHBISER3a2JjZFUyZmpqUXc0RnZCaFZ4WU9PUGdJUHZsUjhMQVBHWERBQWNjNlBod1Q1Q1Bva0NrY2NFU2VQaWNEam85OXVKb0FCeHg4a0pGMjQ0ME1PRjcxNFRva0hIRHdRWVpiOW1UQUFRY2NYL2lJbWxYaW43ZVFBUWNjY0x6bEkzQktvVGhtZldTT0tCZkhmUit4ODRFRERqaWUra2dlVGpxT2F4L2hrNEVERGpqbWZSZ0xIR01mQmdJSEhIQk0rakFLT01ZK0RBRU93U0U0QklmZ0VCeUNRM0FJRHNFaC9SdEhEMWh3d0FFSEhIREFBUWNjY01BQkJ4eHd3QUVISEhEQUFRY2Nna053Q0E3QklUZ2tPQVNINEJBY2drTndDQTdCb2FLZGdkKzJVcTlDZjU0QUFBQUFTVVZPUks1Q1lJST0iLCAic2l6ZXMiOiAiMTgweDE4MCIsICJ0eXBlIjogImltYWdlL3BuZyJ9XX0=">
 <title>Cut Log</title>
+<script>
+/* Stamp the saved appearance before anything is drawn, so a chosen light or
+   dark mode never flashes the other one first. */
+try {
+  var t = localStorage.getItem("cut-theme");
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+} catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -15,43 +23,51 @@
 <style>
 /* ---- tokens: light is the complete set on bare :root ---- */
 :root {
-  --ground:#f4f6f8; --surface:#ffffff; --surface-2:#eef1f4;
-  --ink:#12161c; --ink-2:#495260; --muted:#79828f;
-  --line:#dde3e9; --line-2:#c9d2db;
+  /* One card colour, the way iOS does a grouped list: white cards on a soft
+     grey ground, hairline separators, no colour doing any of the work. */
+  --ground:#f2f2f7; --surface:#ffffff; --surface-2:#f7f7fa; --field:#f7f7fa;
+  --ink:#1c1c1e; --ink-2:#3c3c43; --muted:#6a6a70;
+  --line:#e4e4e9; --line-2:#d1d1d6;
   --accent:#0b8f84; --accent-ink:#07655d; --accent-soft:#e2f1ef;
-  --trend:#c0562a; --neutral-series:#8a94a1;
+  --trend:#c0562a; --neutral-series:#8a94a1; --kcal:#5f7a9e;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --on-accent:#ffffff;
-  --shadow:0 1px 2px rgba(18,22,28,.05), 0 1px 8px rgba(18,22,28,.04);
+  --shadow:0 1px 2px rgba(18,22,28,.04);
   --r:10px; --r-lg:14px;
+
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground:#0d1116; --surface:#161b22; --surface-2:#1d242d;
-    --ink:#e8edf3; --ink-2:#aab4c0; --muted:#7d8794;
-    --line:#262e38; --line-2:#333d49;
+    --ground:#1c1c1e; --surface:#2c2c2e; --surface-2:#3a3a3c;
+    --ink:#f2f2f7; --ink-2:#c7c7cc; --muted:#9a9aa0;
+    --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d;
-    --trend:#d4763a; --neutral-series:#77818e;
+    --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
-    --on-accent:#08201e;
+    --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 1px 2px rgba(0,0,0,.3);
   }
 }
 :root[data-theme="dark"] {
-  --ground:#0d1116; --surface:#161b22; --surface-2:#1d242d;
-  --ink:#e8edf3; --ink-2:#aab4c0; --muted:#7d8794;
-  --line:#262e38; --line-2:#333d49;
+  --ground:#1c1c1e; --surface:#2c2c2e; --surface-2:#3a3a3c;
+  --ink:#f2f2f7; --ink-2:#c7c7cc; --muted:#9a9aa0;
+  --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d;
-  --trend:#d4763a; --neutral-series:#77818e;
+  --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
-  --on-accent:#08201e;
+  --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 1px 2px rgba(0,0,0,.3);
 }
 
 *{box-sizing:border-box}
+
+/* The tab switch hides blocks with the hidden attribute, and several of
+   them are grids or flex containers - a class rule saying display:grid
+   beats the browser's own [hidden] rule, so say it louder here once. */
+[hidden]{display:none!important}
 body{
   margin:0; background:var(--ground); color:var(--ink);
   font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -59,10 +75,13 @@ body{
   -webkit-text-size-adjust:100%;
 }
 .num{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:520px;margin:0 auto;padding:0 16px 56px}
+.wrap{max-width:520px;margin:0 auto;padding:0 16px 24px}
+/* The tab bar is fixed over the bottom of the viewport, so the page keeps a
+   bar's worth of clearance underneath everything. */
+.wrap{padding-bottom:calc(62px + env(safe-area-inset-bottom) + 18px)}
 
 /* header */
-header{padding:26px 0 18px}
+header{padding:22px 0 14px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:600;text-wrap:balance}
 .sub{color:var(--ink-2);font-size:13.5px}
@@ -88,49 +107,84 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .hero .note b{color:var(--ink);font-weight:600}
 .mrow{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2);flex-wrap:wrap}
 
-/* tabs */
-.tabs{display:flex;gap:3px;background:var(--surface-2);border-radius:var(--r);padding:3px;margin-bottom:16px;position:sticky;top:0;z-index:20}
-.tabs button{flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;font-weight:500;padding:10px 0;border-radius:8px;cursor:pointer;min-height:40px}
-.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+/* Projected and Trend sit side by side and stay short: two glanceable cards,
+   not two essays. .solo is the calories page, where Projected is alone. */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;align-items:stretch}
+.duo.solo{grid-template-columns:1fr}
+.duo .hero{margin-bottom:0;padding:11px 12px;border-radius:var(--r);display:flex;flex-direction:column}
+.duo .hero .big{font-size:23px;margin-top:2px}
+.duo .hero .note{font-size:11.5px;margin-top:4px;line-height:1.45}
+.duo .hero .mrow{margin-top:auto;padding-top:9px;gap:6px;font-size:11.5px}
+.duo .hero .mrow input{width:66px!important;font-size:12px!important;padding:4px 6px!important}
+.duo .hero.tr{border-left-color:var(--trend)}
+
+/* tabs: a fixed bar at the bottom of the screen, always reachable by thumb */
+.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  display:flex;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -1px 12px rgba(18,22,28,.07);
+}
+.tabs button{
+  flex:1;border:0;border-top:2px solid transparent;background:transparent;color:var(--muted);
+  font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:0 2px;
+  cursor:pointer;min-height:56px;
+}
+.tabs button[aria-selected="true"]{color:var(--accent-ink);border-top-color:var(--accent);background:var(--accent-soft)}
+.tabs button:active{background:var(--surface-2)}
+
+/* sub-tabs inside a page: Food and Training are two halves of one day */
+.subtabs{display:flex;gap:3px;background:var(--surface-2);border-radius:var(--r);padding:3px;margin-bottom:14px}
+.subtabs button{
+  flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;font-weight:500;
+  padding:9px 0;border-radius:8px;cursor:pointer;min-height:40px;
+}
+.subtabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+
+/* segmented control, used by the appearance switch */
+.seg{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);padding:3px}
+.seg button{
+  flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;font-weight:500;
+  padding:9px 0;border-radius:8px;cursor:pointer;min-height:40px;
+}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
 
 /* card + form */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
 .card > .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
-  width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--surface);
+  width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
   border:1px solid var(--line-2);border-radius:9px;padding:9px 10px;
 }
 textarea{resize:vertical}
 input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.card.tight{padding:12px 13px;margin-bottom:14px}
+.card.tight > .lab{margin-bottom:9px}
+.card.tight .mb{margin-bottom:8px}
 .mb{margin-bottom:11px}
 
-/* weight stepper - replaces the scroll wheel */
-.stepper{display:flex;align-items:stretch;gap:8px;margin-bottom:4px}
-.stepper .rd{flex:1;display:flex;align-items:center;justify-content:center;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:6px 4px}
-.stepper .rd input{
-  width:112px;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-  font-size:31px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
-  -moz-appearance:textfield;
+/* weight entry: two wheels, whole kilos and hundred-gram steps. Each one can
+   be dragged or scrolled, tapped up and down, or simply typed into. */
+.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
+.wunit{display:flex;flex-direction:column;gap:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:5px}
+.wunit button{
+  border:1px solid var(--line-2);background:var(--field);color:var(--ink);
+  font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;border-radius:8px;
+  cursor:pointer;min-height:34px;
 }
-.stepper .rd input::-webkit-outer-spin-button,.stepper .rd input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.stepper .rd .u{font-size:13px;color:var(--muted);font-weight:500;padding-bottom:5px}
-.stepper .col{display:flex;flex-direction:column;gap:6px}
-.stepper .col button{
-  width:52px;flex:1;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);
-  font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;border-radius:9px;cursor:pointer;
-  min-height:38px;
+.wunit button:active{background:var(--accent-soft);border-color:var(--accent)}
+.wunit .rd{
+  display:flex;align-items:baseline;justify-content:center;gap:3px;padding:3px 0 1px;
+  touch-action:none;cursor:ns-resize;
 }
-.stepper .col button:active{background:var(--accent-soft);border-color:var(--accent)}
-.quick{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.quick button{
-  border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);
-  font:inherit;font-size:13px;font-family:"IBM Plex Mono",monospace;padding:0 13px;border-radius:8px;cursor:pointer;
-  min-height:40px;
+.wunit .rd input{
+  width:74px;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:28px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
 }
-.quick button:active{background:var(--accent-soft)}
+.wunit .rd .u{font-size:12px;color:var(--muted);font-weight:500}
 
 /* buttons */
 .btn{width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--on-accent);min-height:44px}
@@ -142,9 +196,23 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 
 /* log list */
 .lab-h{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:18px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
-.daygroup{margin-bottom:12px}
+.daygroup{margin-bottom:9px}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;padding:0 2px 5px;font-size:12px;color:var(--muted)}
 .dayhead .avg{font-weight:600;color:var(--ink-2)}
+/* A day header is a button: one tap folds the day away. Only the newest day
+   is open, so a long history stays a list of days rather than of readings. */
+button.dayhead{
+  width:100%;border:0;background:transparent;font:inherit;font-size:12px;color:var(--muted);
+  display:flex;align-items:center;gap:7px;text-align:left;cursor:pointer;
+  padding:7px 4px;border-radius:8px;min-height:38px;
+}
+button.dayhead:active{background:var(--surface-2)}
+button.dayhead .ch{font-size:9px;color:var(--line-2);width:9px;flex:0 0 9px}
+button.dayhead[aria-expanded="true"] .ch{color:var(--accent)}
+button.dayhead .sp{flex:1}
+button.dayhead .avg{white-space:nowrap}
+button.dayhead.mo{font-weight:600;color:var(--ink-2)}
+.nest{padding-left:10px;border-left:2px solid var(--line);margin:2px 0 6px}
 .row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;margin-bottom:6px}
 .row.editing{border-color:var(--accent);background:var(--accent-soft)}
 .row .w{font-size:15.5px;font-weight:600}
@@ -158,9 +226,17 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 
 /* chart */
 .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--shadow);margin-bottom:12px}
-.legend{display:flex;gap:13px;flex-wrap:wrap;padding:2px 4px 10px;font-size:11.5px;color:var(--ink-2)}
-.legend span{display:inline-flex;align-items:center;gap:5px}
-.legend i{width:13px;height:2.5px;border-radius:2px;display:inline-block}
+/* The legend doubles as the switchboard: each entry turns its series on or
+   off, and the chart redraws. */
+.legend{display:flex;gap:6px;flex-wrap:wrap;padding:0 0 10px;font-size:11.5px;color:var(--ink-2)}
+.legend button{
+  display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:11.5px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line-2);border-radius:999px;
+  padding:5px 10px;cursor:pointer;min-height:32px;
+}
+.legend button i{width:13px;height:3px;border-radius:2px;display:inline-block}
+.legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed}
+.legend button[aria-pressed="false"] i{opacity:.3}
 #chartHost{position:relative;overflow-x:auto}
 #tip{
   position:absolute;pointer-events:none;opacity:0;transition:opacity .09s;
@@ -195,11 +271,10 @@ body{
   padding-right:max(16px, env(safe-area-inset-right));
 }
 button{user-select:none;-webkit-user-select:none}
-.tabs{top:env(safe-area-inset-top)}
 </style>
 
 <div class="wrap">
-  <header>
+  <header id="appHeader">
     <div class="eyebrow">Cut Log</div>
     <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
@@ -209,28 +284,28 @@ button{user-select:none;-webkit-user-select:none}
 
   <div id="notices"></div>
 
-  <div class="tiles">
+  <div class="tiles" id="tiles">
     <div class="tile"><div class="lab">Lost</div><div class="val num" id="tLost">&ndash;</div></div>
     <div class="tile"><div class="lab">To go</div><div class="val num" id="tGo">&ndash;</div></div>
     <div class="tile"><div class="lab">Per week</div><div class="val num" id="tPace">&ndash;</div></div>
   </div>
 
-  <div class="hero">
-    <div class="lab" id="projLab">Projected</div>
-    <div class="big num" id="projVal">&ndash;</div>
-    <div class="note" id="projNote"></div>
-    <div class="mrow">
-      <span>Maintenance</span>
-      <input type="text" id="maint" class="num" style="width:92px;padding:5px 8px;font-size:13px" inputmode="numeric" autocomplete="off">
-      <span>kcal/day</span>
+  <div class="duo" id="duo">
+    <div class="hero" id="projCard">
+      <div class="lab" id="projLab">Projected</div>
+      <div class="big num" id="projVal">&ndash;</div>
+      <div class="note" id="projNote"></div>
+      <div class="mrow">
+        <span>Maint.</span>
+        <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
+        <span>kcal</span>
+      </div>
     </div>
-  </div>
-
-  <div class="tabs" role="tablist">
-    <button role="tab" data-tab="weight" aria-selected="true">Weight</button>
-    <button role="tab" data-tab="food" aria-selected="false">Food</button>
-    <button role="tab" data-tab="chart" aria-selected="false">Chart</button>
-    <button role="tab" data-tab="data" aria-selected="false">Data</button>
+    <div class="hero tr" id="trendCard">
+      <div class="lab" id="trendCardLab">Trend</div>
+      <div class="big num" id="trendCardVal">&ndash;</div>
+      <div class="note" id="trendCardNote"></div>
+    </div>
   </div>
 
   <!-- WEIGHT -->
@@ -241,15 +316,19 @@ button{user-select:none;-webkit-user-select:none}
         <div><label class="f" for="wDate">Date</label><input type="date" id="wDate"></div>
         <div><label class="f" for="wTime">Time</label><input type="time" id="wTime"></div>
       </div>
-      <label class="f">Weight</label>
-      <div class="stepper">
-        <div class="col"><button type="button" data-step="-1">&minus;1</button><button type="button" data-step="-0.1">&minus;0.1</button></div>
-        <div class="rd"><input type="text" id="wVal" inputmode="decimal" autocomplete="off" aria-label="Weight in kg"><span class="u">kg</span></div>
-        <div class="col"><button type="button" data-step="1">+1</button><button type="button" data-step="0.1">+0.1</button></div>
+      <label class="f">Weight <span style="opacity:.7">&mdash; drag, scroll or tap a wheel</span></label>
+      <div class="wgrid">
+        <div class="wunit">
+          <button type="button" data-wstep="1" aria-label="One kilo more">+</button>
+          <div class="rd" id="wKgWheel"><input type="text" id="wKg" inputmode="numeric" autocomplete="off" aria-label="Kilograms"><span class="u">kg</span></div>
+          <button type="button" data-wstep="-1" aria-label="One kilo less">&minus;</button>
+        </div>
+        <div class="wunit">
+          <button type="button" data-wstep="0.1" aria-label="One hundred grams more">+</button>
+          <div class="rd" id="wGWheel"><input type="text" id="wG" inputmode="numeric" autocomplete="off" aria-label="Grams"><span class="u">g</span></div>
+          <button type="button" data-wstep="-0.1" aria-label="One hundred grams less">&minus;</button>
+        </div>
       </div>
-      <div class="quick" id="quickRow"></div>
-      <label class="chk"><input type="checkbox" id="wTrained"><span>Trained today</span></label>
-      <input type="text" id="wNote" class="mb" placeholder="Note (optional) &mdash; e.g. after gym, morning">
       <div class="btnrow">
         <button class="btn" id="wSave">Save weigh-in</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
@@ -260,8 +339,14 @@ button{user-select:none;-webkit-user-select:none}
     <div id="histList"></div>
   </section>
 
-  <!-- FOOD -->
+  <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
+    <div class="subtabs" id="calTabs" role="tablist">
+      <button role="tab" data-cal="food" aria-selected="true">Food</button>
+      <button role="tab" data-cal="train" aria-selected="false">Training</button>
+    </div>
+
+    <div id="cal-food">
     <div class="card">
       <span class="lab" id="fFormTitle">Log food</span>
       <div class="grid2 mb">
@@ -297,45 +382,67 @@ button{user-select:none;-webkit-user-select:none}
           <td id="ftK">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
         </tr>
       </table>
+      <div class="tiny" id="fNet" style="margin-top:8px"></div>
     </div>
-    <div class="lab-h"><span>Logged this day</span></div>
+    <div class="lab-h"><span>Food log</span><span id="foodCount" class="num"></span></div>
     <div id="foodList"></div>
+    </div>
+
+    <div id="cal-train" hidden>
+    <div class="card">
+      <span class="lab">Balance &middot; <span id="tBalDate"></span></span>
+      <table class="fx">
+        <tr><th>Food</th><th>Training</th><th>Net intake</th></tr>
+        <tr class="num" style="font-size:17px;font-weight:600">
+          <td id="tbFood">0</td><td id="tbTrain">0</td><td id="tbNet">0</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card tight">
+      <span class="lab" id="tFormTitle">Log training</span>
+      <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
+      <div class="grid2 mb">
+        <div><label class="f" for="tDate">Date</label><input type="date" id="tDate"></div>
+        <div><label class="f" for="tKcal">kcal burned</label><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450"></div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="tSave">Add training</button>
+        <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
+      </div>
+      <div class="tiny" id="tStatus" style="margin-top:8px"></div>
+    </div>
+    <div class="lab-h"><span>Training log</span><span id="trainCount" class="num"></span></div>
+    <div id="trainList"></div>
+    </div>
   </section>
 
   <!-- CHART -->
   <section id="p-chart" hidden>
+    <div class="seg mb" id="rangeRow">
+      <button type="button" data-range="all" aria-pressed="true">All</button>
+      <button type="button" data-range="month" aria-pressed="false">Month</button>
+      <button type="button" data-range="week" aria-pressed="false">Week</button>
+    </div>
     <div class="chartcard">
-      <div class="legend">
-        <span><i style="background:var(--accent)"></i>Logged (daily avg)</span>
-        <span><i style="background:var(--neutral-series)"></i>Ideal pace</span>
-        <span><i style="background:var(--trend)"></i>Current trend</span>
-      </div>
+      <div class="legend" id="legend"></div>
       <div id="chartHost"><div id="tip"></div></div>
     </div>
-    <div class="grid2">
-      <div class="tile"><div class="lab" id="idealLab">Ideal</div><div class="val num" id="idealTargetVal">&ndash;</div><div class="tiny" id="idealPace"></div></div>
-      <div class="tile"><div class="lab" id="trendLab">Trend</div><div class="val num" id="trendVal">&ndash;</div><div class="tiny" id="trendPace"></div></div>
-    </div>
-    <p class="tiny" style="margin-top:12px">
-      <b style="color:var(--ink)">Logged</b> averages all weigh-ins for each day, so several readings in one day pull toward the truth instead of fighting each other.
-      <span id="chartBlurb"></span>
-      <b style="color:var(--ink)">Current trend</b> is a best-fit line through your real days, extended forward &mdash; where you land if nothing changes.
-    </p>
   </section>
 
-  <!-- DATA -->
+  <!-- SETTINGS -->
   <section id="p-data" hidden>
     <div class="card">
-      <span class="lab">Nutrition engine</span>
-      <p class="tiny mb">Where the calories come from on this device.</p>
-      <div class="tiny num" id="engineWhat" style="margin-bottom:6px"></div>
-      <div class="tiny num" id="engineKeys" style="margin-bottom:10px;color:var(--muted)"></div>
-      <button class="btn sec" id="engineTest">Test a lookup</button>
-      <div class="tiny" id="engineMsg" style="margin-top:8px"></div>
+      <span class="lab">Appearance</span>
+      <p class="tiny mb">System follows the phone.</p>
+      <div class="seg" id="themeRow">
+        <button type="button" data-theme-set="system" aria-pressed="true">System</button>
+        <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+      </div>
     </div>
     <div class="card" id="syncCard">
       <span class="lab">Sync via GitHub</span>
-      <p class="tiny mb">Keeps one <b class="num">log.json</b> in a repo you own, so every device reads and writes the same data and nothing is lost when a browser clears its storage. Use a <b>private</b> repo and a fine-grained token limited to that one repo with <b>Contents: Read and write</b>. The token is typed here on each device, stored only on that device, and is never part of an export &mdash; never paste it into the HTML, which is public. Keep the <b>data</b> repo private even when the repo serving this page is public; they can be two different repos.</p>
+      <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
         <div><label class="f" for="syRepo">Repository</label><input type="text" id="syRepo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="cutlog-data"></div>
@@ -357,7 +464,7 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card" id="goalCard">
       <span class="lab">Goal</span>
-      <p class="tiny mb">Every number, the chart and the projection recalculate from these four.</p>
+      <p class="tiny mb">Everything recalculates from these four.</p>
       <div class="grid2 mb">
         <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
         <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
@@ -374,19 +481,19 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card">
       <span class="lab">Export</span>
-      <p class="tiny mb">Save a file with every weigh-in, food entry and remembered food. Keep it in Files, iCloud or Drive &mdash; this is your safety net and how you move to another device. On iPhone and iPad this opens the share sheet: choose <b>Save to Files</b>. If the file just opens on screen instead, use <b>Copy &amp; paste backup</b> below &mdash; it carries exactly the same data.</p>
+      <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>. If it opens on screen instead, use the text backup below.</p>
       <button class="btn" id="exFile">Export to a file</button>
       <div class="tiny" id="exMsg" style="margin-top:8px"></div>
     </div>
     <div class="card">
       <span class="lab">Import</span>
-      <p class="tiny mb">Load an exported file. This replaces everything currently in the app &mdash; and if sync is on, the next sync merges it into your repo rather than replacing what is there.</p>
+      <p class="tiny mb">Replaces everything here. With sync on, the next sync merges it into your repo.</p>
       <input type="file" id="imFile" accept=".json,application/json,text/plain" class="mb">
       <div class="tiny" id="imMsg"></div>
     </div>
     <div class="card">
       <span class="lab">Copy &amp; paste backup</span>
-      <p class="tiny mb">If files are awkward, move the data as text instead.</p>
+      <p class="tiny mb">The same data as text.</p>
       <textarea id="bkText" readonly rows="4" class="num" style="font-size:10.5px"></textarea>
       <div style="height:9px"></div>
       <button class="btn sec" id="bkCopy">Copy backup</button>
@@ -398,11 +505,18 @@ button{user-select:none;-webkit-user-select:none}
     </div>
     <div class="card">
       <span class="lab">Reset</span>
-      <p class="tiny mb">Deletes every weigh-in and food entry, and if sync is on it deletes them from your repo and every other device too. Back up first &mdash; this cannot be undone.</p>
+      <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Back up first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
     </div>
   </section>
 </div>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="weight" aria-selected="true">Weight</button>
+  <button role="tab" data-tab="food" aria-selected="false">Calories</button>
+  <button role="tab" data-tab="chart" aria-selected="false">Charts</button>
+  <button role="tab" data-tab="data" aria-selected="false">Settings</button>
+</nav>
 
 <script>
 (function () {
@@ -474,12 +588,17 @@ button{user-select:none;-webkit-user-select:none}
   function sget(k) { try { return persistent ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { persistent = false; return mem[k] || null; } }
   function sset(k, v) { try { if (persistent) { localStorage.setItem(k, v); return true; } } catch (e) { persistent = false; } mem[k] = v; return persistent; }
 
-  var S = { entries: [], foods: [], maintenance: 2700, cache: {}, goal: null, deleted: [], updatedAt: "" };
-  var editEntry = null, editFood = null, tab = "weight", saveErr = "";
+  var S = { entries: [], foods: [], workouts: [], maintenance: 2700, cache: {}, goal: null, deleted: [], updatedAt: "" };
+  var editEntry = null, editFood = null, editWork = null, tab = "weight", calView = "food", saveErr = "";
+  // Which day groups are unfolded, in the weigh-in list and the food log.
+  // Only the newest day starts open; the rest are one tap away.
+  var openFoodDays = {}, openWorkDays = {};
+  var openWMonths = {}, openFMonths = {}, openTMonths = {};
+  var foodDaysSeeded = false, workDaysSeeded = false;
   // Inline confirmation state. window.confirm() is blocked in sandboxed
   // iframes (it returns false without ever showing a dialog), so deletes have
   // to be confirmed in the page itself.
-  var pendingDel = null, pendingFDel = null, pendingWipe = false;
+  var pendingDel = null, pendingFDel = null, pendingWDel = null, pendingWipe = false;
   // Sync writes back into save(), so it needs a way to stop the recursion.
   var syErr = "", suppressSync = false;
 
@@ -489,9 +608,10 @@ button{user-select:none;-webkit-user-select:none}
   var snap = {}, metaSnap = "", dirty = {}, metaDirty = false;
   function recKey(r) { var c = {}; for (var k in r) if (k !== "mt") c[k] = r[k]; return JSON.stringify(c); }
   function metaKey() { return JSON.stringify([S.goal, S.maintenance]); }
+  function allRecords() { return S.entries.concat(S.foods, S.workouts); }
   function reseedSnap() {
     snap = {};
-    S.entries.concat(S.foods).forEach(function (r) {
+    allRecords().forEach(function (r) {
       snap[r.id] = recKey(r);
       if (typeof r.mt !== "number") r.mt = 0;
     });
@@ -499,7 +619,7 @@ button{user-select:none;-webkit-user-select:none}
   }
   function stampChanges() {
     var now = Date.now(), seen = {};
-    S.entries.concat(S.foods).forEach(function (r) {
+    allRecords().forEach(function (r) {
       var k = recKey(r);
       seen[r.id] = k;
       // Changed on this device and not yet pushed: dirty until it lands.
@@ -514,6 +634,7 @@ button{user-select:none;-webkit-user-select:none}
   function load() {
     try { var a = JSON.parse(sget("cut-entries") || "[]"); if (Array.isArray(a)) S.entries = a; } catch (e) {}
     try { var b = JSON.parse(sget("cut-foods") || "[]"); if (Array.isArray(b)) S.foods = b; } catch (e) {}
+    try { var w = JSON.parse(sget("cut-workouts") || "[]"); if (Array.isArray(w)) S.workouts = w; } catch (e) {}
     var m = parseInt(sget("cut-maintenance"), 10); if (m > 0) S.maintenance = m;
     try { var c = JSON.parse(sget("cut-food-cache") || "{}"); if (c && typeof c === "object") S.cache = c; } catch (e) {}
     try { var g = JSON.parse(sget("cut-goal") || "null"); if (g && typeof g === "object") S.goal = g; } catch (e) {}
@@ -522,6 +643,7 @@ button{user-select:none;-webkit-user-select:none}
     // Migrate older records: they keyed on date alone, with no id or time.
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
+    S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
     reseedSnap();
   }
   function save() {
@@ -531,11 +653,12 @@ button{user-select:none;-webkit-user-select:none}
     sset("cut-deleted", JSON.stringify(S.deleted));
     var ok = sset("cut-entries", JSON.stringify(S.entries)) &&
              sset("cut-foods", JSON.stringify(S.foods)) &&
+             sset("cut-workouts", JSON.stringify(S.workouts)) &&
              sset("cut-food-cache", JSON.stringify(S.cache)) &&
              sset("cut-goal", JSON.stringify(S.goal)) &&
              sset("cut-maintenance", String(S.maintenance));
     if (!suppressSync) syncSoon();
-    saveErr = ok ? "" : "This browser is not letting the app store data, so today's entries live only until you close the tab. Open Data and copy your backup.";
+    saveErr = ok ? "" : "This browser will not store data, so entries last until you close the tab. Back up in Settings.";
   }
 
   /* ---------- derived ---------- */
@@ -567,6 +690,15 @@ button{user-select:none;-webkit-user-select:none}
     });
     return t;
   }
+  /* Training is intake with the sign flipped: burning 450 kcal on a 2 400 kcal
+     day leaves 1 950 kcal for the projection to work from. Everything that
+     talks about "calories for a day" means this net figure. */
+  function trainTotal(date) {
+    var k = 0;
+    S.workouts.forEach(function (w) { if (w.date === date) k += w.calories; });
+    return k;
+  }
+  function netKcal(date) { return foodTotals(date).calories - trainTotal(date); }
 
   /* ---------- built-in food table (per 100 g) ----------
      A published artifact has no way to call Claude, so nutrition is a local
@@ -618,11 +750,7 @@ button{user-select:none;-webkit-user-select:none}
     $("daysLeft").textContent = Math.max(0, dayDiff(today, G.endDate));
     $("goalDates").textContent = fmtShort(G.startDate) + " to " + fmtLong(G.endDate);
     $("projLab").textContent = "Projected \u00b7 " + fmtShort(G.endDate);
-    $("idealLab").textContent = "Ideal on " + fmtShort(G.endDate);
-    $("trendLab").textContent = "Trend on " + fmtShort(G.endDate);
-    $("idealTargetVal").innerHTML = G.target.toFixed(1).replace(/\.0$/, "") + '<small>kg</small>';
-    $("chartBlurb").innerHTML = "<b style='color:var(--ink)'>Ideal pace</b> runs straight from " +
-      esc(fmtShort(G.startDate)) + " to " + G.target.toFixed(1).replace(/\.0$/, "") + " kg on " + esc(fmtShort(G.endDate)) + ".";
+    $("trendCardLab").textContent = "Trend \u00b7 " + fmtShort(G.endDate);
 
     // storage pill
     $("storePill").className = "pill" + (persistent ? "" : " warn");
@@ -630,10 +758,10 @@ button{user-select:none;-webkit-user-select:none}
 
     // notices
     var nz = "";
-    if (saveErr) nz += '<div class="notice e"><div>' + esc(saveErr) + ' <button class="linkbtn" data-goto="data">Open Data</button></div></div>';
-    else if (!persistent) nz += '<div class="notice w"><div>This browser blocks local storage here, so entries last only for this session. <button class="linkbtn" data-goto="data">Copy a backup</button> before you close it.</div></div>';
+    if (saveErr) nz += '<div class="notice e"><div>' + esc(saveErr) + ' <button class="linkbtn" data-goto="data">Open Settings</button></div></div>';
+    else if (!persistent) nz += '<div class="notice w"><div>Storage is blocked here, so entries last for this session only. <button class="linkbtn" data-goto="data">Copy a backup</button>.</div></div>';
     if (syErr) nz += '<div class="notice w"><div>Sync: ' + esc(syErr) +
-      ' <button class="linkbtn" data-goto="data">Open Data</button></div></div>';
+      ' <button class="linkbtn" data-goto="data">Open Settings</button></div></div>';
     $("notices").innerHTML = nz;
 
     // Tiles run off the most recent DAY AVERAGE, not the last single reading \u2014
@@ -643,6 +771,8 @@ button{user-select:none;-webkit-user-select:none}
     var cur = latestDay ? latestDay.w : null;
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
+    // Signed on purpose: negative is loss, positive is gain. Hiding the sign
+    // would make a gaining week look like a losing one.
     var pace = null;
     if (days.length >= 2) {
       var firstDay = days[0], lastDay = days[days.length - 1];
@@ -650,66 +780,136 @@ button{user-select:none;-webkit-user-select:none}
       if (elapsedDays > 0) pace = (lastDay.w - firstDay.w) / elapsedDays * 7;
     }
     $("tPace").innerHTML = pace !== null ? (pace > 0 ? "+" : "") + pace.toFixed(2) + '<small>kg</small>' : "\u2013";
-// Signed on purpose: negative is loss, positive is gain. Hiding the sign
-// would make a gaining week look like a losing one.
 
-
-
-
-    // projection from logged intake
+    // Trend card: the same best-fit line the chart draws, read at the goal
+    // date, so the number does not live only on the charts page.
+    var regD = days.length >= 2
+      ? regression(days.map(function (d) { return { x: dayDiff(days[0].date, d.date), y: d.w }; }))
+      : null;
+    if (regD) {
+      var tEnd = regD.b + regD.m * dayDiff(days[0].date, G.endDate);
+      var wk = regD.m * 7, off = tEnd - G.target;
+      $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
+      $("trendCardNote").innerHTML = "<b>" + (wk > 0 ? "+" : "") + wk.toFixed(2) + " kg</b>/week over " +
+        days.length + " days<br>" + (Math.abs(off) < 0.05
+          ? "dead on target"
+          : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "above" : "under") + " target");
+    } else {
+      $("trendCardVal").textContent = "\u2013";
+      $("trendCardNote").textContent = "Two days of weigh-ins draw the trend.";
+    }
+    // Projection from logged intake, net of training. A day with training but
+    // no food is left out: the burn is known, the intake is not.
     var fd = {}; S.foods.forEach(function (f) { fd[f.date] = (fd[f.date] || 0) + f.calories; });
     var fdays = Object.keys(fd);
+    var trainedKcal = 0;
+    fdays.forEach(function (d) { var t = trainTotal(d); trainedKcal += t; fd[d] -= t; });
     var avgKcal = fdays.length ? Math.round(fdays.reduce(function (s, d) { return s + fd[d]; }, 0) / fdays.length) : null;
     var dleft = Math.max(0, dayDiff(today, G.endDate));
     if (avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
+      var kgwk = -def * 7 / KCAL_PER_KG;
       $("projVal").textContent = proj.toFixed(1) + " kg";
-      $("projNote").innerHTML = "Averaging <b>" + avgKcal + " kcal</b> over " + fdays.length + " logged day" + (fdays.length !== 1 ? "s" : "") +
-        " \u2014 a <b>" + (def > 0 ? def : 0) + " kcal</b> daily deficit, about <b>" + (def > 0 ? (def * 7 / KCAL_PER_KG).toFixed(2) : "0.00") + " kg/week</b> from your latest " + cur.toFixed(1) + " kg.";
+      $("projNote").innerHTML = "<b>" + avgKcal + " kcal</b>" + (trainedKcal > 0 ? " net" : "") + "/day over " + fdays.length + " day" + (fdays.length !== 1 ? "s" : "") +
+        "<br><b>" + (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg</b>/week from " + cur.toFixed(1) + " kg";
     } else {
       $("projVal").textContent = "\u2013";
-      $("projNote").textContent = cur !== null ? "Log a few days of food to project from your real intake." : "Add a weigh-in and a few days of food to see a projection.";
+      $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weigh-in and some food to project.";
     }
     $("maint").value = S.maintenance;
 
     renderHistory(days);
     renderFood();
+    renderTraining();
     renderChart(days);
-    $("bkText").value = JSON.stringify({ entries: S.entries, foods: S.foods, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
+    $("bkText").value = JSON.stringify({ entries: S.entries, foods: S.foods, workouts: S.workouts, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
+  }
+
+  /* This month is the part you are working in, so it stays open. Everything
+     older collapses into one fold per month - a year of weigh-ins is then
+     twelve lines instead of three hundred. */
+  function monthOf(date) { return date.slice(0, 7); }
+  function thisMonth() { return monthOf(iso(new Date())); }
+  function monthLabel(k) {
+    var p = k.split("-");
+    return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+  function splitByMonth(records) {
+    var tm = thisMonth(), cur = [], old = {}, order = [];
+    records.forEach(function (r) {
+      var m = monthOf(r.date);
+      if (m === tm) { cur.push(r); return; }
+      if (!old[m]) { old[m] = []; order.push(m); }
+      old[m].push(r);
+    });
+    order.sort().reverse();
+    return { current: cur, months: old, order: order };
+  }
+  function monthHead(k, open, summary, attr) {
+    return '<button class="dayhead mo" ' + attr + '="' + k + '" aria-expanded="' + (open ? "true" : "false") + '">' +
+      '<span class="ch">' + (open ? "&#9660;" : "&#9654;") + '</span>' +
+      '<span>' + esc(monthLabel(k)) + '</span><span class="sp"></span>' +
+      '<span class="avg num">' + summary + '</span></button>';
+  }
+
+  /* A folded day still has to say what is inside it, so the header carries the
+     day average and the calories for that day. */
+  function dayLabel(d) {
+    return parseD(d).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" });
+  }
+  function foldHead(d, open, summary, attr) {
+    return '<button class="dayhead" ' + attr + '="' + d + '" aria-expanded="' + (open ? "true" : "false") + '">' +
+      '<span class="ch">' + (open ? "&#9660;" : "&#9654;") + '</span>' +
+      '<span>' + esc(dayLabel(d)) + '</span><span class="sp"></span>' +
+      '<span class="avg num">' + summary + '</span></button>';
   }
 
   function renderHistory(days) {
     var n = S.entries.length;
     $("histCount").textContent = n ? n + (n === 1 ? " entry" : " entries") : "";
-    if (!n) { $("histList").innerHTML = '<div class="empty">No weigh-ins yet. Add one above \u2014 you can set any date, including past days.</div>'; return; }
-    var byDay = {};
-    S.entries.forEach(function (e) { (byDay[e.date] = byDay[e.date] || []).push(e); });
-    var html = Object.keys(byDay).sort().reverse().map(function (d) {
-      var list = byDay[d].slice().sort(function (a, b) { return b.time.localeCompare(a.time); });
-      var avg = list.reduce(function (s, e) { return s + e.weight; }, 0) / list.length;
-      var ft = foodTotals(d);
-      var head = '<div class="dayhead"><span>' + esc(parseD(d).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" })) +
-        (list.length > 1 ? ' \u00b7 ' + list.length + ' readings' : '') + '</span><span class="avg num">' +
-        (list.length > 1 ? 'avg ' + avg.toFixed(2) + ' kg' : '') +
-        (ft.calories ? ' \u00b7 ' + ft.calories + ' kcal' : '') + '</span></div>';
-      var rows = list.map(function (e) {
-        var ask = pendingDel === e.id;
-        return '<div class="row' + (editEntry === e.id ? ' editing' : '') + '">' +
-          '<div><div class="w num">' + e.weight.toFixed(1) + ' kg</div>' +
-          '<div class="meta">' + (ask ? 'Delete this reading?' : esc(e.time) + (e.note ? ' \u00b7 ' + esc(e.note) : '')) + '</div></div>' +
-          (e.trained && !ask ? '<span class="tag">TRAINED</span>' : '') +
-          '<div class="sp"></div>' +
-          (ask
-            ? '<button class="iconbtn" data-delno="1">Keep</button>' +
-              '<button class="iconbtn" data-delyes="' + e.id + '" style="color:var(--bad)">Delete</button>'
-            : '<button class="iconbtn" data-edit="' + e.id + '" aria-label="Edit">Edit</button>' +
-              '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button>') +
-          '</div>';
-      }).join("");
-      return '<div class="daygroup">' + head + rows + '</div>';
+    if (!n) { $("histList").innerHTML = '<div class="empty">No weigh-ins yet. Add one above, on any date.</div>'; return; }
+    var desc = function (a, b) { return a.date === b.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date); };
+    var wRow = function (e) {
+      var ask = pendingDel === e.id;
+      return '<div class="row' + (editEntry === e.id ? ' editing' : '') + '">' +
+        '<div><div class="w num">' + e.weight.toFixed(1) + ' kg</div>' +
+        '<div class="meta">' + (ask ? 'Delete this reading?' : esc(dayLabel(e.date)) + ' \u00b7 ' + esc(e.time)) + '</div></div>' +
+        '<div class="sp"></div>' +
+        (ask
+          ? '<button class="iconbtn" data-delno="1">Keep</button>' +
+            '<button class="iconbtn" data-delyes="' + e.id + '" style="color:var(--bad)">Delete</button>'
+          : '<button class="iconbtn" data-edit="' + e.id + '" aria-label="Edit">Edit</button>' +
+            '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button>') +
+        '</div>';
+    };
+    var sp = splitByMonth(S.entries);
+    var html = sp.current.slice().sort(desc).map(wRow).join("");
+    html += sp.order.map(function (mk) {
+      var list = sp.months[mk].slice().sort(desc);
+      var avg = list.reduce(function (a, e) { return a + e.weight; }, 0) / list.length;
+      var open = !!openWMonths[mk] || list.some(function (e) { return e.id === editEntry; });
+      return '<div class="daygroup">' +
+        monthHead(mk, open, avg.toFixed(1) + ' kg' +
+          ' <span style="color:var(--muted);font-weight:400">avg of ' + list.length + '</span>', "data-wmonth") +
+        (open ? list.map(wRow).join("") : "") + '</div>';
     }).join("");
     $("histList").innerHTML = html;
+  }
+
+  var SRC = { claude: "Claude", off: "Food Facts", table: "Built-in", manual: "Yours" };
+
+  function foodRow(f) {
+    return '<div class="row' + (editFood === f.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(f.name) +
+      ' <span style="color:var(--muted);font-weight:400" class="num">\u00b7 ' + f.grams + ' g</span></div>' +
+      '<div class="meta num">' + f.calories + ' kcal \u00b7 ' + f.protein + ' P \u00b7 ' + f.carbs + ' C \u00b7 ' + f.fat + ' F</div></div>' +
+      (SRC[f.src] && pendingFDel !== f.id ? '<span class="tag">' + SRC[f.src] + '</span>' : '') +
+      '<div class="sp"></div>' +
+      (pendingFDel === f.id
+        ? '<button class="iconbtn" data-fdelno="1">Keep</button>' +
+          '<button class="iconbtn" data-fdelyes="' + f.id + '" style="color:var(--bad)">Delete</button>'
+        : '<button class="iconbtn" data-fedit="' + f.id + '">Edit</button>' +
+          '<button class="iconbtn del" data-fdel="' + f.id + '">\u2715</button>') + '</div>';
   }
 
   function renderFood() {
@@ -718,20 +918,61 @@ button{user-select:none;-webkit-user-select:none}
     var t = foodTotals(d);
     $("ftK").textContent = t.calories; $("ftP").textContent = Math.round(t.protein);
     $("ftC").textContent = Math.round(t.carbs); $("ftF").textContent = Math.round(t.fat);
-    var list = S.foods.filter(function (f) { return f.date === d; });
-    var SRC = { claude: "Claude", off: "Food Facts", table: "Built-in", manual: "Yours" };
-    $("foodList").innerHTML = list.length ? list.map(function (f) {
-      return '<div class="row' + (editFood === f.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(f.name) +
-        ' <span style="color:var(--muted);font-weight:400" class="num">\u00b7 ' + f.grams + ' g</span></div>' +
-        '<div class="meta num">' + f.calories + ' kcal \u00b7 ' + f.protein + ' P \u00b7 ' + f.carbs + ' C \u00b7 ' + f.fat + ' F</div></div>' +
-        (SRC[f.src] && pendingFDel !== f.id ? '<span class="tag">' + SRC[f.src] + '</span>' : '') +
-        '<div class="sp"></div>' +
-        (pendingFDel === f.id
-          ? '<button class="iconbtn" data-fdelno="1">Keep</button>' +
-            '<button class="iconbtn" data-fdelyes="' + f.id + '" style="color:var(--bad)">Delete</button>'
-          : '<button class="iconbtn" data-fedit="' + f.id + '">Edit</button>' +
-            '<button class="iconbtn del" data-fdel="' + f.id + '">\u2715</button>') + '</div>';
-    }).join("") : '<div class="empty">Nothing logged for this day.</div>';
+    var burned = trainTotal(d);
+    $("fNet").innerHTML = !burned
+      ? "No training logged for this day."
+      : t.calories
+        ? "Training burned <b style='color:var(--ink)'>" + burned + " kcal</b> on this day, so the net intake is <b style='color:var(--ink)'>" +
+          (t.calories - burned) + " kcal</b>."
+        : "Training burned <b style='color:var(--ink)'>" + burned + " kcal</b>. No food logged yet.";
+
+    // Every logged day, newest first, folded like the weigh-in history. The day
+    // the form is pointed at is the one that starts open.
+    var byDay = {};
+    S.foods.forEach(function (f) { (byDay[f.date] = byDay[f.date] || []).push(f); });
+    var keys = Object.keys(byDay).sort().reverse();
+    $("foodCount").textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
+    if (!keys.length) {
+      $("foodList").innerHTML = '<div class="empty">Nothing logged yet. Add something above.</div>';
+      updatePreview();
+      return;
+    }
+    if (!foodDaysSeeded) { openFoodDays[keys[0]] = true; foodDaysSeeded = true; }
+    if (byDay[d] && openFoodDays[d] === undefined) openFoodDays[d] = true;
+    var dayBlock = function (k) {
+      var list = byDay[k];
+      var open = !!openFoodDays[k] || list.some(function (f) { return f.id === editFood; });
+      var tot = list.reduce(function (a, f) { return a + f.calories; }, 0);
+      // The number here is the food listed inside, so training shows as the
+      // net it leaves rather than being folded silently into the total.
+      var burn = trainTotal(k);
+      var head = foldHead(k, open, tot + ' kcal' +
+        (burn ? ' <span style="color:var(--muted);font-weight:400">net ' + (tot - burn) + '</span>' : '') +
+        ' <span style="color:var(--muted);font-weight:400">\u00b7 ' + list.length + (list.length === 1 ? ' item' : ' items') + '</span>',
+        "data-fdayopen");
+      return '<div class="daygroup">' + head + (open ? list.map(foodRow).join("") : "") + '</div>';
+    };
+    var tm = thisMonth(), cur = [], mo = {}, order = [];
+    keys.forEach(function (k) {
+      var m = monthOf(k);
+      if (m === tm) { cur.push(k); return; }
+      if (!mo[m]) { mo[m] = []; order.push(m); }
+      mo[m].push(k);
+    });
+    // Days for this month; anything older waits inside its month.
+    var html = cur.map(dayBlock).join("");
+    html += order.map(function (mk) {
+      var dayKeys = mo[mk];
+      var open = !!openFMonths[mk] || dayKeys.some(function (k) {
+        return byDay[k].some(function (f) { return f.id === editFood; });
+      });
+      var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].reduce(function (b, f) { return b + f.calories; }, 0); }, 0);
+      return '<div class="daygroup">' +
+        monthHead(mk, open, Math.round(tot / dayKeys.length) + ' kcal' +
+          ' <span style="color:var(--muted);font-weight:400">avg of ' + dayKeys.length + ' days</span>', "data-fmonth") +
+        (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
+    }).join("");
+    $("foodList").innerHTML = html;
     updatePreview();
   }
 
@@ -743,41 +984,253 @@ button{user-select:none;-webkit-user-select:none}
     } else $("fPreview").textContent = "Enter grams and kcal per 100 g to see the total.";
   }
 
-  /* ---------- chart ---------- */
-  var chartPts = [];
-  function renderChart(days) {
-    var host = $("chartHost");
-    var tip = $("tip");
-    host.querySelectorAll("svg").forEach(function (s) { s.remove(); });
-    if (!days.length) {
-      host.insertAdjacentHTML("afterbegin", '<div class="empty">Log a weigh-in to draw the chart.</div>');
-      var em = host.querySelector(".empty"); if (em) em.id = "chartEmpty";
+  /* ---------- training ----------
+     One number a session, entered by hand: no table can guess what an hour in
+     a gym cost you. It is stored like any other record, so it merges, exports
+     and syncs with the rest. */
+  function tStatus(msg, kind) {
+    var el = $("tStatus");
+    el.innerHTML = msg || "";
+    el.style.color = kind === "bad" ? "var(--bad)" : kind === "ok" ? "var(--accent-ink)" : "var(--muted)";
+  }
+  function resetTrainForm() {
+    editWork = null;
+    $("tFormTitle").textContent = "Log training";
+    $("tSave").textContent = "Add training";
+    $("tCancel").style.display = "none";
+    $("tName").value = ""; $("tKcal").value = "";
+    if (!$("tDate").value) $("tDate").value = iso(new Date());
+    tStatus("What you did, and roughly what it burned.");
+  }
+  function trainRow(w) {
+    return '<div class="row' + (editWork === w.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(w.name) + '</div>' +
+      '<div class="meta num">\u2212' + w.calories + ' kcal</div></div>' +
+      '<div class="sp"></div>' +
+      (pendingWDel === w.id
+        ? '<button class="iconbtn" data-wdelno="1">Keep</button>' +
+          '<button class="iconbtn" data-wdelyes="' + w.id + '" style="color:var(--bad)">Delete</button>'
+        : '<button class="iconbtn" data-wedit="' + w.id + '">Edit</button>' +
+          '<button class="iconbtn del" data-wdel="' + w.id + '">\u2715</button>') + '</div>';
+  }
+  function renderTraining() {
+    var d = $("tDate").value || iso(new Date());
+    var t = foodTotals(d).calories, b = trainTotal(d);
+    $("tBalDate").textContent = fmtD(d);
+    $("tbFood").textContent = t;
+    $("tbTrain").textContent = b ? "\u2212" + b : "0";
+    // Same minus sign as the column beside it, rather than a hyphen.
+    $("tbNet").textContent = (t - b) < 0 ? "\u2212" + (b - t) : String(t - b);
+
+    var byDay = {};
+    S.workouts.forEach(function (w) { (byDay[w.date] = byDay[w.date] || []).push(w); });
+    var keys = Object.keys(byDay).sort().reverse();
+    $("trainCount").textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
+    if (!keys.length) {
+      $("trainList").innerHTML = '<div class="empty">No training yet. What you add comes off that day\u2019s intake.</div>';
       return;
     }
-    var old = host.querySelector(".empty"); if (old) old.remove();
+    if (!workDaysSeeded) { openWorkDays[keys[0]] = true; workDaysSeeded = true; }
+    if (byDay[d] && openWorkDays[d] === undefined) openWorkDays[d] = true;
+    var dayBlock = function (k) {
+      var list = byDay[k];
+      var open = !!openWorkDays[k] || list.some(function (w) { return w.id === editWork; });
+      var tot = list.reduce(function (a, w) { return a + w.calories; }, 0);
+      var head = foldHead(k, open, '\u2212' + tot + ' kcal' +
+        ' <span style="color:var(--muted);font-weight:400">\u00b7 ' + list.length + (list.length === 1 ? ' session' : ' sessions') + '</span>',
+        "data-wdayopen");
+      return '<div class="daygroup">' + head + (open ? list.map(trainRow).join("") : "") + '</div>';
+    };
+    var tm = thisMonth(), cur = [], mo = {}, order = [];
+    keys.forEach(function (k) {
+      var m = monthOf(k);
+      if (m === tm) { cur.push(k); return; }
+      if (!mo[m]) { mo[m] = []; order.push(m); }
+      mo[m].push(k);
+    });
+    var html = cur.map(dayBlock).join("");
+    html += order.map(function (mk) {
+      var dayKeys = mo[mk];
+      var open = !!openTMonths[mk] || dayKeys.some(function (k) {
+        return byDay[k].some(function (w) { return w.id === editWork; });
+      });
+      var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].reduce(function (b, w) { return b + w.calories; }, 0); }, 0);
+      return '<div class="daygroup">' +
+        monthHead(mk, open, '\u2212' + tot + ' kcal' +
+          ' <span style="color:var(--muted);font-weight:400">over ' + dayKeys.length + ' days</span>', "data-tmonth") +
+        (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
+    }).join("");
+    $("trainList").innerHTML = html;
+  }
 
-    var W = Math.max(300, host.clientWidth || 320), H = 260;
+  $("tDate").addEventListener("change", renderTraining);
+
+  $("tSave").addEventListener("click", function () {
+    var nm = $("tName").value.trim(), k = Math.round(numOf("tKcal"));
+    var date = $("tDate").value || iso(new Date());
+    if (!nm) { tStatus("Say what the session was.", "bad"); return; }
+    if (!(k > 0)) { tStatus("Enter how many calories it burned.", "bad"); return; }
+    if (k > 8000) { tStatus("That is more than a day of cycling \u2014 check the number.", "bad"); return; }
+    var was = !!editWork;
+    var rec = { id: editWork || uid(), date: date, name: nm, calories: k };
+    if (editWork) S.workouts = S.workouts.map(function (x) { return x.id === editWork ? rec : x; });
+    else S.workouts.push(rec);
+    openWorkDays[date] = true;
+    save(); resetTrainForm(); render();
+    tStatus((was ? "Updated" : "Added") + " \u2212" + k + " kcal \u2014 " + (foodTotals(date).calories
+      ? "the net intake for " + fmtD(date) + " is now " + netKcal(date) + " kcal."
+      : "it comes off " + fmtD(date) + " as soon as that day's food is logged."), "ok");
+  });
+  $("tCancel").addEventListener("click", function () { resetTrainForm(); render(); });
+
+  $("trainList").addEventListener("click", function (ev) {
+    var tmo = ev.target.closest("[data-tmonth]");
+    if (tmo) { var tmk = tmo.dataset.tmonth; openTMonths[tmk] = !openTMonths[tmk]; render(); return; }
+    var fold = ev.target.closest("[data-wdayopen]");
+    if (fold) { var wk = fold.dataset.wdayopen; openWorkDays[wk] = !openWorkDays[wk]; render(); return; }
+    var ed = ev.target.closest("[data-wedit]"), dl = ev.target.closest("[data-wdel]");
+    if (ed) {
+      var w = S.workouts.filter(function (x) { return x.id === ed.dataset.wedit; })[0]; if (!w) return;
+      editWork = w.id;
+      $("tFormTitle").textContent = "Edit training";
+      $("tSave").textContent = "Update training";
+      $("tCancel").style.display = "block";
+      $("tDate").value = w.date; $("tName").value = w.name; $("tKcal").value = w.calories;
+      tStatus("Change the session or the calories, then update.");
+      render();
+      $("tFormTitle").scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    if (dl) { pendingWDel = dl.dataset.wdel; render(); return; }
+    if (ev.target.closest("[data-wdelno]")) { pendingWDel = null; render(); return; }
+    var yes = ev.target.closest("[data-wdelyes]");
+    if (yes) {
+      var id = yes.dataset.wdelyes;
+      S.workouts = S.workouts.filter(function (x) { return x.id !== id; });
+      if (S.deleted.indexOf(id) < 0) S.deleted.push(id);
+      if (editWork === id) resetTrainForm();
+      pendingWDel = null;
+      save(); render();
+    }
+  });
+
+  /* ---------- chart ---------- */
+  /* Which series are drawn. Kept on the device, because a chart you tuned
+     should look the same the next time you open it. */
+  var SERIES = { logged: true, kcal: true, ideal: true, trend: true };
+  try {
+    var sv = JSON.parse(sget("cut-series") || "null");
+    if (sv) for (var sk in SERIES) if (typeof sv[sk] === "boolean") SERIES[sk] = sv[sk];
+  } catch (e) {}
+  var SERIES_META = [
+    ["logged", "Weight", "var(--accent)"],
+    ["kcal", "Calories", "var(--kcal)"],
+    ["ideal", "Ideal pace", "var(--neutral-series)"],
+    ["trend", "Trend", "var(--trend)"]
+  ];
+  function renderLegend() {
+    $("legend").innerHTML = SERIES_META.map(function (m) {
+      return '<button type="button" data-series="' + m[0] + '" aria-pressed="' + (SERIES[m[0]] ? "true" : "false") + '">' +
+        '<i style="background:' + m[2] + '"></i>' + m[1] + '</button>';
+    }).join("");
+  }
+  $("legend").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-series]"); if (!b) return;
+    var k = b.dataset.series;
+    SERIES[k] = !SERIES[k];
+    sset("cut-series", JSON.stringify(SERIES));
+    renderLegend();
+    renderChart(dayAvgs());
+  });
+
+  /* How much of the timeline the chart shows. Kept on the device like the
+     series switches. */
+  var RANGE = sget("cut-range") || "all";
+  function renderRange() {
+    document.querySelectorAll("#rangeRow button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.range === RANGE));
+    });
+  }
+  $("rangeRow").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-range]"); if (!b) return;
+    RANGE = b.dataset.range;
+    sset("cut-range", RANGE);
+    renderRange();
+    renderChart(dayAvgs());
+  });
+
+  var chartPts = [];
+  function renderChart(allDays) {
+    var host = $("chartHost");
+    var tip = $("tip");
+    renderLegend();
+    renderRange();
+
+    // Week and Month crop the timeline; the trend still learns from every day,
+    // it is simply drawn across whatever window is on screen.
+    var today = iso(new Date()), winFrom = null;
+    if (RANGE === "week") winFrom = iso(new Date(Date.now() - 6 * MS));
+    else if (RANGE === "month") winFrom = today.slice(0, 8) + "01";
+    var days = winFrom ? allDays.filter(function (d) { return d.date >= winFrom; }) : allDays;
+    host.querySelectorAll("svg").forEach(function (s) { s.remove(); });
+    // Clear any previous placeholder first: the chart is drawn on every render
+    // as well as on every visit to the page, and two visits used to stack two
+    // copies of this message.
+    var stale = host.querySelector(".empty"); if (stale) stale.remove();
+    if (!allDays.length || !days.length) {
+      host.insertAdjacentHTML("afterbegin", '<div class="empty" id="chartEmpty">' +
+        (allDays.length ? "Nothing logged in this window." : "Log a weigh-in to draw the chart.") + '</div>');
+      return;
+    }
+
+    // The chart takes the height the page can spare, rather than a fixed 260.
+    var W = Math.max(300, host.clientWidth || 320);
+    var H = Math.max(300, Math.min(620, (window.innerHeight || 720) - 250));
     var mL = 34, mR = 10, mT = 10, mB = 24;
     var G = goal();
 
-    // The axis covers the whole goal window plus any weigh-in logged outside it,
-    // so an edited start or end date can never crop your own data off the chart.
-    var start = G.startDate;
-    if (dayDiff(days[0].date, start) > 0) start = days[0].date;
-    var lastLogged = days[days.length - 1].date;
-    var end = G.endDate;
-    if (dayDiff(end, lastLogged) > 0) end = lastLogged;
+    var start, end;
+    if (winFrom) {
+      // A chosen window is the window, whatever the goal dates say.
+      start = winFrom;
+      end = today;
+      if (days.length && dayDiff(end, days[days.length - 1].date) > 0) end = days[days.length - 1].date;
+    } else {
+      // The axis covers the whole goal window plus any weigh-in logged outside
+      // it, so an edited start or end date can never crop your own data off.
+      start = G.startDate;
+      if (dayDiff(days[0].date, start) > 0) start = days[0].date;
+      end = G.endDate;
+      var lastLogged = days[days.length - 1].date;
+      if (dayDiff(end, lastLogged) > 0) end = lastLogged;
+    }
     var span = Math.max(1, dayDiff(start, end));
 
-    var reg = regression(days.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
+    // Trend from every logged day, not just the visible ones: cropping to a
+    // week would otherwise turn one heavy morning into a diet plan.
+    var regAll = regression(allDays.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
+    var reg = regAll;
     // Ideal runs between the two goal posts, wherever they sit on the axis.
     var gx0 = dayDiff(start, G.startDate), gx1 = dayDiff(start, G.endDate);
     var idealM = (G.target - G.start) / Math.max(1, gx1 - gx0);
     var idealAtX = function (x) { return G.start + idealM * (x - gx0); };
 
+    // Calories per day, on their own scale in the lower half of the plot: the
+    // weight lines keep the y axis, the bars just give the intake a shape.
+    var kByDay = {};
+    S.foods.forEach(function (f) { kByDay[f.date] = (kByDay[f.date] || 0) + f.calories; });
+    // Net of training, the same figure the projection uses.
+    Object.keys(kByDay).forEach(function (d) { kByDay[d] -= trainTotal(d); });
+    var kBars = Object.keys(kByDay).map(function (d) {
+      return { dx: dayDiff(start, d), date: d, k: kByDay[d] };
+    }).filter(function (b) { return b.dx >= 0 && b.dx <= span; });
+    var kMax = kBars.reduce(function (m, b) { return Math.max(m, b.k); }, 0);
+    var showK = SERIES.kcal && kBars.length && kMax > 0;
+
     // y domain across every series we draw
-    var vals = days.map(function (d) { return d.w; }).concat([G.target, G.start]);
-    if (reg) vals.push(reg.b + reg.m * span, reg.b + reg.m * gx1);
+    var vals = days.map(function (d) { return d.w; });
+    // The goal posts only pull the axis around when the whole run is on show.
+    if (!winFrom) vals = vals.concat([G.target, G.start]);
+    if (reg) vals.push(reg.b + reg.m * 0, reg.b + reg.m * span);
     var lo = Math.min.apply(null, vals) - 0.8, hi = Math.max.apply(null, vals) + 0.8;
     var X = function (dx) { return mL + (dx / span) * (W - mL - mR); };
     var Y = function (w) { return mT + (hi - w) / (hi - lo) * (H - mT - mB); };
@@ -798,21 +1251,42 @@ button{user-select:none;-webkit-user-select:none}
       svg.push('<text x="' + X(dx).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' +
         dt.toLocaleDateString(undefined, { day: "2-digit", month: "short" }) + '</text>');
     }
+    // calories: behind everything, so it reads as background texture
+    if (showK) {
+      var kTop = mT + (H - mT - mB) * 0.46;
+      var kBase = H - mB;
+      var bw = Math.max(3, Math.min(13, (W - mL - mR) / (span + 1) * 0.7));
+      kBars.forEach(function (b) {
+        var h = (b.k / kMax) * (kBase - kTop);
+        if (h < 0.7) return;
+        svg.push('<rect x="' + (X(b.dx) - bw / 2).toFixed(1) + '" y="' + (kBase - h).toFixed(1) +
+          '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
+          '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
+      });
+      svg.push('<text x="' + (W - mR) + '" y="' + (kTop - 3).toFixed(1) +
+        '" text-anchor="end" font-size="9" font-family="IBM Plex Mono,monospace" fill="var(--kcal)" opacity="0.75">' +
+        kMax + ' kcal</text>');
+    }
     // ideal
-    svg.push('<line x1="' + X(gx0).toFixed(1) + '" y1="' + Y(G.start).toFixed(1) + '" x2="' + X(gx1).toFixed(1) + '" y2="' + Y(G.target).toFixed(1) +
-      '" stroke="var(--neutral-series)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>');
+    if (SERIES.ideal) {
+      svg.push('<line x1="' + X(gx0).toFixed(1) + '" y1="' + Y(G.start).toFixed(1) + '" x2="' + X(gx1).toFixed(1) + '" y2="' + Y(G.target).toFixed(1) +
+        '" stroke="var(--neutral-series)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>');
+    }
     // trend
-    if (reg) {
+    if (reg && SERIES.trend) {
       svg.push('<line x1="' + X(0) + '" y1="' + Y(reg.b).toFixed(1) + '" x2="' + X(span) + '" y2="' + Y(reg.b + reg.m * span).toFixed(1) +
         '" stroke="var(--trend)" stroke-width="2" stroke-dasharray="2 3" stroke-linecap="round"/>');
     }
-    // logged polyline + dots
+    // logged polyline + dots. chartPts is built either way: the readout under
+    // your finger should still work with the line switched off.
     chartPts = days.map(function (d) { return { x: X(dayDiff(start, d.date)), y: Y(d.w), date: d.date, w: d.w, n: d.n }; });
-    svg.push('<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
-      chartPts.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ") + '"/>');
-    chartPts.forEach(function (p) {
-      svg.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>');
-    });
+    if (SERIES.logged) {
+      svg.push('<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
+        chartPts.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ") + '"/>');
+      chartPts.forEach(function (p) {
+        svg.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2.4" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.2"/>');
+      });
+    }
     svg.push('<line id="cross" x1="0" y1="' + mT + '" x2="0" y2="' + (H - mB) + '" stroke="var(--line-2)" stroke-width="1" opacity="0"/>');
     svg.push("</svg>");
     host.insertAdjacentHTML("afterbegin", svg.join(""));
@@ -830,7 +1304,9 @@ button{user-select:none;-webkit-user-select:none}
       var dx = dayDiff(start, best.date);
       var idealAt = idealAtX(dx);
       tip.innerHTML = '<div style="font-weight:600;margin-bottom:2px">' + esc(fmtD(best.date)) + '</div>' +
-        '<div class="tr"><span class="tk">Logged</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
+        '<div class="tr"><span class="tk">Weight</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
+        (kByDay[best.date] ? '<div class="tr"><span class="tk">Calories</span><span class="num">' + kByDay[best.date] + ' kcal</span></div>' : '') +
+        (trainTotal(best.date) ? '<div class="tr"><span class="tk">Training</span><span class="num">\u2212' + trainTotal(best.date) + ' kcal</span></div>' : '') +
         '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
         '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>';
       tip.style.opacity = 1;
@@ -842,51 +1318,82 @@ button{user-select:none;-webkit-user-select:none}
     el.addEventListener("touchstart", move, { passive: true });
     el.addEventListener("touchmove", move, { passive: true });
     el.addEventListener("mouseleave", function () { tip.style.opacity = 0; var c = el.querySelector("#cross"); if (c) c.setAttribute("opacity", 0); });
-
-    $("idealPace").textContent = idealM.toFixed(3) + " kg/day";
-    // Report the trend at the goal's end date, not the axis end.
-    $("trendVal").innerHTML = reg ? (reg.b + reg.m * gx1).toFixed(1) + '<small>kg</small>' : "\u2013";
-    $("trendPace").textContent = reg ? reg.m.toFixed(3) + " kg/day" : "needs 2+ days";
   }
 
-  /* ---------- weight form ---------- */
+  /* ---------- weight form ----------
+     The scale reads out kilos and grams, so the form does too: two small
+     wheels instead of one wide field. One record still holds one number -
+     90 kg 100 g is 90.1 kg - and the gram wheel moves in 100 g steps, which
+     is exactly the 0.1 kg the log has always stored. */
+  function clampW(v) { return Math.min(250, Math.max(30, Math.round(v * 10) / 10)); }
+  function setW(v) {
+    v = clampW(isFinite(v) ? v : 90);
+    var kg = Math.floor(v + 1e-9);
+    var g = Math.round((v - kg) * 10) * 100;
+    if (g >= 1000) { kg += 1; g = 0; }        // a rounded-up 950 g becomes a kilo
+    $("wKg").value = String(kg);
+    $("wG").value = String(g);
+  }
+  function getW() {
+    var kg = num($("wKg").value);
+    if (!isFinite(kg)) return NaN;
+    var g = num($("wG").value);
+    if (!isFinite(g)) g = 0;
+    return kg + Math.round(g / 100) / 10;
+  }
+  function stepW(delta) {
+    var c = getW();
+    setW((isFinite(c) ? c : 90) + delta);
+  }
+  /* Each wheel answers a scroll, a vertical drag, and the arrow keys - the
+     buttons are just the obvious way in. */
+  function bindWheel(el, step) {
+    el.addEventListener("wheel", function (ev) {
+      ev.preventDefault();
+      stepW(ev.deltaY < 0 ? step : -step);
+    }, { passive: false });
+    var y0 = null, used = 0;
+    el.addEventListener("touchstart", function (ev) { y0 = ev.touches[0].clientY; used = 0; }, { passive: true });
+    el.addEventListener("touchmove", function (ev) {
+      if (y0 === null) return;
+      var dy = y0 - ev.touches[0].clientY;
+      // 15 px of travel is one notch; the page must not scroll underneath.
+      var notches = Math.round((dy - used) / 15);
+      if (notches) { used += notches * 15; stepW(notches * step); }
+      if (Math.abs(dy) > 4) ev.preventDefault();
+    }, { passive: false });
+    el.addEventListener("touchend", function () { y0 = null; });
+    el.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowUp") { ev.preventDefault(); stepW(step); }
+      else if (ev.key === "ArrowDown") { ev.preventDefault(); stepW(-step); }
+    });
+  }
+  bindWheel($("wKgWheel"), 1);
+  bindWheel($("wGWheel"), 0.1);
+  ["wKg", "wG"].forEach(function (id) {
+    // Typing is allowed; leaving the field settles it on a real value.
+    $(id).addEventListener("change", function () { setW(getW()); });
+    $(id).addEventListener("blur", function () { setW(getW()); });
+  });
+
   function resetWeightForm() {
     editEntry = null;
     $("wFormTitle").textContent = "Add weigh-in";
     $("wSave").textContent = "Save weigh-in";
     $("wCancel").style.display = "none";
-    $("wTrained").checked = false;
-    $("wNote").value = "";
     if ($("wMsg")) $("wMsg").textContent = "";
     var now = new Date();
     $("wDate").value = iso(now);
     $("wTime").value = hhmm(now);
     var asc = sortedAsc();
-    $("wVal").value = (asc.length ? asc[asc.length - 1].weight : 90).toFixed(1);
-    buildQuick();
+    setW(asc.length ? asc[asc.length - 1].weight : 90);
   }
-  function buildQuick() {
-    var asc = sortedAsc();
-    var base = asc.length ? asc[asc.length - 1].weight : 90;
-    var opts = [base, base - 0.2, base - 0.5];
-    $("quickRow").innerHTML = '<span class="tiny" style="align-self:center">Quick:</span>' + opts.map(function (v) {
-      return '<button type="button" data-set="' + v.toFixed(1) + '">' + v.toFixed(1) + '</button>';
-    }).join("");
-  }
-  function clampW(v) { return Math.min(250, Math.max(30, Math.round(v * 10) / 10)); }
-
-  $("quickRow").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-set]"); if (b) $("wVal").value = b.dataset.set;
-  });
-  document.querySelectorAll("[data-step]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var cur = numOf("wVal"); if (isNaN(cur)) cur = 90;
-      $("wVal").value = clampW(cur + parseFloat(b.dataset.step)).toFixed(1);
-    });
+  document.querySelectorAll("[data-wstep]").forEach(function (b) {
+    b.addEventListener("click", function () { stepW(parseFloat(b.dataset.wstep)); });
   });
 
   $("wSave").addEventListener("click", function () {
-    var w = numOf("wVal");
+    var w = getW();
     var wm = $("wMsg");
     // alert() is inert in a sandboxed iframe, so validation speaks in the page.
     if (isNaN(w) || w < 30 || w > 250) {
@@ -898,7 +1405,7 @@ button{user-select:none;-webkit-user-select:none}
     var rec = {
       id: editEntry || uid(), date: $("wDate").value || iso(new Date()),
       time: $("wTime").value || hhmm(new Date()), weight: clampW(w),
-      trained: $("wTrained").checked, note: $("wNote").value.trim()
+      note: ""
     };
     if (editEntry) {
       S.entries = S.entries.map(function (e) { return e.id === editEntry ? rec : e; });
@@ -910,6 +1417,8 @@ button{user-select:none;-webkit-user-select:none}
   $("wCancel").addEventListener("click", function () { resetWeightForm(); render(); });
 
   $("histList").addEventListener("click", function (ev) {
+    var mfold = ev.target.closest("[data-wmonth]");
+    if (mfold) { var mk = mfold.dataset.wmonth; openWMonths[mk] = !openWMonths[mk]; render(); return; }
     var ed = ev.target.closest("[data-edit]"), dl = ev.target.closest("[data-del]");
     if (ed) {
       var e = S.entries.filter(function (x) { return x.id === ed.dataset.edit; })[0];
@@ -919,8 +1428,7 @@ button{user-select:none;-webkit-user-select:none}
       $("wSave").textContent = "Update weigh-in";
       $("wCancel").style.display = "block";
       $("wDate").value = e.date; $("wTime").value = e.time;
-      $("wVal").value = e.weight.toFixed(1);
-      $("wTrained").checked = !!e.trained; $("wNote").value = e.note || "";
+      setW(e.weight);
       render();
       $("wFormTitle").scrollIntoView({ block: "center", behavior: "smooth" });
     }
@@ -958,8 +1466,8 @@ button{user-select:none;-webkit-user-select:none}
     $("fKcal").value = ""; $("fP").value = ""; $("fC").value = ""; $("fF").value = "";
     showManual(false);
     setStatus(claudeAvailable()
-      ? "Type what you ate \u2014 \u201c2 eggs\u201d, \u201can apple\u201d, \u201c250 g shawarma\u201d. Grams are optional; Claude works out the portion and the macros."
-      : "Type what you ate \u2014 \u201c2 eggs\u201d, \u201can apple\u201d, or a brand name. Grams are optional for common items. This page cannot reach Claude, so it looks in the built-in list and then in Open Food Facts.");
+      ? "Type what you ate: \u201c2 eggs\u201d, \u201c250 g shawarma\u201d. Grams optional."
+      : "Type what you ate, or a brand name. Grams optional. Looks in the built-in list, then Open Food Facts.");
     updatePreview();
   }
   ["fGrams", "fKcal"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
@@ -1406,7 +1914,7 @@ button{user-select:none;-webkit-user-select:none}
       if (!claudeAvailable()) why.push("this page cannot reach Claude");
       // It allows only a handful of searches a minute, and a refusal is
       // indistinguishable from being offline, so the message covers both.
-      if (OFF.reached === false) why.push("Open Food Facts did not answer \u2014 it may just be busy, so this can work a minute later");
+      if (OFF.reached === false) why.push("Open Food Facts did not answer, and may just be busy");
       askForGrams(nm, "Could not work out \u201c" + esc(nm) + "\u201d" +
         (why.length ? " (" + why.join(", ") + ")" : "") +
         ". Enter the grams and the per-100 g figures once \u2014 both will be remembered.");
@@ -1429,6 +1937,10 @@ button{user-select:none;-webkit-user-select:none}
   $("fCancel").addEventListener("click", function () { resetFoodForm(); render(); });
 
   $("foodList").addEventListener("click", function (ev) {
+    var fmo = ev.target.closest("[data-fmonth]");
+    if (fmo) { var fm = fmo.dataset.fmonth; openFMonths[fm] = !openFMonths[fm]; render(); return; }
+    var fold = ev.target.closest("[data-fdayopen]");
+    if (fold) { var fk = fold.dataset.fdayopen; openFoodDays[fk] = !openFoodDays[fk]; render(); return; }
     var ed = ev.target.closest("[data-fedit]"), dl = ev.target.closest("[data-fdel]");
     if (ed) {
       var f = S.foods.filter(function (x) { return x.id === ed.dataset.fedit; })[0]; if (!f) return;
@@ -1471,53 +1983,61 @@ button{user-select:none;-webkit-user-select:none}
     if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
+  /* The block above the pages belongs to the weight page. Calories keeps the
+     projection, because that is the number the food you log moves; charts show
+     charts and nothing else; settings show neither. */
   function setTab(t) {
     tab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
+    $("appHeader").hidden = (t !== "weight");
+    $("tiles").hidden = (t !== "weight");
+    $("notices").hidden = (t === "chart");
+    $("projCard").hidden = !(t === "weight" || t === "food");
+    $("trendCard").hidden = (t !== "weight");
+    $("duo").hidden = !(t === "weight" || t === "food");
+    $("duo").className = "duo" + (t === "food" ? " solo" : "");
     if (t === "chart") renderChart(dayAvgs());
+    window.scrollTo(0, 0);
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
     var b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab);
+  });
+
+  /* Food and Training are two views of the same day, so they live behind one
+     tab rather than competing for a place in the bottom bar. */
+  function setCalView(v) {
+    calView = v;
+    document.querySelectorAll("#calTabs button").forEach(function (b) {
+      b.setAttribute("aria-selected", String(b.dataset.cal === v));
+    });
+    $("cal-food").hidden = (v !== "food");
+    $("cal-train").hidden = (v !== "train");
+  }
+  $("calTabs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cal]"); if (b) setCalView(b.dataset.cal);
   });
   $("notices").addEventListener("click", function (e) {
     var b = e.target.closest("[data-goto]"); if (b) setTab(b.dataset.goto);
   });
 
-  /* ---- nutrition engine diagnostic ---- */
-  function showEngine() {
-    var w = $("engineWhat"), k = $("engineKeys");
-    if (CLAUDE.fn) {
-      w.style.color = "var(--accent-ink)";
-      w.textContent = "Claude \u2014 via " + CLAUDE.how;
-    } else {
-      w.style.color = "var(--warn)";
-      w.textContent = "Built-in figures \u2014 " + CLAUDE.how;
-    }
-    k.textContent = CLAUDE.keys ? "window.claude exposes: " + CLAUDE.keys : "window.claude is not present";
-  }
-  $("engineTest").addEventListener("click", function () {
-    var m = $("engineMsg");
-    m.style.color = "var(--muted)";
-    m.textContent = "Testing...";
-    CLAUDE.probed = false; CLAUDE.fn = null;      // re-probe in case it loaded late
-    probeClaude().then(function () {
-      showEngine();
-      if (!CLAUDE.fn) {
-        m.style.color = "var(--warn)";
-        m.textContent = "No Claude available here, so the built-in figures are used. Everything still works.";
-        return;
-      }
-      return claudeLookup("1 medium egg", true).then(function (r) {
-        if (r) {
-          m.style.color = "var(--accent-ink)";
-          m.textContent = "Claude answered: " + Math.round(r.grams) + " g, " + Math.round(r.calories) + " kcal per 100 g. Lookups are live.";
-        } else {
-          m.style.color = "var(--bad)";
-          m.textContent = "Claude is reachable via " + CLAUDE.how + " but the reply was not usable. Falling back to the built-in figures.";
-        }
-      });
+  /* ---- appearance ----
+     Three states, and "system" is the absence of the attribute rather than a
+     value of its own, so the media query keeps working untouched. */
+  var THEME = sget("cut-theme") || "system";
+  function applyTheme(t) {
+    THEME = (t === "light" || t === "dark") ? t : "system";
+    if (THEME === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", THEME);
+    sset("cut-theme", THEME);
+    document.querySelectorAll("#themeRow button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.themeSet === THEME));
     });
+    // The chart is drawn from these colours, so it has to be redrawn with them.
+    if (tab === "chart") renderChart(dayAvgs());
+  }
+  $("themeRow").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-theme-set]"); if (b) applyTheme(b.dataset.themeSet);
   });
 
   /* ---- goal ---- */
@@ -1659,13 +2179,15 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   function payload() {
-    return { v: 2, entries: S.entries, foods: S.foods, deleted: S.deleted,
+    // v3 adds workouts. An older file simply has none, and an older build of
+    // the app ignores the field, so both directions stay readable.
+    return { v: 3, entries: S.entries, foods: S.foods, workouts: S.workouts, deleted: S.deleted,
              maintenance: S.maintenance, cache: S.cache, goal: S.goal, updatedAt: S.updatedAt };
   }
   /* Content signature, deliberately excluding updatedAt: with it in, every
      device would commit on every boot just because the clock had moved. */
   function sig(o) {
-    return JSON.stringify([o.entries || [], o.foods || [], (o.deleted || []).slice().sort(),
+    return JSON.stringify([o.entries || [], o.foods || [], o.workouts || [], (o.deleted || []).slice().sort(),
                            o.maintenance || 0, o.goal || null, Object.keys(o.cache || {}).sort()]);
   }
 
@@ -1695,6 +2217,7 @@ button{user-select:none;-webkit-user-select:none}
 
     S.entries = union(S.entries, rem.entries);
     S.foods = union(S.foods, rem.foods);
+    S.workouts = union(S.workouts, rem.workouts);
     S.deleted = Object.keys(tomb).slice(-800);   // tombstones must not grow forever
     // Goal and maintenance are single values with no id to merge on, so the
     // newer file simply wins.
@@ -1708,6 +2231,7 @@ button{user-select:none;-webkit-user-select:none}
     }
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
+    S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
     return sig(payload()) !== before;
   }
 
@@ -1757,7 +2281,7 @@ button{user-select:none;-webkit-user-select:none}
       if (m === "conflict") m = "Another device kept writing at the same time. Tap Sync now again.";
       if (/failed to fetch|load failed|networkerror|not allowed|network request/i.test(m)) {
         m = inClaude()
-          ? "Blocked here. The Claude preview cannot reach api.github.com - sync works when you open the app from your own URL or home screen."
+          ? "Blocked in the Claude preview. Sync works from your own URL or home screen."
           : "Could not reach api.github.com. Check the connection and try again.";
       }
       syErr = m; syBusy = false; syPending = false;
@@ -1781,7 +2305,7 @@ button{user-select:none;-webkit-user-select:none}
     var st = $("syState");
     if (!syOn()) {
       st.textContent = inClaude()
-        ? "Not connected. Sync cannot run inside the Claude preview - set it up on your own URL or home-screen app."
+        ? "Not connected. Set sync up from your own URL or home-screen app."
         : "Not connected. Entries live on this device only.";
     } else if (syBusy) {
       st.textContent = "Working...";
@@ -1827,14 +2351,17 @@ button{user-select:none;-webkit-user-select:none}
     if (!p || (!Array.isArray(p.entries) && !Array.isArray(p.foods))) throw new Error("shape");
     if (Array.isArray(p.entries)) S.entries = p.entries;
     if (Array.isArray(p.foods)) S.foods = p.foods;
+    S.workouts = Array.isArray(p.workouts) ? p.workouts : [];
     if (p.maintenance > 0) S.maintenance = p.maintenance;
     if (p.cache && typeof p.cache === "object") S.cache = p.cache;
     if (p.goal && typeof p.goal === "object") S.goal = p.goal;
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
-    save(); resetWeightForm(); resetFoodForm(); render(); fillGoalForm();
+    S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
+    save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render(); fillGoalForm();
     var pl = function (n, one, many) { return n + " " + (n === 1 ? one : many); };
-    msgEl.textContent = "Loaded " + pl(S.entries.length, "weigh-in", "weigh-ins") + " and " + pl(S.foods.length, "food entry", "food entries") + ".";
+    msgEl.textContent = "Loaded " + pl(S.entries.length, "weigh-in", "weigh-ins") + ", " +
+      pl(S.foods.length, "food entry", "food entries") + " and " + pl(S.workouts.length, "session", "sessions") + ".";
     msgEl.style.color = "var(--accent-ink)";
   }
 
@@ -1866,7 +2393,7 @@ button{user-select:none;-webkit-user-select:none}
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
     msg.style.color = "var(--accent-ink)";
-    msg.textContent = "Saved as " + name + " (check your downloads). If it just opened on screen instead, use Copy & paste backup below.";
+    msg.textContent = "Saved as " + name + " (check your downloads).";
   }
 
   $("exFile").addEventListener("click", function () {
@@ -1934,13 +2461,16 @@ button{user-select:none;-webkit-user-select:none}
       if (!p || (!Array.isArray(p.entries) && !Array.isArray(p.foods))) throw 0;
       if (Array.isArray(p.entries)) S.entries = p.entries;
       if (Array.isArray(p.foods)) S.foods = p.foods;
+      S.workouts = Array.isArray(p.workouts) ? p.workouts : [];
       if (p.maintenance > 0) S.maintenance = p.maintenance;
       if (p.cache && typeof p.cache === "object") S.cache = p.cache;
       if (p.goal && typeof p.goal === "object") S.goal = p.goal;
       S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
       S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
-      save(); resetWeightForm(); resetFoodForm(); render(); fillGoalForm();
-      msg.textContent = "Restored " + S.entries.length + " weigh-in(s) and " + S.foods.length + " food entr" + (S.foods.length === 1 ? "y" : "ies") + ".";
+      S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
+      save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render(); fillGoalForm();
+      msg.textContent = "Restored " + S.entries.length + " weigh-in(s), " + S.foods.length + " food entr" + (S.foods.length === 1 ? "y" : "ies") +
+        " and " + S.workouts.length + " session(s).";
     } catch (e) {
       msg.textContent = "That does not look like backup text. Paste the whole thing, starting with {";
     }
@@ -1961,26 +2491,32 @@ button{user-select:none;-webkit-user-select:none}
     pendingWipe = false;
     this.textContent = "Delete all data"; this.style.color = "";
     // Tombstone everything first, or the next sync pulls it all back down.
-    S.entries.concat(S.foods).forEach(function (r) { if (S.deleted.indexOf(r.id) < 0) S.deleted.push(r.id); });
-    S.entries = []; S.foods = []; S.cache = {}; save(); resetWeightForm(); resetFoodForm(); render();
+    allRecords().forEach(function (r) { if (S.deleted.indexOf(r.id) < 0) S.deleted.push(r.id); });
+    S.entries = []; S.foods = []; S.workouts = []; S.cache = {};
+    save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render();
   });
 
   var rt;
   window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { if (tab === "chart") renderChart(dayAvgs()); }, 140); });
+  window.addEventListener("orientationchange", function () { if (tab === "chart") setTimeout(function () { renderChart(dayAvgs()); }, 220); });
 
   /* ---------- boot ---------- */
   load();
   syLoad();
   fillSyncForm();
   $("fDate").value = iso(new Date());
+  $("tDate").value = iso(new Date());
   resetWeightForm();
   resetFoodForm();
+  resetTrainForm();
   fillGoalForm();
   render();
-  showEngine();
-  // Discover how (or whether) Claude can be reached, then correct the copy.
+  applyTheme(THEME);
+  setCalView("food");
+  setTab("weight");
   renderSync();
   if (syOn()) syncNow().then(function (ok) { if (ok) warnIfPublic(); });
-  probeClaude().then(function () { showEngine(); if (!editFood) resetFoodForm(); });
+  // Discover how (or whether) Claude can be reached, then correct the copy.
+  probeClaude().then(function () { if (!editFood) resetFoodForm(); });
 })();
 </script>
