@@ -65,28 +65,28 @@ try {
 
 *{box-sizing:border-box}
 
-/* The tab switch hides blocks with the hidden attribute, and several of
-   them are grids or flex containers - a class rule saying display:grid
-   beats the browser's own [hidden] rule, so say it louder here once. */
+/* Class rules set display:grid, which beats the browser's [hidden]. */
 [hidden]{display:none!important}
-/* iOS Safari drives its own toolbars off the ROOT scroller, and a
-   position:fixed element is placed against the layout viewport rather than the
-   visible one -- so while those toolbars animate, a fixed bottom bar drifts,
-   blinks, or lands in the wrong place until the scroll settles. The document
-   therefore does not scroll at all: the app is a full-height column, the pages
-   scroll inside it, and the tab bar is an ordinary row at the bottom of that
-   column. Nothing is fixed, so nothing can float. */
+/* Nothing is position:fixed. iOS Safari measures fixed elements against the
+   layout viewport while its own toolbars animate, which makes a fixed bar
+   drift mid-scroll. So the document never scrolls: #scroll does, and the tab
+   bar is the last row of a full-height column. */
 html{height:100%}
 body{
   margin:0; background:var(--ground); color:var(--ink);
   font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   font-size:15px; line-height:1.45;
-  -webkit-text-size-adjust:100%;
   height:100%; display:flex; flex-direction:column; overflow:hidden;
+  padding-top:env(safe-area-inset-top);
+  -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent;
 }
 #scroll{flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior-y:contain}
 .num{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
-.wrap{max-width:520px;margin:0 auto;padding:0 16px 26px}
+.wrap{
+  max-width:520px;margin:0 auto;padding:0 16px 26px;
+  padding-left:max(16px, env(safe-area-inset-left));
+  padding-right:max(16px, env(safe-area-inset-right));
+}
 
 /* header */
 header{padding:22px 0 14px}
@@ -95,10 +95,9 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .sub{color:var(--ink-2);font-size:13.5px}
 
 /* storage pill */
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
-.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--good)}
-.pill.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
-.pill.warn .dot{background:var(--warn)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:999px;
+  border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn)}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
 
 /* tiles */
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0}
@@ -166,9 +165,8 @@ input[type=text],input[type=number],input[type=date],input[type=time],input[type
   width:100%;min-width:0;max-width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
   border:1px solid var(--line-2);border-radius:9px;padding:9px 10px;
 }
-/* A native date or time field carries an intrinsic minimum width, and a 1fr
-   grid column will not shrink below it -- which is how a field ends up
-   sticking out past the edge of its card on a phone. */
+/* Native date/time fields carry an intrinsic min-width; a 1fr column will not
+   shrink below it, which is how a field escapes its card. */
 input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;font-size:14px}
 textarea{resize:vertical}
 input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -180,10 +178,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .card.tight .mb{margin-bottom:8px}
 .mb{margin-bottom:11px}
 
-/* A date or a time is read far more often than it is changed, so it shows as
-   a line of text with a pencil beside it. The native picker is still there --
-   a transparent input covers the chip -- so a tap opens the iPhone wheel and
-   the value handling is unchanged. */
+/* Chip: our text plus a pencil, with the real input on top at zero opacity. */
 .whenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .dchip,.minif{
   position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;
@@ -208,8 +203,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
    be dragged or scrolled, tapped up and down, or simply typed into. */
 .wgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:9px}
 .wunit{display:flex;flex-direction:column;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px}
-/* Slim keys: they are one of four ways to set the number, so they trade
-   height for a shorter card. Each is still the full width of its wheel. */
+/* Slim keys: one of four ways to set the number, so height gives way. */
 .wunit button{
   border:1px solid var(--line-2);background:var(--field);color:var(--ink);
   font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;border-radius:6px;
@@ -227,8 +221,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .wunit .rd .u{font-size:12px;color:var(--muted);font-weight:500}
 
 /* buttons */
-/* A tap has to answer for itself: the button dips under the finger, and after
-   the record is written it says so where the finger already is. */
+/* Press feedback, plus the .ok state a save flashes. */
 .btn{
   width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-size:14.5px;font-weight:600;
   cursor:pointer;background:var(--accent);color:var(--on-accent);min-height:44px;
@@ -240,8 +233,6 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
 .btn.sec:active{background:var(--field)}
 .btnrow{display:flex;gap:8px}
-.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2);cursor:pointer;margin-bottom:11px}
-.chk input{width:17px;height:17px;accent-color:var(--accent)}
 
 /* log list */
 .lab-h{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:18px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
@@ -276,9 +267,7 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 
 /* chart */
 .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--shadow);margin-bottom:12px}
-/* The legend doubles as the switchboard: each entry turns its series on or
-   off, and the chart redraws. The label sits over its own colour so a key is
-   only as wide as its word, which puts all four on one row under the chart. */
+/* The legend doubles as the series switchboard. */
 .legend{display:flex;gap:5px;padding:10px 0 2px;font-size:11px;color:var(--ink-2)}
 .legend button{
   flex:1 1 0;min-width:0;
@@ -305,22 +294,12 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .notice.e{background:var(--bad-bg);border:1px solid var(--bad-line);color:var(--bad)}
 .linkbtn{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;font-weight:600;cursor:pointer;padding:0}
 .tiny{font-size:11.5px;color:var(--muted);line-height:1.5}
-.foot{text-align:right;margin:10px 0 0}
 table.fx{width:100%;border-collapse:collapse;font-size:12.5px}
 table.fx th,table.fx td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--line)}
 table.fx th:first-child,table.fx td:first-child{text-align:left}
 table.fx th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
-/* ---- home-screen app build: notch insets and native-feeling scroll ---- */
-body{
-  padding-top:env(safe-area-inset-top);
-  -webkit-tap-highlight-color:transparent;
-}
-.wrap{
-  padding-left:max(16px, env(safe-area-inset-left));
-  padding-right:max(16px, env(safe-area-inset-right));
-}
 button{user-select:none;-webkit-user-select:none}
 </style>
 
@@ -332,7 +311,7 @@ button{user-select:none;-webkit-user-select:none}
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
         style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
-    <div id="storeWrap" style="margin-top:9px" hidden><span id="storePill" class="pill warn"><span class="dot"></span><span id="storeTxt"></span></span></div>
+    <div id="storeWrap" style="margin-top:9px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
   </header>
 
   <div id="notices"></div>
@@ -510,7 +489,7 @@ button{user-select:none;-webkit-user-select:none}
         <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
       </div>
     </div>
-    <div class="card" id="syncCard">
+    <div class="card">
       <span class="lab">Sync via GitHub</span>
       <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
@@ -576,10 +555,7 @@ button{user-select:none;-webkit-user-select:none}
   function hhmm(d) { return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
   function dayDiff(a, b) { return Math.round((parseD(b) - parseD(a)) / MS); }
   function fmtD(s) { return parseD(s).toLocaleDateString(undefined, { day: "2-digit", month: "short" }); }
-  /* The page scrolls inside #scroll rather than the window, so bringing a form
-     into view means moving that pane. The 90 px leaves the card's title clear
-     of the top edge instead of centring it, which on a tall form put the title
-     halfway down the screen. */
+  /* Scroll the pane so el lands 90 px below its top edge. */
   function reveal(el) {
     var sc = $("scroll");
     var top = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 90;
@@ -587,10 +563,8 @@ button{user-select:none;-webkit-user-select:none}
     if (sc.scrollTo) sc.scrollTo({ top: top, behavior: "smooth" });
     else sc.scrollTop = top;
   }
-  /* A button reports what happened for a moment, then goes back to its own
-     label. Anything that relabels a button on purpose -- switching to Edit,
-     say -- goes through setBtnLabel, which cancels a pending report first so
-     the two can never fight over the same button. */
+  /* Confirmation on the button itself. setBtnLabel cancels a pending one,
+     so a deliberate relabel (Edit) and a report never fight. */
   var flashT = {};
   function unflash(id) {
     if (!flashT[id]) return;
@@ -612,21 +586,17 @@ button{user-select:none;-webkit-user-select:none}
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
   /* ---------- numbers typed by a human ----------
-     An iPhone keyboard follows the phone's locale: where the locale uses a
-     comma for decimals the numeric pad offers "," and no ".", and a
-     type="number" field silently rejects it -- so "10,4" arrives as an empty
-     value and the entry looks broken. Every number field is therefore plain
-     text with inputmode="decimal", and every read goes through here, so
-     "10.4", "10,4" and "1 234,5" all mean what they look like. */
+     Locale keypads offer "," and no ".", and type=number rejects it, so every
+     numeric field is text and parsed here: 10,4 and 10.4 both work. */
   function num(v) {
     if (typeof v === "number") return v;
     var s = String(v == null ? "" : v).replace(/[\s\u00a0'\u2019]/g, "");
     var lc = s.lastIndexOf(","), ld = s.lastIndexOf(".");
     if (lc >= 0 && ld >= 0) {
-      // Both present: the one further right is the decimal point.
+      // two separators: the rightmost is the decimal point
       s = lc > ld ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
     } else if (lc >= 0) {
-      // Commas only: several of them can only be thousands separators.
+      // several commas can only be thousands separators
       s = s.indexOf(",") === lc ? s.replace(",", ".") : s.replace(/,/g, "");
     }
     var x = parseFloat(s);
@@ -640,12 +610,12 @@ button{user-select:none;-webkit-user-select:none}
     var g = S.goal || {};
     var startDate = g.startDate;
     if (!startDate) {
-      // Fall back to the earliest weigh-in, then to today.
+      // fall back to the earliest weigh-in, then today
       var ds = S.entries.map(function (e) { return e.date; }).sort();
       startDate = ds.length ? ds[0] : iso(new Date());
     }
     var endDate = g.endDate || DEFAULT_GOAL.endDate;
-    // An end on or before the start would make the pace infinite; push it out a day.
+    // an end at or before the start would make the pace infinite
     if (dayDiff(startDate, endDate) < 1) {
       endDate = iso(new Date(parseD(startDate).getTime() + MS));
     }
@@ -664,21 +634,17 @@ button{user-select:none;-webkit-user-select:none}
 
   var S = { entries: [], foods: [], workouts: [], maintenance: 2700, cache: {}, goal: null, deleted: [], updatedAt: "" };
   var editEntry = null, editFood = null, editWork = null, tab = "weight", calView = "food", saveErr = "";
-  // Which day groups are unfolded, in the weigh-in list and the food log.
-  // Only the newest day starts open; the rest are one tap away.
-  var openFoodDays = {}, openWorkDays = {};
-  var openWMonths = {}, openFMonths = {}, openTMonths = {};
-  var foodDaysSeeded = false, workDaysSeeded = false;
-  // Inline confirmation state. window.confirm() is blocked in sandboxed
-  // iframes (it returns false without ever showing a dialog), so deletes have
-  // to be confirmed in the page itself.
+  var FOLD = {
+    food: { days: {}, months: {}, seeded: false },
+    work: { days: {}, months: {}, seeded: false },
+    weight: { months: {} }
+  };
+  // two-tap delete: confirm() is inert in a sandboxed iframe
   var pendingDel = null, pendingFDel = null, pendingWDel = null, pendingWipe = false;
-  // Sync writes back into save(), so it needs a way to stop the recursion.
+  // sync writes through save(); this stops the recursion
   var syErr = "", suppressSync = false;
 
-  /* Per-record modified stamps, so a merge can tell a real edit from a stale
-     copy. Rather than touching every mutation site, save() compares each
-     record against the last version it wrote and stamps only what changed. */
+  /* Per-record mt stamps let a merge tell a real edit from a copy. */
   var snap = {}, metaSnap = "", dirty = {}, metaDirty = false;
   function recKey(r) { var c = {}; for (var k in r) if (k !== "mt") c[k] = r[k]; return JSON.stringify(c); }
   function metaKey() { return JSON.stringify([S.goal, S.maintenance]); }
@@ -696,7 +662,7 @@ button{user-select:none;-webkit-user-select:none}
     allRecords().forEach(function (r) {
       var k = recKey(r);
       seen[r.id] = k;
-      // Changed on this device and not yet pushed: dirty until it lands.
+      // changed here, not yet pushed
       if (snap[r.id] !== k) { r.mt = now; dirty[r.id] = 1; }
       else if (typeof r.mt !== "number") r.mt = 0;
     });
@@ -706,6 +672,7 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   function load() {
+    touch();
     try { var a = JSON.parse(sget("cut-entries") || "[]"); if (Array.isArray(a)) S.entries = a; } catch (e) {}
     try { var b = JSON.parse(sget("cut-foods") || "[]"); if (Array.isArray(b)) S.foods = b; } catch (e) {}
     try { var w = JSON.parse(sget("cut-workouts") || "[]"); if (Array.isArray(w)) S.workouts = w; } catch (e) {}
@@ -714,13 +681,14 @@ button{user-select:none;-webkit-user-select:none}
     try { var g = JSON.parse(sget("cut-goal") || "null"); if (g && typeof g === "object") S.goal = g; } catch (e) {}
     try { var d = JSON.parse(sget("cut-deleted") || "[]"); if (Array.isArray(d)) S.deleted = d; } catch (e) {}
     S.updatedAt = sget("cut-updated") || "";
-    // Migrate older records: they keyed on date alone, with no id or time.
+    // migrate pre-id records, which keyed on date alone
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
     S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
     reseedSnap();
   }
   function save() {
+    touch();
     stampChanges();
     S.updatedAt = new Date().toISOString();
     sset("cut-updated", S.updatedAt);
@@ -741,13 +709,31 @@ button{user-select:none;-webkit-user-select:none}
       return a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date);
     });
   }
-  function dayAvgs() {
-    var g = {};
+  /* Derived views: day averages, and per-day food and training totals with
+     their rows. Built on demand, dropped by touch() on any change. */
+  var IX = null;
+  function touch() { IX = null; }
+  function index() {
+    if (IX) return IX;
+    var g = {}, food = {}, work = {};
     S.entries.forEach(function (e) { (g[e.date] = g[e.date] || []).push(e.weight); });
-    return Object.keys(g).sort().map(function (d) {
-      return { date: d, w: g[d].reduce(function (s, x) { return s + x; }, 0) / g[d].length, n: g[d].length };
+    S.foods.forEach(function (f) {
+      var t = food[f.date] || (food[f.date] = { calories: 0, protein: 0, carbs: 0, fat: 0, list: [] });
+      t.calories += f.calories; t.protein += f.protein; t.carbs += f.carbs; t.fat += f.fat; t.list.push(f);
     });
+    S.workouts.forEach(function (w) {
+      var t = work[w.date] || (work[w.date] = { calories: 0, list: [] });
+      t.calories += w.calories; t.list.push(w);
+    });
+    IX = {
+      food: food, work: work,
+      days: Object.keys(g).sort().map(function (d) {
+        return { date: d, w: g[d].reduce(function (s, x) { return s + x; }, 0) / g[d].length, n: g[d].length };
+      })
+    };
+    return IX;
   }
+  function dayAvgs() { return index().days; }
   function regression(pts) {
     if (pts.length < 2) return null;
     var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
@@ -757,36 +743,26 @@ button{user-select:none;-webkit-user-select:none}
     var m = (n * sxy - sx * sy) / den;
     return { m: m, b: (sy - m * sx) / n };
   }
-  /* The plan is the straight line the chart draws between the two goal posts:
-     the starting weight on the start date, the target on the target date. Read
-     it at any date to get the weight you were meant to be. Outside the window
-     it holds at the nearest post, exactly like the drawn segment. */
+  /* Weight the plan asks for on a date: the line from the starting weight to
+     the target, held at the nearest end outside the window. */
   function plannedWeight(G, date) {
     var span = dayDiff(G.startDate, G.endDate);
     if (span <= 0) return G.target;
     var t = dayDiff(G.startDate, date) / span;
     return G.start + (G.target - G.start) * Math.max(0, Math.min(1, t));
   }
+  // read-only: callers must not mutate the returned totals
   function foodTotals(date) {
-    var t = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    S.foods.forEach(function (f) {
-      if (f.date === date) { t.calories += f.calories; t.protein += f.protein; t.carbs += f.carbs; t.fat += f.fat; }
-    });
-    return t;
+    return index().food[date] || { calories: 0, protein: 0, carbs: 0, fat: 0, list: [] };
   }
-  /* Training is intake with the sign flipped: burning 450 kcal on a 2 400 kcal
-     day leaves 1 950 kcal for the projection to work from. Everything that
-     talks about "calories for a day" means this net figure. */
+  // training is intake with the sign flipped: a day means its net
   function trainTotal(date) {
-    var k = 0;
-    S.workouts.forEach(function (w) { if (w.date === date) k += w.calories; });
-    return k;
+    var t = index().work[date];
+    return t ? t.calories : 0;
   }
   function netKcal(date) { return foodTotals(date).calories - trainTotal(date); }
 
-  /* ---------- built-in food table (per 100 g) ----------
-     A published artifact has no way to call Claude, so nutrition is a local
-     table plus your own per-100g numbers. */
+  /* ---------- built-in food table, per 100 g ---------- */
   var DB = [
     ["Chicken breast, grilled", 165, 31, 0, 3.6], ["Chicken thigh, roasted", 209, 26, 0, 10.9],
     ["Beef mince 5%", 137, 21.4, 0, 5], ["Beef steak, sirloin", 206, 30, 0, 9],
@@ -826,9 +802,8 @@ button{user-select:none;-webkit-user-select:none}
   /* ---------- render ---------- */
   var $ = function (id) { return document.getElementById(id); };
 
-  /* Each chip shows the value in words and hides a real date or time input on
-     top of itself, so the iPhone picker still opens on a tap. The text is
-     redrawn whenever the value changes, by hand or by code. */
+  /* Date and time chips: our text with a transparent native input on top, so
+     a tap opens the iPhone picker. Redrawn whenever a value changes. */
   var CHIPS = [
     { i: "wDate", t: "wDateTxt", f: chipDay },
     { i: "wTime", t: "wTimeTxt", f: chipTime },
@@ -846,8 +821,9 @@ button{user-select:none;-webkit-user-select:none}
   CHIPS.forEach(function (c) { $(c.i).addEventListener("change", syncChips); });
 
   function render() {
+    touch();
     syncChips();
-    var asc = sortedAsc(), days = dayAvgs();
+    var days = dayAvgs();
     var today = iso(new Date());
     var G = goal();
     $("goalHead").textContent = G.start.toFixed(1).replace(/\.0$/, "") + " \u2192 " + G.target.toFixed(1).replace(/\.0$/, "") + " kg";
@@ -856,8 +832,7 @@ button{user-select:none;-webkit-user-select:none}
     $("projLab").textContent = "Projected \u00b7 " + fmtShort(G.endDate);
     $("trendCardLab").textContent = "Trend \u00b7 " + fmtShort(G.endDate);
 
-    // The pill says nothing while storage works -- an app that saves does not
-    // need to announce it. It appears only when saving is blocked.
+    // the pill appears only when saving is blocked
     $("storeWrap").hidden = persistent;
     if (!persistent) $("storeTxt").textContent = "Not saving \u2014 export a copy";
 
@@ -869,20 +844,15 @@ button{user-select:none;-webkit-user-select:none}
       ' <button class="linkbtn" data-goto="data">Open Settings</button></div></div>';
     $("notices").innerHTML = nz;
 
-    // Tiles run off the most recent DAY AVERAGE, not the last single reading \u2014
-    // an evening weigh-in is heavier than a morning one, and using it alone made
-    // progress swing by half a kilo depending on when you stepped on the scale.
+    // day average, not the last reading: evening weigh-ins are heavier
     var latestDay = days.length ? days[days.length - 1] : null;
     var cur = latestDay ? latestDay.w : null;
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
-    /* Speed over the whole period: the starting weight against where you are
-       now, spread over every calendar day since the start date. Days without a
-       weigh-in still count -- they passed either way -- so this is the real
-       average pace, not the pace of the days you happened to log.
-       Signed on purpose: negative is loss, positive is gain. */
+  /* Pace over the whole period: start weight against now, spread over every
+     calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
-    // Under a week the divisor is too small for the number to mean anything.
+    // under a week the divisor is too small to mean anything
     var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
     var pace = perDay !== null ? perDay * 7 : null;
     $("tPace").innerHTML = pace !== null ? (pace > 0 ? "+" : "") + pace.toFixed(2) + '<small>kg</small>' : "\u2013";
@@ -907,22 +877,20 @@ button{user-select:none;-webkit-user-select:none}
         ? "Add a weigh-in to draw the trend."
         : "A week from the start date draws the trend.";
     }
-    // Projection from logged intake, net of training. A day with training but
-    // no food is left out: the burn is known, the intake is not.
-    var fd = {}; S.foods.forEach(function (f) { fd[f.date] = (fd[f.date] || 0) + f.calories; });
-    var fdays = Object.keys(fd);
-    var trainedKcal = 0;
-    fdays.forEach(function (d) { var t = trainTotal(d); trainedKcal += t; fd[d] -= t; });
-    var avgKcal = fdays.length ? Math.round(fdays.reduce(function (s, d) { return s + fd[d]; }, 0) / fdays.length) : null;
+    // average net intake per logged day; training-only days are skipped
+    var ixf = index().food, fdays = Object.keys(ixf), trainedKcal = 0, netSum = 0;
+    fdays.forEach(function (d) {
+      var burn = trainTotal(d);
+      trainedKcal += burn; netSum += ixf[d].calories - burn;
+    });
+    var avgKcal = fdays.length ? Math.round(netSum / fdays.length) : null;
     var dleft = Math.max(0, dayDiff(today, G.endDate));
     if (avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
       $("projVal").textContent = proj.toFixed(1) + " kg";
-      /* The note is the derivation: what you eat, then the gap to maintenance
-         and the weekly rate it buys at 7 700 kcal per kilo. The big figure
-         above is where that rate lands on the target date. */
+  /* The note is the derivation; the big figure is where it lands. */
       $("projNote").innerHTML =
         "<b>" + avgKcal + " kcal</b>" + (trainedKcal > 0 ? " net" : "") + "/day across " + fdays.length + " logged day" + (fdays.length === 1 ? "" : "s") +
         "<br>" + (Math.abs(def) < 1
@@ -935,35 +903,35 @@ button{user-select:none;-webkit-user-select:none}
     }
     $("maint").value = S.maintenance;
 
-    renderHistory(days);
+    renderHistory();
     renderFood();
     renderTraining();
-    renderChart(days);
+    if (tab === "chart") renderChart(days);   // otherwise redrawn on arrival
   }
   function snapshot() {
     return JSON.stringify({ entries: S.entries, foods: S.foods, workouts: S.workouts, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
   }
 
-  /* This month is the part you are working in, so it stays open. Everything
-     older collapses into one fold per month - a year of weigh-ins is then
-     twelve lines instead of three hundred. */
+  /* Lists show this month in full and fold each older month into one line. */
   function monthOf(date) { return date.slice(0, 7); }
-  function thisMonth() { return monthOf(iso(new Date())); }
   function monthLabel(k) {
     var p = k.split("-");
     return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
   }
-  function splitByMonth(records) {
-    var tm = thisMonth(), cur = [], old = {}, order = [];
-    records.forEach(function (r) {
-      var m = monthOf(r.date);
-      if (m === tm) { cur.push(r); return; }
+  // items: records or bare date keys; dateOf picks the date out
+  function byMonth(items, dateOf) {
+    var tm = monthOf(iso(new Date())), cur = [], old = {}, order = [];
+    items.forEach(function (it) {
+      var m = monthOf(dateOf(it));
+      if (m === tm) { cur.push(it); return; }
       if (!old[m]) { old[m] = []; order.push(m); }
-      old[m].push(r);
+      old[m].push(it);
     });
     order.sort().reverse();
     return { current: cur, months: old, order: order };
   }
+  function dateOfRec(r) { return r.date; }
+  function itself(k) { return k; }
   function monthHead(k, open, summary, attr) {
     return '<button class="dayhead mo" ' + attr + '="' + k + '" aria-expanded="' + (open ? "true" : "false") + '">' +
       '<span class="ch">' + (open ? "&#9660;" : "&#9654;") + '</span>' +
@@ -971,8 +939,6 @@ button{user-select:none;-webkit-user-select:none}
       '<span class="avg num">' + summary + '</span></button>';
   }
 
-  /* A folded day still has to say what is inside it, so the header carries the
-     day average and the calories for that day. */
   function dayLabel(d) {
     return parseD(d).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" });
   }
@@ -983,7 +949,31 @@ button{user-select:none;-webkit-user-select:none}
       '<span class="avg num">' + summary + '</span></button>';
   }
 
-  function renderHistory(days) {
+  var dim = function (txt) { return ' <span style="color:var(--muted);font-weight:400">' + txt + '</span>'; };
+
+  /* Day folds for this month, then one fold per older month opening into its
+     own days. Shared by the food log and the training log. */
+  function foldedList(c) {
+    var byDay = c.byDay, keys = Object.keys(byDay).sort().reverse(), st = c.state;
+    $(c.countEl).textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
+    if (!keys.length) { $(c.listEl).innerHTML = '<div class="empty">' + c.empty + '</div>'; return; }
+    if (!st.seeded) { st.days[keys[0]] = true; st.seeded = true; }
+    if (byDay[c.focus] && st.days[c.focus] === undefined) st.days[c.focus] = true;
+    var edited = function (k) { return byDay[k].list.some(c.isEdited); };
+    var dayBlock = function (k) {
+      var open = !!st.days[k] || edited(k);
+      return '<div class="daygroup">' + foldHead(k, open, c.daySum(k, byDay[k]), c.dayAttr) +
+        (open ? byDay[k].list.map(c.row).join("") : "") + '</div>';
+    };
+    var sp = byMonth(keys, itself);
+    $(c.listEl).innerHTML = sp.current.map(dayBlock).join("") + sp.order.map(function (mk) {
+      var dayKeys = sp.months[mk], open = !!st.months[mk] || dayKeys.some(edited);
+      return '<div class="daygroup">' + monthHead(mk, open, c.monthSum(dayKeys, byDay), c.monthAttr) +
+        (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
+    }).join("");
+  }
+
+  function renderHistory() {
     var n = S.entries.length;
     $("histCount").textContent = n ? n + (n === 1 ? " entry" : " entries") : "";
     if (!n) { $("histList").innerHTML = '<div class="empty">No weigh-ins yet. Add one above, on any date.</div>'; return; }
@@ -1001,18 +991,15 @@ button{user-select:none;-webkit-user-select:none}
             '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button>') +
         '</div>';
     };
-    var sp = splitByMonth(S.entries);
-    var html = sp.current.slice().sort(desc).map(wRow).join("");
-    html += sp.order.map(function (mk) {
+    var sp = byMonth(S.entries, dateOfRec);
+    $("histList").innerHTML = sp.current.slice().sort(desc).map(wRow).join("") + sp.order.map(function (mk) {
       var list = sp.months[mk].slice().sort(desc);
       var avg = list.reduce(function (a, e) { return a + e.weight; }, 0) / list.length;
-      var open = !!openWMonths[mk] || list.some(function (e) { return e.id === editEntry; });
+      var open = !!FOLD.weight.months[mk] || list.some(function (e) { return e.id === editEntry; });
       return '<div class="daygroup">' +
-        monthHead(mk, open, avg.toFixed(1) + ' kg' +
-          ' <span style="color:var(--muted);font-weight:400">avg of ' + list.length + '</span>', "data-wmonth") +
+        monthHead(mk, open, avg.toFixed(1) + ' kg' + dim('avg of ' + list.length), "data-wmonth") +
         (open ? list.map(wRow).join("") : "") + '</div>';
     }).join("");
-    $("histList").innerHTML = html;
   }
 
   var SRC = { claude: "Claude", off: "Food Facts", table: "Built-in", manual: "Yours" };
@@ -1037,54 +1024,24 @@ button{user-select:none;-webkit-user-select:none}
     $("ftK").textContent = t.calories; $("ftP").textContent = Math.round(t.protein);
     $("ftC").textContent = Math.round(t.carbs); $("ftF").textContent = Math.round(t.fat);
     renderBalance();
-
-    // Every logged day, newest first, folded like the weigh-in history. The day
-    // the form is pointed at is the one that starts open.
-    var byDay = {};
-    S.foods.forEach(function (f) { (byDay[f.date] = byDay[f.date] || []).push(f); });
-    var keys = Object.keys(byDay).sort().reverse();
-    $("foodCount").textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
-    if (!keys.length) {
-      $("foodList").innerHTML = '<div class="empty">Nothing logged yet. Add something above.</div>';
-      updatePreview();
-      return;
-    }
-    if (!foodDaysSeeded) { openFoodDays[keys[0]] = true; foodDaysSeeded = true; }
-    if (byDay[d] && openFoodDays[d] === undefined) openFoodDays[d] = true;
-    var dayBlock = function (k) {
-      var list = byDay[k];
-      var open = !!openFoodDays[k] || list.some(function (f) { return f.id === editFood; });
-      var tot = list.reduce(function (a, f) { return a + f.calories; }, 0);
-      // The number here is the food listed inside, so training shows as the
-      // net it leaves rather than being folded silently into the total.
-      var burn = trainTotal(k);
-      var head = foldHead(k, open, tot + ' kcal' +
-        (burn ? ' <span style="color:var(--muted);font-weight:400">net ' + (tot - burn) + '</span>' : '') +
-        ' <span style="color:var(--muted);font-weight:400">\u00b7 ' + list.length + (list.length === 1 ? ' item' : ' items') + '</span>',
-        "data-fdayopen");
-      return '<div class="daygroup">' + head + (open ? list.map(foodRow).join("") : "") + '</div>';
-    };
-    var tm = thisMonth(), cur = [], mo = {}, order = [];
-    keys.forEach(function (k) {
-      var m = monthOf(k);
-      if (m === tm) { cur.push(k); return; }
-      if (!mo[m]) { mo[m] = []; order.push(m); }
-      mo[m].push(k);
+    foldedList({
+      byDay: index().food, state: FOLD.food, focus: d,
+      countEl: "foodCount", listEl: "foodList",
+      empty: "Nothing logged yet. Add something above.",
+      dayAttr: "data-fdayopen", monthAttr: "data-fmonth",
+      row: foodRow,
+      isEdited: function (f) { return f.id === editFood; },
+      // day header counts the food inside; training shows as the net left
+      daySum: function (k, day) {
+        var burn = trainTotal(k), items = day.list.length;
+        return day.calories + ' kcal' + (burn ? dim('net ' + (day.calories - burn)) : '') +
+          dim('\u00b7 ' + items + (items === 1 ? ' item' : ' items'));
+      },
+      monthSum: function (dayKeys, byDay) {
+        var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].calories; }, 0);
+        return Math.round(tot / dayKeys.length) + ' kcal' + dim('avg of ' + dayKeys.length + ' days');
+      }
     });
-    // Days for this month; anything older waits inside its month.
-    var html = cur.map(dayBlock).join("");
-    html += order.map(function (mk) {
-      var dayKeys = mo[mk];
-      var open = !!openFMonths[mk] || dayKeys.some(function (k) {
-        return byDay[k].some(function (f) { return f.id === editFood; });
-      });
-      var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].reduce(function (b, f) { return b + f.calories; }, 0); }, 0);
-      return '<div class="daygroup">' +
-        monthHead(mk, open, Math.round(tot / dayKeys.length) + ' kcal' +
-          ' <span style="color:var(--muted);font-weight:400">avg of ' + dayKeys.length + ' days</span>', "data-fmonth") +
-        (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
-    }).join("");
-    $("foodList").innerHTML = html;
     updatePreview();
   }
 
@@ -1096,10 +1053,7 @@ button{user-select:none;-webkit-user-select:none}
     } else $("fPreview").textContent = "Enter grams and kcal per 100 g to see the total.";
   }
 
-  /* ---------- training ----------
-     One number a session, entered by hand: no table can guess what an hour in
-     a gym cost you. It is stored like any other record, so it merges, exports
-     and syncs with the rest. */
+  /* ---------- training: one number a session, entered by hand ---------- */
   function tStatus(msg, kind) {
     var el = $("tStatus");
     el.innerHTML = msg || "";
@@ -1132,52 +1086,29 @@ button{user-select:none;-webkit-user-select:none}
     $("tBalDate").textContent = fmtD(d);
     $("tbFood").textContent = t;
     $("tbTrain").textContent = b ? "\u2212" + b : "0";
-    // Same minus sign as the column beside it, rather than a hyphen.
+    // minus sign, not a hyphen, to match the column beside it
     $("tbNet").textContent = (t - b) < 0 ? "\u2212" + (b - t) : String(t - b);
   }
   function renderTraining() {
     var d = $("tDate").value || iso(new Date());
     renderBalance();
-
-    var byDay = {};
-    S.workouts.forEach(function (w) { (byDay[w.date] = byDay[w.date] || []).push(w); });
-    var keys = Object.keys(byDay).sort().reverse();
-    $("trainCount").textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
-    if (!keys.length) {
-      $("trainList").innerHTML = '<div class="empty">No training yet. What you add comes off that day\u2019s intake.</div>';
-      return;
-    }
-    if (!workDaysSeeded) { openWorkDays[keys[0]] = true; workDaysSeeded = true; }
-    if (byDay[d] && openWorkDays[d] === undefined) openWorkDays[d] = true;
-    var dayBlock = function (k) {
-      var list = byDay[k];
-      var open = !!openWorkDays[k] || list.some(function (w) { return w.id === editWork; });
-      var tot = list.reduce(function (a, w) { return a + w.calories; }, 0);
-      var head = foldHead(k, open, '\u2212' + tot + ' kcal' +
-        ' <span style="color:var(--muted);font-weight:400">\u00b7 ' + list.length + (list.length === 1 ? ' session' : ' sessions') + '</span>',
-        "data-wdayopen");
-      return '<div class="daygroup">' + head + (open ? list.map(trainRow).join("") : "") + '</div>';
-    };
-    var tm = thisMonth(), cur = [], mo = {}, order = [];
-    keys.forEach(function (k) {
-      var m = monthOf(k);
-      if (m === tm) { cur.push(k); return; }
-      if (!mo[m]) { mo[m] = []; order.push(m); }
-      mo[m].push(k);
+    foldedList({
+      byDay: index().work, state: FOLD.work, focus: d,
+      countEl: "trainCount", listEl: "trainList",
+      empty: "No training yet. What you add comes off that day\u2019s intake.",
+      dayAttr: "data-wdayopen", monthAttr: "data-tmonth",
+      row: trainRow,
+      isEdited: function (w) { return w.id === editWork; },
+      daySum: function (k, day) {
+        var sessions = day.list.length;
+        return '\u2212' + day.calories + ' kcal' +
+          dim('\u00b7 ' + sessions + (sessions === 1 ? ' session' : ' sessions'));
+      },
+      monthSum: function (dayKeys, byDay) {
+        var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].calories; }, 0);
+        return '\u2212' + tot + ' kcal' + dim('over ' + dayKeys.length + ' days');
+      }
     });
-    var html = cur.map(dayBlock).join("");
-    html += order.map(function (mk) {
-      var dayKeys = mo[mk];
-      var open = !!openTMonths[mk] || dayKeys.some(function (k) {
-        return byDay[k].some(function (w) { return w.id === editWork; });
-      });
-      var tot = dayKeys.reduce(function (a, k) { return a + byDay[k].reduce(function (b, w) { return b + w.calories; }, 0); }, 0);
-      return '<div class="daygroup">' +
-        monthHead(mk, open, '\u2212' + tot + ' kcal' +
-          ' <span style="color:var(--muted);font-weight:400">over ' + dayKeys.length + ' days</span>', "data-tmonth") +
-        (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
-    }).join("");
-    $("trainList").innerHTML = html;
   }
 
   $("tDate").addEventListener("change", renderTraining);
@@ -1192,7 +1123,7 @@ button{user-select:none;-webkit-user-select:none}
     var rec = { id: editWork || uid(), date: date, name: nm, calories: k };
     if (editWork) S.workouts = S.workouts.map(function (x) { return x.id === editWork ? rec : x; });
     else S.workouts.push(rec);
-    openWorkDays[date] = true;
+    FOLD.work.days[date] = true;
     save(); resetTrainForm(); render();
     flash("tSave", was ? "Updated \u2713" : "Added \u2713");
     tStatus((was ? "Updated" : "Added") + " \u2212" + k + " kcal \u2014 " + (foodTotals(date).calories
@@ -1203,9 +1134,9 @@ button{user-select:none;-webkit-user-select:none}
 
   $("trainList").addEventListener("click", function (ev) {
     var tmo = ev.target.closest("[data-tmonth]");
-    if (tmo) { var tmk = tmo.dataset.tmonth; openTMonths[tmk] = !openTMonths[tmk]; render(); return; }
+    if (tmo) { var tmk = tmo.dataset.tmonth; FOLD.work.months[tmk] = !FOLD.work.months[tmk]; render(); return; }
     var fold = ev.target.closest("[data-wdayopen]");
-    if (fold) { var wk = fold.dataset.wdayopen; openWorkDays[wk] = !openWorkDays[wk]; render(); return; }
+    if (fold) { var wk = fold.dataset.wdayopen; FOLD.work.days[wk] = !FOLD.work.days[wk]; render(); return; }
     var ed = ev.target.closest("[data-wedit]"), dl = ev.target.closest("[data-wdel]");
     if (ed) {
       var w = S.workouts.filter(function (x) { return x.id === ed.dataset.wedit; })[0]; if (!w) return;
@@ -1284,16 +1215,13 @@ button{user-select:none;-webkit-user-select:none}
     renderLegend();
     renderRange();
 
-    // Week and Month crop the timeline; the trend still learns from every day,
-    // it is simply drawn across whatever window is on screen.
+    // the window crops what is drawn, not what the fit learns from
     var today = iso(new Date()), winFrom = null;
     if (RANGE === "week") winFrom = iso(new Date(Date.now() - 6 * MS));
     else if (RANGE === "month") winFrom = today.slice(0, 8) + "01";
     var days = winFrom ? allDays.filter(function (d) { return d.date >= winFrom; }) : allDays;
     host.querySelectorAll("svg").forEach(function (s) { s.remove(); });
-    // Clear any previous placeholder first: the chart is drawn on every render
-    // as well as on every visit to the page, and two visits used to stack two
-    // copies of this message.
+    // drop any previous placeholder: this redraws on every visit
     var stale = host.querySelector(".empty"); if (stale) stale.remove();
     if (!allDays.length || !days.length) {
       host.insertAdjacentHTML("afterbegin", '<div class="empty" id="chartEmpty">' +
@@ -1311,13 +1239,12 @@ button{user-select:none;-webkit-user-select:none}
 
     var start, end;
     if (winFrom) {
-      // A chosen window is the window, whatever the goal dates say.
+      // a chosen window wins over the goal dates
       start = winFrom;
       end = today;
       if (days.length && dayDiff(end, days[days.length - 1].date) > 0) end = days[days.length - 1].date;
     } else {
-      // The axis covers the whole goal window plus any weigh-in logged outside
-      // it, so an edited start or end date can never crop your own data off.
+      // axis spans the goal window plus anything logged outside it
       start = G.startDate;
       if (dayDiff(days[0].date, start) > 0) start = days[0].date;
       end = G.endDate;
@@ -1326,20 +1253,18 @@ button{user-select:none;-webkit-user-select:none}
     }
     var span = Math.max(1, dayDiff(start, end));
 
-    // Trend from every logged day, not just the visible ones: cropping to a
-    // week would otherwise turn one heavy morning into a diet plan.
+    // fit over every logged day, not just the visible window
     var regAll = regression(allDays.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
     var reg = regAll;
-    // Ideal runs between the two goal posts, wherever they sit on the axis.
+    // ideal line: goal post to goal post
     var gx0 = dayDiff(start, G.startDate), gx1 = dayDiff(start, G.endDate);
     var idealM = (G.target - G.start) / Math.max(1, gx1 - gx0);
     var idealAtX = function (x) { return G.start + idealM * (x - gx0); };
 
-    // Calories per day, on their own scale in the lower half of the plot: the
-    // weight lines keep the y axis, the bars just give the intake a shape.
+    // calorie bars: own scale, lower half, behind everything
     var kByDay = {};
     S.foods.forEach(function (f) { kByDay[f.date] = (kByDay[f.date] || 0) + f.calories; });
-    // Net of training, the same figure the projection uses.
+    // net of training, the figure the projection uses
     Object.keys(kByDay).forEach(function (d) { kByDay[d] -= trainTotal(d); });
     var kBars = Object.keys(kByDay).map(function (d) {
       return { dx: dayDiff(start, d), date: d, k: kByDay[d] };
@@ -1347,9 +1272,9 @@ button{user-select:none;-webkit-user-select:none}
     var kMax = kBars.reduce(function (m, b) { return Math.max(m, b.k); }, 0);
     var showK = SERIES.kcal && kBars.length && kMax > 0;
 
-    // y domain across every series we draw
+    // y domain across every series drawn
     var vals = days.map(function (d) { return d.w; });
-    // The goal posts only pull the axis around when the whole run is on show.
+    // goal posts widen the axis only in the All window
     if (!winFrom) vals = vals.concat([G.target, G.start]);
     if (reg) vals.push(reg.b + reg.m * 0, reg.b + reg.m * span);
     var lo = Math.min.apply(null, vals) - 0.8, hi = Math.max.apply(null, vals) + 0.8;
@@ -1372,7 +1297,7 @@ button{user-select:none;-webkit-user-select:none}
       svg.push('<text x="' + X(dx).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' +
         dt.toLocaleDateString(undefined, { day: "2-digit", month: "short" }) + '</text>');
     }
-    // calories: behind everything, so it reads as background texture
+    // calorie bars
     if (showK) {
       var kTop = mT + (H - mT - mB) * 0.46;
       var kBase = H - mB;
@@ -1395,8 +1320,7 @@ button{user-select:none;-webkit-user-select:none}
       svg.push('<line x1="' + X(0) + '" y1="' + Y(reg.b).toFixed(1) + '" x2="' + X(span) + '" y2="' + Y(reg.b + reg.m * span).toFixed(1) +
         '" stroke="var(--trend)" stroke-width="2" stroke-dasharray="2 3" stroke-linecap="round"/>');
     }
-    // logged polyline + dots. chartPts is built either way: the readout under
-    // your finger should still work with the line switched off.
+    // dots + line; chartPts is built even with the line off, for hover
     chartPts = days.map(function (d) { return { x: X(dayDiff(start, d.date)), y: Y(d.w), date: d.date, w: d.w, n: d.n }; });
     if (SERIES.logged) {
       svg.push('<polyline fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="' +
@@ -1438,11 +1362,7 @@ button{user-select:none;-webkit-user-select:none}
     el.addEventListener("mouseleave", function () { tip.style.opacity = 0; var c = el.querySelector("#cross"); if (c) c.setAttribute("opacity", 0); });
   }
 
-  /* ---------- weight form ----------
-     The scale reads out kilos and grams, so the form does too: two small
-     wheels instead of one wide field. One record still holds one number -
-     90 kg 100 g is 90.1 kg - and the gram wheel moves in 100 g steps, which
-     is exactly the 0.1 kg the log has always stored. */
+  /* ---------- weight form: a kilo wheel and a 100 g wheel ---------- */
   function clampW(v) { return Math.min(250, Math.max(30, Math.round(v * 10) / 10)); }
   function setW(v) {
     v = clampW(isFinite(v) ? v : 90);
@@ -1475,7 +1395,7 @@ button{user-select:none;-webkit-user-select:none}
     el.addEventListener("touchmove", function (ev) {
       if (y0 === null) return;
       var dy = y0 - ev.touches[0].clientY;
-      // 15 px of travel is one notch; the page must not scroll underneath.
+      // 15 px of travel is one notch; the page must not scroll under it
       var notches = Math.round((dy - used) / 15);
       if (notches) { used += notches * 15; stepW(notches * step); }
       if (Math.abs(dy) > 4) ev.preventDefault();
@@ -1489,7 +1409,7 @@ button{user-select:none;-webkit-user-select:none}
   bindWheel($("wKgWheel"), 1);
   bindWheel($("wGWheel"), 0.1);
   ["wKg", "wG"].forEach(function (id) {
-    // Typing is allowed; leaving the field settles it on a real value.
+    // typing allowed; blur settles it on a real value
     $(id).addEventListener("change", function () { setW(getW()); });
     $(id).addEventListener("blur", function () { setW(getW()); });
   });
@@ -1513,7 +1433,7 @@ button{user-select:none;-webkit-user-select:none}
   $("wSave").addEventListener("click", function () {
     var w = getW();
     var wm = $("wMsg");
-    // alert() is inert in a sandboxed iframe, so validation speaks in the page.
+    // alert() is inert in a sandboxed iframe; validate in the page
     if (isNaN(w) || w < 30 || w > 250) {
       wm.style.color = "var(--bad)";
       wm.textContent = "Enter a weight between 30 and 250 kg.";
@@ -1532,8 +1452,7 @@ button{user-select:none;-webkit-user-select:none}
       S.entries.push(rec);
     }
     save(); resetWeightForm(); render();
-    // The form has just been cleared, so this line is the only proof the
-    // reading was written. It names it, which saves opening the history.
+    // the form is cleared, so name what was written
     wm.style.color = "var(--accent-ink)";
     wm.textContent = (wasEdit ? "Updated " : "Saved ") + rec.weight.toFixed(1) + " kg \u00b7 " +
       dayLabel(rec.date) + " " + rec.time;
@@ -1543,7 +1462,7 @@ button{user-select:none;-webkit-user-select:none}
 
   $("histList").addEventListener("click", function (ev) {
     var mfold = ev.target.closest("[data-wmonth]");
-    if (mfold) { var mk = mfold.dataset.wmonth; openWMonths[mk] = !openWMonths[mk]; render(); return; }
+    if (mfold) { var mk = mfold.dataset.wmonth; FOLD.weight.months[mk] = !FOLD.weight.months[mk]; render(); return; }
     var ed = ev.target.closest("[data-edit]"), dl = ev.target.closest("[data-del]");
     if (ed) {
       var e = S.entries.filter(function (x) { return x.id === ed.dataset.edit; })[0];
@@ -1557,7 +1476,7 @@ button{user-select:none;-webkit-user-select:none}
       render();
       reveal($("wFormTitle"));
     }
-    // Two taps, both in-page: \u2715 asks, Delete confirms.
+    // two taps: cross asks, Delete confirms
     if (dl) { pendingDel = dl.dataset.del; render(); return; }
     if (ev.target.closest("[data-delno]")) { pendingDel = null; render(); return; }
     var yes = ev.target.closest("[data-delyes]");
@@ -1600,9 +1519,7 @@ button{user-select:none;-webkit-user-select:none}
 
   var norm = function (s) { return s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); };
 
-  /* Typical weight of ONE of each item, in grams. Lets "2 eggs" resolve without
-     the user weighing anything. Longest match wins, so "slice of bread" beats
-     "bread". */
+  /* Grams in one unit, so "2 eggs" resolves without a weight. */
   var PORTIONS = {
     "egg white": 33, "egg yolk": 17, "egg": 50,
     "slice of bread": 30, "slice bread": 30, "bread slice": 30, "toast": 30,
@@ -1634,11 +1551,9 @@ button{user-select:none;-webkit-user-select:none}
   var WORDNUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
                   seven: 7, eight: 8, nine: 9, ten: 10, half: 0.5, couple: 2, few: 3, dozen: 12 };
 
-  /* Pull a leading count off the text: "2 eggs", "two eggs", "half an avocado".
-     A number followed by a weight unit is an explicit weight, NOT a count \u2014
-     otherwise "250 g shawarma" would read as 250 shawarmas. */
+  /* Leading count: "2 eggs", "two eggs", "half an apple". */
   function parseQty(text) {
-    // Keep . and , here \u2014 norm() strips them, which would turn "1.5 kg" into "1".
+    // keep . and , here; norm() would turn "1.5 kg" into "1"
     var t = String(text).toLowerCase().replace(/[^a-z0-9 .,]/g, " ").replace(/\s+/g, " ").trim();
     var gm = t.match(/^(\d+(?:[.,]\d+)?)\s*(kgs?|g|gr|grams?|grammes?)\b\s*(?:of\s+)?(.*)$/);
     if (gm) {
@@ -1678,14 +1593,11 @@ button{user-select:none;-webkit-user-select:none}
     return hits / words.length;
   }
   function keyWords(name) {
-    // Match on the name with any count and plural removed, so "2 eggs",
-    // "three eggs" and "1 egg" all reach the same row.
+    // match on the name with count and plural stripped
     return foodKey(name).split(" ").filter(function (w) { return w.length > 2; });
   }
 
-  /* Fuzzy match against the built-in table. The score comes back with the row:
-     a confident hit on this curated table is better than a web lookup, a vague
-     one is not. */
+  /* Fuzzy match against DB; the score carries the row it matched. */
   function tableLookup(name) {
     var q = keyWords(name);
     if (!q.length) return null;
@@ -1706,22 +1618,14 @@ button{user-select:none;-webkit-user-select:none}
       var v = o[ks[i]];
       if (typeof v !== "number" || !isFinite(v) || v < 0) return false;
     }
-    // Per 100 g nothing exceeds ~900 kcal (pure fat is 884) or 100 g of a macro.
+    // per 100 g: max ~900 kcal (pure fat is 884), max 100 g of a macro
     return o.calories <= 950 && o.protein <= 100 && o.carbs <= 100 && o.fat <= 100;
   }
 
   /* ---------- Open Food Facts ----------
-     The table above is a few dozen staples. Open Food Facts is the largest
-     openly licensed food database there is - millions of products under the
-     ODbL, no key, no sign-up, and CORS left open - so it covers everything
-     the table misses, branded items included. It does throttle: a handful of
-     searches a minute per address, which is far more than logging a meal
-     needs, and answers already used are remembered in S.cache anyway.
-
-     Its rows are crowd-entered, so no single row is trusted: a candidate has
-     to match the name, pass plausible(), and have macros that actually explain
-     its kcal. What gets used is the median of the survivors, so one sloppy
-     entry cannot move the answer. */
+     Only world.openfoodfacts.org/cgi/search.pl sends CORS headers, so it is
+     the one endpoint a page can use. Rows are noisy, hence the scoring and
+     plausibility checks below. */
   var OFF = { host: "https://world.openfoodfacts.org", reached: null, why: "" };
 
   function median(a) {
@@ -1758,9 +1662,7 @@ button{user-select:none;-webkit-user-select:none}
     var url = OFF.host + "/cgi/search.pl?search_simple=1&action=process&json=1&page_size=24" +
       "&fields=" + encodeURIComponent("product_name,product_name_en,generic_name,brands,nutriments,serving_quantity") +
       "&search_terms=" + encodeURIComponent(terms);
-    // Searches are capped at a handful a minute per address, and a throttled
-    // 503 arrives without CORS headers, so the browser cannot tell it from
-    // being offline - both look like "Failed to fetch". One blind retry it is.
+    // a throttled 503 arrives without CORS headers, so it looks offline
     var get = fetchJSON(url, 9000).catch(function () {
       return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return fetchJSON(url, 9000); });
     });
@@ -1768,24 +1670,20 @@ button{user-select:none;-webkit-user-select:none}
       OFF.reached = true;
       var q = keyWords(name), cand = [];
       ((j && j.products) || []).forEach(function (pr) {
-        // Rows entered per serving still carry _100g figures, derived from the
-        // serving size, so they count too.
+        // per-serving rows still carry _100g figures
         var nu = pr.nutriments || {};
         var o = { calories: offKcal(nu), protein: +nu.proteins_100g,
                   carbs: +nu.carbohydrates_100g, fat: +nu.fat_100g };
         if (!plausible(o)) return;
-        // A typo shows up as macros that do not add back up to the kcal.
+        // a typo shows up as macros that do not add up to the kcal
         if (Math.abs(4 * o.protein + 4 * o.carbs + 9 * o.fat - o.calories) > Math.max(40, 0.3 * o.calories)) return;
         var label = String(pr.product_name_en || pr.product_name || pr.generic_name || "").trim();
         if (!label) return;
-        // The brand sometimes carries the match ("Skyr" is a brand as well as a
-        // food), but a hit on the product name is the stronger signal.
+        // a hit on the product name beats a hit on the brand
         o.score = Math.max(matchScore(q, label), 0.9 * matchScore(q, label + " " + (pr.brands || "")));
         o.label = label;
         o.serving = +pr.serving_quantity;
-        // Words the label adds on top of the query. "Sardines in olive oil"
-        // scores as highly for "olive oil" as "Mabrouka olive oil" does, and
-        // this is what tells them apart.
+        // words the label adds on top of the query
         o.extra = singular(norm(label + " " + (pr.brands || ""))).split(" ").filter(function (w) {
           return w.length > 2 && q.indexOf(w) < 0;
         }).length;
@@ -1807,8 +1705,7 @@ button{user-select:none;-webkit-user-select:none}
         fat: med1(pick(function (c) { return c.fat; })),
         src: "off", matched: keep[0].label, n: keep.length
       };
-      // Where the products agree on a serving size, that doubles as the weight
-      // of one of the thing.
+      // an agreed serving size doubles as the weight of one
       var sv = pick(function (c) { return c.serving; }).filter(function (v) { return isFinite(v) && v >= 5 && v <= 1500; });
       if (sv.length) r.unit = Math.round(median(sv));
       return plausible(r) ? r : null;
@@ -1821,9 +1718,7 @@ button{user-select:none;-webkit-user-select:none}
 
   /* Ask Claude, if this runtime exposes a completion call. Published artifact
      pages may not, so every failure path is handled by the caller. */
-  /* Runtimes differ: a chat-rendered artifact exposes window.claude.complete,
-     while the published runtime hands capabilities out through claude.use(name).
-     Probe both rather than assuming, and remember what was found. */
+  /* Runtime probe: window.claude.complete, or the completion capability. */
   var CLAUDE = { fn: null, how: "not checked", keys: "", probed: false };
 
   function claudeAvailable() { return !!CLAUDE.fn; }
@@ -1847,7 +1742,7 @@ button{user-select:none;-webkit-user-select:none}
       CLAUDE.how = "window.claude exists but exposes no way to ask Claude";
       return Promise.resolve(CLAUDE);
     }
-    // Unknown capability names simply resolve null, so probing is harmless.
+    // unknown capability names resolve null, so probing is harmless
     var caps = ["completion", "completions", "model", "models", "llm", "claude", "messages", "text", "ai"];
     var k = 0;
     function next() {
@@ -1908,7 +1803,7 @@ button{user-select:none;-webkit-user-select:none}
       if (!plausible(r)) return null;
       if (needWeight) {
         var g = +o.grams;
-        // Anything outside this range is a bad guess, not a portion.
+        // outside this range it is a bad guess, not a portion
         if (!isFinite(g) || g <= 0 || g > 5000) return null;
         r.grams = Math.round(g);
       }
@@ -1928,7 +1823,7 @@ button{user-select:none;-webkit-user-select:none}
     };
     if (editFood) S.foods = S.foods.map(function (x) { return x.id === editFood ? rec : x; });
     else S.foods.push(rec);
-    // Remember by food name with the count stripped, so "1 egg" teaches "3 eggs".
+    // keyed with the count stripped, so "1 egg" teaches "3 eggs"
     var key = foodKey(name);
     var prev = S.cache[key] || {};
     S.cache[key] = {
@@ -1937,23 +1832,18 @@ button{user-select:none;-webkit-user-select:none}
       unitGrams: (unitGrams > 0 ? Math.round(unitGrams * 10) / 10 : prev.unitGrams)
     };
     save(); resetFoodForm(); render();
-    // Editing works through the manual button, but that block collapses on
-    // reset -- so confirm on the button that is standing there afterwards.
+    // the manual block collapses on reset: confirm on the button left
     flash("fSave", wasEdit ? "Updated \u2713" : "Added \u2713");
     return rec;
   }
 
-  function askForGrams(nm, why) {
+  function askForGrams(why) {
     showManual(true);
     $("fManualLab").textContent = "Per 100 g \u2014 enter these once";
     setStatus(why, "bad");
   }
 
-  /* Where the numbers come from, in order of how much they can be trusted:
-     Claude, then a confident hit on the curated table, then Open Food Facts,
-     then a vague hit on the table. Each step yields the per-100 g figures plus
-     "unit" - the weight of ONE of the item, which is only needed when the
-     grams field was left empty. */
+  /* Lookup order: your own cache, built-in table, Claude, Open Food Facts. */
   function resolveFood(nm, needWeight, count) {
     var tbl = tableLookup(nm);
     var por = portionGrams(nm);
@@ -1996,7 +1886,7 @@ button{user-select:none;-webkit-user-select:none}
     if (!nm) { setStatus("Type what you ate first.", "bad"); return; }
 
     var q = parseQty(nm);
-    // Grams may come from the field, or inline in the text ("250 g shawarma").
+    // grams from the field, or inline in the text ("250 g shawarma")
     var explicit = typed > 0 ? typed : (q.grams > 0 ? q.grams : 0);
     var haveG = explicit > 0;
     typed = explicit;
@@ -2005,7 +1895,7 @@ button{user-select:none;-webkit-user-select:none}
       return haveG ? "" : " (" + (q.n === 1 ? "one" : q.n) + " \u2248 " + Math.round(grams) + " g)";
     };
 
-    // 1. already known \u2014 reuse macros, and the remembered unit weight if needed
+    // 1. known already: reuse macros, and the unit weight if needed
     var hit = S.cache[key];
     if (hit && plausible(hit)) {
       var g1 = haveG ? typed : (hit.unitGrams > 0 ? hit.unitGrams * q.n : null);
@@ -2029,7 +1919,7 @@ button{user-select:none;-webkit-user-select:none}
             " Edit it if that is not close enough.", "ok");
           return;
         }
-        // 2. Macros found, weight not \u2014 fill them in and ask for the grams only.
+        // 2. macros found, weight not: ask for the grams only
         showManual(true);
         $("fKcal").value = c.per100.calories; $("fP").value = c.per100.protein;
         $("fC").value = c.per100.carbs; $("fF").value = c.per100.fat;
@@ -2038,13 +1928,12 @@ button{user-select:none;-webkit-user-select:none}
           "\u201c" + esc(nm) + "\u201d \u2014 type the grams and add it.", "bad");
         return;
       }
-      // 3. Nothing anywhere \u2014 say precisely which lookups came up empty.
+      // 3. nothing anywhere: say which lookups came up empty
       var why = [];
       if (!claudeAvailable()) why.push("this page cannot reach Claude");
-      // It allows only a handful of searches a minute, and a refusal is
-      // indistinguishable from being offline, so the message covers both.
+      // a refusal is indistinguishable from offline, so cover both
       if (OFF.reached === false) why.push("Open Food Facts did not answer, and may just be busy");
-      askForGrams(nm, "Could not work out \u201c" + esc(nm) + "\u201d" +
+      askForGrams("Could not work out \u201c" + esc(nm) + "\u201d" +
         (why.length ? " (" + why.join(", ") + ")" : "") +
         ". Enter the grams and the per-100 g figures once \u2014 both will be remembered.");
     });
@@ -2067,9 +1956,9 @@ button{user-select:none;-webkit-user-select:none}
 
   $("foodList").addEventListener("click", function (ev) {
     var fmo = ev.target.closest("[data-fmonth]");
-    if (fmo) { var fm = fmo.dataset.fmonth; openFMonths[fm] = !openFMonths[fm]; render(); return; }
+    if (fmo) { var fm = fmo.dataset.fmonth; FOLD.food.months[fm] = !FOLD.food.months[fm]; render(); return; }
     var fold = ev.target.closest("[data-fdayopen]");
-    if (fold) { var fk = fold.dataset.fdayopen; openFoodDays[fk] = !openFoodDays[fk]; render(); return; }
+    if (fold) { var fk = fold.dataset.fdayopen; FOLD.food.days[fk] = !FOLD.food.days[fk]; render(); return; }
     var ed = ev.target.closest("[data-fedit]"), dl = ev.target.closest("[data-fdel]");
     if (ed) {
       var f = S.foods.filter(function (x) { return x.id === ed.dataset.fedit; })[0]; if (!f) return;
@@ -2106,15 +1995,12 @@ button{user-select:none;-webkit-user-select:none}
 
   /* ---------- maintenance, tabs, data ---------- */
   $("maint").addEventListener("change", function () {
-    // Whole calories only, so a separator here can only be a thousands mark:
-    // "2,450" and "2 450" both mean 2450.
+    // whole calories: a separator here can only be a thousands mark
     var v = parseInt(String(this.value).replace(/[^0-9]/g, ""), 10);
     if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
-  /* The block above the pages belongs to the weight page. Calories keeps the
-     projection, because that is the number the food you log moves; charts show
-     charts and nothing else; settings show neither. */
+  /* Which shared cards each page shows. */
   function setTab(t) {
     tab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
@@ -2122,8 +2008,7 @@ button{user-select:none;-webkit-user-select:none}
     $("appHeader").hidden = (t !== "weight");
     $("tiles").hidden = (t !== "weight");
     $("notices").hidden = (t === "chart");
-    // Weight keeps Trend; the projection sits with the calories it is built
-    // from. One card a page, so the row is always full width.
+    // one card a page: Trend on weight, Projected on calories
     $("projCard").hidden = (t !== "food");
     $("trendCard").hidden = (t !== "weight");
     $("duo").hidden = !(t === "weight" || t === "food");
@@ -2153,9 +2038,7 @@ button{user-select:none;-webkit-user-select:none}
     var b = e.target.closest("[data-goto]"); if (b) setTab(b.dataset.goto);
   });
 
-  /* ---- appearance ----
-     Three states, and "system" is the absence of the attribute rather than a
-     value of its own, so the media query keeps working untouched. */
+  /* ---- appearance: system | light | dark, system being no attribute ---- */
   var THEME = sget("cut-theme") || "system";
   function applyTheme(t) {
     THEME = (t === "light" || t === "dark") ? t : "system";
@@ -2165,7 +2048,7 @@ button{user-select:none;-webkit-user-select:none}
     document.querySelectorAll("#themeRow button").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.themeSet === THEME));
     });
-    // The chart is drawn from these colours, so it has to be redrawn with them.
+    // the chart is drawn with these colours
     if (tab === "chart") renderChart(dayAvgs());
   }
   $("themeRow").addEventListener("click", function (e) {
@@ -2197,7 +2080,6 @@ button{user-select:none;-webkit-user-select:none}
     if (dayDiff(a, b) < 1) { msg.textContent = "The target date has to come after the start date."; return; }
     S.goal = { start: Math.round(s * 10) / 10, target: Math.round(t * 10) / 10, startDate: a, endDate: b };
     save(); render(); fillGoalForm();
-    if (tab === "chart") renderChart(dayAvgs());
     msg.style.color = "var(--accent-ink)";
     var dir = S.goal.target < S.goal.start ? "to lose " + (S.goal.start - S.goal.target).toFixed(1)
             : S.goal.target > S.goal.start ? "to gain " + (S.goal.target - S.goal.start).toFixed(1)
@@ -2207,18 +2089,15 @@ button{user-select:none;-webkit-user-select:none}
   });
   $("gReset").addEventListener("click", function () {
     S.goal = null; save(); render(); fillGoalForm();
-    if (tab === "chart") renderChart(dayAvgs());
     $("gMsg").style.color = "var(--muted)";
     $("gMsg").textContent = "Back to the defaults.";
   });
 
   /* ---------- sync: one JSON file in a GitHub repo ---------- */
-  /* Why GitHub: api.github.com is one of the few free stores a plain web page
-     can both read and write cross-origin, and its Contents API returns the blob
-     sha, which gives real conflict detection instead of last-writer-wins.
-     Everything here is per-device config - nothing is hardcoded. */
-  // Prefilled with everything that is NOT a secret. The token is deliberately
-  // absent and must never be hardcoded here: this file is public.
+  /* ---------- sync: one log.json in a repo you own ----------
+     api.github.com is one of the few free stores a plain page can write to
+     with a token. Fine-grained token, Contents: read and write. */
+  // everything except the token, which is never hardcoded here
   var SY = { owner: "davitbab", repo: "", path: "log.json", branch: "main", token: "" };
   var syBusy = false, syTimer = null, syLast = "", syPending = false;
 
@@ -2313,8 +2192,7 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   function payload() {
-    // v3 adds workouts. An older file simply has none, and an older build of
-    // the app ignores the field, so both directions stay readable.
+    // v3 adds workouts; older files simply have none
     return { v: 3, entries: S.entries, foods: S.foods, workouts: S.workouts, deleted: S.deleted,
              maintenance: S.maintenance, cache: S.cache, goal: S.goal, updatedAt: S.updatedAt };
   }
@@ -2325,9 +2203,7 @@ button{user-select:none;-webkit-user-select:none}
                            o.maintenance || 0, o.goal || null, Object.keys(o.cache || {}).sort()]);
   }
 
-  /* Union merge. Records are identified by id and carry a modified stamp, so an
-     edit on one device beats a stale copy on another; a delete leaves a
-     tombstone, which is what stops it coming back down from the cloud. */
+  /* Union merge by id: the newer mt wins, tombstones delete. */
   function mergeRemote(rem) {
     var before = sig(payload());
     var tomb = {};
@@ -2337,8 +2213,7 @@ button{user-select:none;-webkit-user-select:none}
       var by = {}, order = [];
       function put(r, isRemote) {
         if (!r || !r.id || tomb[r.id]) return;
-        // An edit made here and not yet pushed beats the remote copy, whatever
-        // the two clocks say. Without this the newer edit silently reverts.
+        // an unpushed local edit beats the remote, whatever the clocks say
         if (isRemote && dirty[r.id]) return;
         var prev = by[r.id];
         if (!prev) { by[r.id] = r; order.push(r.id); return; }
@@ -2353,13 +2228,12 @@ button{user-select:none;-webkit-user-select:none}
     S.foods = union(S.foods, rem.foods);
     S.workouts = union(S.workouts, rem.workouts);
     S.deleted = Object.keys(tomb).slice(-800);   // tombstones must not grow forever
-    // Goal and maintenance are single values with no id to merge on, so the
-    // newer file simply wins.
+    // single values with no id to merge on: the newer file wins
     if (!metaDirty && String(rem.updatedAt || "") > String(S.updatedAt || "")) {
       if (rem.maintenance > 0) S.maintenance = rem.maintenance;
       if (rem.goal && typeof rem.goal === "object") S.goal = rem.goal;
     }
-    // The food cache is only a memo of past lookups: take whatever is missing.
+    // the cache is a memo of past lookups: take what is missing
     if (rem.cache && typeof rem.cache === "object") {
       for (var k in rem.cache) if (!(k in S.cache)) S.cache[k] = rem.cache[k];
     }
@@ -2384,8 +2258,7 @@ button{user-select:none;-webkit-user-select:none}
           catch (e) { throw new Error("The file in the repo is not valid JSON. Delete or rename it, then sync again."); }
         }
         if (rem && mergeRemote(rem)) {
-          // Adopt the merged records own stamps before saving, or save() would
-          // restamp everything just pulled down as if it were a local edit.
+          // keep the merged stamps, or save() restamps them as local edits
           reseedSnap();
           suppressSync = true; save(); suppressSync = false;
           resetWeightForm(); resetFoodForm(); fillGoalForm(); render();
@@ -2393,8 +2266,7 @@ button{user-select:none;-webkit-user-select:none}
         if (rem && sig(rem) === sig(payload())) return { skipped: true };
         return ghWrite(JSON.stringify(payload(), null, 1) + "\n", got.sha);
       }).catch(function (err) {
-        // 409 means another device wrote between our read and our write: read
-        // again, merge again, push again.
+        // 409: another device wrote in between. Read, merge, push again
         if (String(err && err.message) === "conflict" && tries < 4) return round();
         throw err;
       });
@@ -2458,8 +2330,7 @@ button{user-select:none;-webkit-user-select:none}
     SY.path = ($("syPath").value.trim() || "log.json").replace(/^\/+/, "");
     SY.branch = $("syBranch").value.trim() || "main";
     SY.token = $("syToken").value.trim();
-    // Pasting the whole repo URL into one field is the likeliest slip, so
-    // unpick it rather than fail with a 404.
+    // unpick a pasted repo URL rather than failing with a 404
     var m = SY.owner.match(/github\.com\/([^\/]+)\/([^\/\s]+)/) || SY.repo.match(/github\.com\/([^\/]+)\/([^\/\s]+)/);
     if (m) { SY.owner = m[1]; SY.repo = m[2].replace(/\.git$/, ""); }
     syStore(); fillSyncForm(); renderSync();
@@ -2476,7 +2347,7 @@ button{user-select:none;-webkit-user-select:none}
     fillSyncForm(); renderSync(); render();
     syMsg("Disconnected and the token is forgotten. Your entries stay on this device.", "var(--muted)");
   });
-  // Coming back to the app on one device should pick up the other device writes.
+  // returning to the app picks up what other devices wrote
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden && syOn() && !syBusy) syncNow();
   });
@@ -2501,11 +2372,8 @@ button{user-select:none;-webkit-user-select:none}
     msgEl.style.color = "var(--accent-ink)";
   }
 
-  /* iOS Safari ignores the download attribute on a blob link: it navigates to
-     the file and renders the JSON instead of saving it. So on a device with a
-     share sheet, hand the file to that instead. It must be called inside the
-     click handler with no await before it, or the gesture is spent and iOS
-     refuses. */
+  /* iOS ignores <a download> on a blob and navigates to it instead, so try
+     the share sheet first and fall back to the link. */
   function shareFile(name, data, msg) {
     var file = null;
     try { file = new File([data], name, { type: "application/json" }); } catch (e) { return false; }
@@ -2537,8 +2405,7 @@ button{user-select:none;-webkit-user-select:none}
     var name = "cut-log-" + iso(new Date()) + ".json";
     var data = snapshot();
 
-    // Inside the Claude viewer a page cannot start its own download, so use the
-    // downloads capability. Everywhere else: share sheet, then blob link.
+    // in the Claude viewer use the downloads capability, else share/blob
     var hasCap = (typeof window !== "undefined" && window.claude && typeof window.claude.use === "function");
     if (!hasCap) {
       if (!shareFile(name, data, msg)) blobDownload(name, data, msg);
@@ -2585,7 +2452,7 @@ button{user-select:none;-webkit-user-select:none}
   });
 
   $("wipe").addEventListener("click", function () {
-    // Two-tap confirmation, since confirm() cannot be shown here.
+    // two-tap confirmation: confirm() cannot be shown here
     if (!pendingWipe) {
       pendingWipe = true;
       this.textContent = "Tap again to delete everything";
@@ -2599,7 +2466,7 @@ button{user-select:none;-webkit-user-select:none}
     }
     pendingWipe = false;
     this.textContent = "Delete all data"; this.style.color = "";
-    // Tombstone everything first, or the next sync pulls it all back down.
+    // tombstone everything first, or the next sync pulls it back
     allRecords().forEach(function (r) { if (S.deleted.indexOf(r.id) < 0) S.deleted.push(r.id); });
     S.entries = []; S.foods = []; S.workouts = []; S.cache = {};
     save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render();
@@ -2625,7 +2492,7 @@ button{user-select:none;-webkit-user-select:none}
   setTab("weight");
   renderSync();
   if (syOn()) syncNow().then(function (ok) { if (ok) warnIfPublic(); });
-  // Discover how (or whether) Claude can be reached, then correct the copy.
+  // probe Claude, then correct the food-form hint
   probeClaude().then(function () { if (!editFood) resetFoodForm(); });
 })();
 </script>
