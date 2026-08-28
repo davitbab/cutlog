@@ -93,7 +93,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .pill.warn .dot{background:var(--warn)}
 
 /* tiles */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:16px 0}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 11px;box-shadow:var(--shadow)}
 .tile .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .tile .val{font-size:21px;font-weight:600;letter-spacing:-.02em;margin-top:3px}
@@ -109,7 +109,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 
 /* Projected and Trend sit side by side and stay short: two glanceable cards,
    not two essays. .solo is the calories page, where Projected is alone. */
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px;align-items:stretch}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:13px;align-items:stretch}
 .duo.solo{grid-template-columns:1fr}
 .duo .hero{margin-bottom:0;padding:11px 12px;border-radius:var(--r);display:flex;flex-direction:column}
 .duo .hero .big{font-size:23px;margin-top:2px}
@@ -154,26 +154,57 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .card > .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
-  width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
+  width:100%;min-width:0;max-width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
   border:1px solid var(--line-2);border-radius:9px;padding:9px 10px;
 }
+/* A native date or time field carries an intrinsic minimum width, and a 1fr
+   grid column will not shrink below it -- which is how a field ends up
+   sticking out past the edge of its card on a phone. */
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;font-size:14px}
 textarea{resize:vertical}
 input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.grid2 > *,.grid4 > *{min-width:0}
 .card.tight{padding:12px 13px;margin-bottom:14px}
 .card.tight > .lab{margin-bottom:9px}
 .card.tight .mb{margin-bottom:8px}
 .mb{margin-bottom:11px}
 
+/* A date or a time is read far more often than it is changed, so it shows as
+   a line of text with a pencil beside it. The native picker is still there --
+   a transparent input covers the chip -- so a tap opens the iPhone wheel and
+   the value handling is unchanged. */
+.whenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.dchip,.minif{
+  position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:4px 9px;min-height:32px;font-size:12.5px;color:var(--ink-2);
+}
+.dchip{cursor:pointer}
+.dchip .pen{font-style:normal;font-size:10px;color:var(--muted)}
+.dchip:active{background:var(--field)}
+.dchip:focus-within,.minif:focus-within{border-color:var(--accent)}
+.dchip input{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  opacity:0;border:0;padding:0;margin:0;background:transparent;cursor:pointer;
+}
+.minif input{
+  width:52px;border:0;background:transparent;padding:0;font-size:13.5px;text-align:right;
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+}
+.minif i{font-style:normal;font-size:11px;color:var(--muted)}
+
 /* weight entry: two wheels, whole kilos and hundred-gram steps. Each one can
    be dragged or scrolled, tapped up and down, or simply typed into. */
-.wgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px}
-.wunit{display:flex;flex-direction:column;gap:5px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:5px}
+.wgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:9px}
+.wunit{display:flex;flex-direction:column;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px}
+/* Slim keys: they are one of four ways to set the number, so they trade
+   height for a shorter card. Each is still the full width of its wheel. */
 .wunit button{
   border:1px solid var(--line-2);background:var(--field);color:var(--ink);
-  font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;border-radius:8px;
-  cursor:pointer;min-height:34px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;border-radius:6px;
+  cursor:pointer;min-height:22px;height:22px;line-height:1;padding:0;
 }
 .wunit button:active{background:var(--accent-soft);border-color:var(--accent)}
 .wunit .rd{
@@ -312,11 +343,11 @@ button{user-select:none;-webkit-user-select:none}
   <section id="p-weight">
     <div class="card">
       <span class="lab" id="wFormTitle">Add weigh-in</span>
-      <div class="grid2 mb">
-        <div><label class="f" for="wDate">Date</label><input type="date" id="wDate"></div>
-        <div><label class="f" for="wTime">Time</label><input type="time" id="wTime"></div>
+      <div class="whenrow mb">
+        <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
+        <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
       </div>
-      <label class="f">Weight <span style="opacity:.7">&mdash; drag, scroll or tap a wheel</span></label>
+      <label class="f">Weight <span style="opacity:.7">&mdash; drag or tap</span></label>
       <div class="wgrid">
         <div class="wunit">
           <button type="button" data-wstep="1" aria-label="One kilo more">+</button>
@@ -346,15 +377,24 @@ button{user-select:none;-webkit-user-select:none}
       <button role="tab" data-cal="train" aria-selected="false">Training</button>
     </div>
 
+    <div class="card">
+      <span class="lab">Balance &middot; <span id="tBalDate"></span></span>
+      <table class="fx">
+        <tr><th>Food</th><th>Training</th><th>Net intake</th></tr>
+        <tr class="num" style="font-size:17px;font-weight:600">
+          <td id="tbFood">0</td><td id="tbTrain">0</td><td id="tbNet">0</td>
+        </tr>
+      </table>
+    </div>
+
     <div id="cal-food">
     <div class="card">
       <span class="lab" id="fFormTitle">Log food</span>
-      <div class="grid2 mb">
-        <div><label class="f" for="fDate">Date</label><input type="date" id="fDate"></div>
-        <div><label class="f" for="fGrams">Grams <span style="opacity:.7">(optional)</span></label><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="leave empty"></div>
+      <div class="whenrow mb">
+        <span class="dchip"><span id="fDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="fDate" aria-label="Date"></span>
+        <span class="minif"><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="250" aria-label="Grams, optional"><i>g</i></span>
       </div>
-      <label class="f" for="fName">What did you eat</label>
-      <input type="text" id="fName" class="mb" placeholder="2 eggs, or an apple, or 250 g shawarma" autocomplete="off">
+      <input type="text" id="fName" class="mb" placeholder="2 eggs, or an apple, or 250 g shawarma" autocomplete="off" aria-label="What did you eat">
       <div class="btnrow">
         <button class="btn" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
@@ -382,28 +422,18 @@ button{user-select:none;-webkit-user-select:none}
           <td id="ftK">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
         </tr>
       </table>
-      <div class="tiny" id="fNet" style="margin-top:8px"></div>
     </div>
     <div class="lab-h"><span>Food log</span><span id="foodCount" class="num"></span></div>
     <div id="foodList"></div>
     </div>
 
     <div id="cal-train" hidden>
-    <div class="card">
-      <span class="lab">Balance &middot; <span id="tBalDate"></span></span>
-      <table class="fx">
-        <tr><th>Food</th><th>Training</th><th>Net intake</th></tr>
-        <tr class="num" style="font-size:17px;font-weight:600">
-          <td id="tbFood">0</td><td id="tbTrain">0</td><td id="tbNet">0</td>
-        </tr>
-      </table>
-    </div>
     <div class="card tight">
       <span class="lab" id="tFormTitle">Log training</span>
       <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
-      <div class="grid2 mb">
-        <div><label class="f" for="tDate">Date</label><input type="date" id="tDate"></div>
-        <div><label class="f" for="tKcal">kcal burned</label><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450"></div>
+      <div class="whenrow mb">
+        <span class="dchip"><span id="tDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="tDate" aria-label="Date"></span>
+        <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
       <div class="btnrow">
         <button class="btn" id="tSave">Add training</button>
@@ -431,6 +461,24 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- SETTINGS -->
   <section id="p-data" hidden>
+    <div class="card" id="goalCard">
+      <span class="lab">Goal</span>
+      <p class="tiny mb">Everything recalculates from these four.</p>
+      <div class="grid2 mb">
+        <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
+        <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
+      </div>
+      <div class="whenrow mb">
+        <span class="dchip"><span id="gFromTxt">Start</span><i class="pen">&#9998;</i><input type="date" id="gFrom" aria-label="Start date"></span>
+        <span class="tiny">to</span>
+        <span class="dchip"><span id="gToTxt">Target</span><i class="pen">&#9998;</i><input type="date" id="gTo" aria-label="Target date"></span>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="gSave">Save goal</button>
+        <button class="btn sec" id="gReset" style="flex:0 0 96px">Reset</button>
+      </div>
+      <div class="tiny" id="gMsg" style="margin-top:8px"></div>
+    </div>
     <div class="card">
       <span class="lab">Appearance</span>
       <p class="tiny mb">System follows the phone.</p>
@@ -462,26 +510,9 @@ button{user-select:none;-webkit-user-select:none}
       <div class="tiny" id="syState" style="margin-top:4px;color:var(--muted)"></div>
       <div id="syOffWrap" hidden><div style="height:10px"></div><button class="linkbtn" id="syOff">Disconnect and forget the token</button></div>
     </div>
-    <div class="card" id="goalCard">
-      <span class="lab">Goal</span>
-      <p class="tiny mb">Everything recalculates from these four.</p>
-      <div class="grid2 mb">
-        <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
-        <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
-      </div>
-      <div class="grid2 mb">
-        <div><label class="f" for="gFrom">Start date</label><input type="date" id="gFrom"></div>
-        <div><label class="f" for="gTo">Target date</label><input type="date" id="gTo"></div>
-      </div>
-      <div class="btnrow">
-        <button class="btn" id="gSave">Save goal</button>
-        <button class="btn sec" id="gReset" style="flex:0 0 96px">Reset</button>
-      </div>
-      <div class="tiny" id="gMsg" style="margin-top:8px"></div>
-    </div>
     <div class="card">
       <span class="lab">Export</span>
-      <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>. If it opens on screen instead, use the text backup below.</p>
+      <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>.</p>
       <button class="btn" id="exFile">Export to a file</button>
       <div class="tiny" id="exMsg" style="margin-top:8px"></div>
     </div>
@@ -492,20 +523,8 @@ button{user-select:none;-webkit-user-select:none}
       <div class="tiny" id="imMsg"></div>
     </div>
     <div class="card">
-      <span class="lab">Copy &amp; paste backup</span>
-      <p class="tiny mb">The same data as text.</p>
-      <textarea id="bkText" readonly rows="4" class="num" style="font-size:10.5px"></textarea>
-      <div style="height:9px"></div>
-      <button class="btn sec" id="bkCopy">Copy backup</button>
-      <div style="height:14px"></div>
-      <textarea id="rsText" rows="4" placeholder="Paste backup text here" class="num" style="font-size:10.5px"></textarea>
-      <div style="height:9px"></div>
-      <button class="btn sec" id="rsGo">Restore pasted text</button>
-      <div class="tiny" id="rsMsg" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
       <span class="lab">Reset</span>
-      <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Back up first &mdash; this cannot be undone.</p>
+      <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Export first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
     </div>
   </section>
@@ -742,7 +761,27 @@ button{user-select:none;-webkit-user-select:none}
   /* ---------- render ---------- */
   var $ = function (id) { return document.getElementById(id); };
 
+  /* Each chip shows the value in words and hides a real date or time input on
+     top of itself, so the iPhone picker still opens on a tap. The text is
+     redrawn whenever the value changes, by hand or by code. */
+  var CHIPS = [
+    { i: "wDate", t: "wDateTxt", f: chipDay },
+    { i: "wTime", t: "wTimeTxt", f: chipTime },
+    { i: "fDate", t: "fDateTxt", f: chipDay },
+    { i: "tDate", t: "tDateTxt", f: chipDay },
+    { i: "gFrom", t: "gFromTxt", f: chipFull },
+    { i: "gTo", t: "gToTxt", f: chipFull }
+  ];
+  function chipDay(v) { return v ? (v === iso(new Date()) ? "Today" : dayLabel(v)) : "Pick a date"; }
+  function chipFull(v) { return v ? fmtLong(v) : "Pick a date"; }
+  function chipTime(v) { return v || "--:--"; }
+  function syncChips() {
+    CHIPS.forEach(function (c) { $(c.t).textContent = c.f($(c.i).value); });
+  }
+  CHIPS.forEach(function (c) { $(c.i).addEventListener("change", syncChips); });
+
   function render() {
+    syncChips();
     var asc = sortedAsc(), days = dayAvgs();
     var today = iso(new Date());
     var G = goal();
@@ -823,7 +862,9 @@ button{user-select:none;-webkit-user-select:none}
     renderFood();
     renderTraining();
     renderChart(days);
-    $("bkText").value = JSON.stringify({ entries: S.entries, foods: S.foods, workouts: S.workouts, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
+  }
+  function snapshot() {
+    return JSON.stringify({ entries: S.entries, foods: S.foods, workouts: S.workouts, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
   }
 
   /* This month is the part you are working in, so it stays open. Everything
@@ -918,13 +959,7 @@ button{user-select:none;-webkit-user-select:none}
     var t = foodTotals(d);
     $("ftK").textContent = t.calories; $("ftP").textContent = Math.round(t.protein);
     $("ftC").textContent = Math.round(t.carbs); $("ftF").textContent = Math.round(t.fat);
-    var burned = trainTotal(d);
-    $("fNet").innerHTML = !burned
-      ? "No training logged for this day."
-      : t.calories
-        ? "Training burned <b style='color:var(--ink)'>" + burned + " kcal</b> on this day, so the net intake is <b style='color:var(--ink)'>" +
-          (t.calories - burned) + " kcal</b>."
-        : "Training burned <b style='color:var(--ink)'>" + burned + " kcal</b>. No food logged yet.";
+    renderBalance();
 
     // Every logged day, newest first, folded like the weigh-in history. The day
     // the form is pointed at is the one that starts open.
@@ -1012,14 +1047,20 @@ button{user-select:none;-webkit-user-select:none}
         : '<button class="iconbtn" data-wedit="' + w.id + '">Edit</button>' +
           '<button class="iconbtn del" data-wdel="' + w.id + '">\u2715</button>') + '</div>';
   }
-  function renderTraining() {
-    var d = $("tDate").value || iso(new Date());
+  /* Both sub-tabs share one balance card, so it reads the date from the form
+     that is visible. */
+  function renderBalance() {
+    var d = ($("cal-train").hidden ? $("fDate").value : $("tDate").value) || iso(new Date());
     var t = foodTotals(d).calories, b = trainTotal(d);
     $("tBalDate").textContent = fmtD(d);
     $("tbFood").textContent = t;
     $("tbTrain").textContent = b ? "\u2212" + b : "0";
     // Same minus sign as the column beside it, rather than a hyphen.
     $("tbNet").textContent = (t - b) < 0 ? "\u2212" + (b - t) : String(t - b);
+  }
+  function renderTraining() {
+    var d = $("tDate").value || iso(new Date());
+    renderBalance();
 
     var byDay = {};
     S.workouts.forEach(function (w) { (byDay[w.date] = byDay[w.date] || []).push(w); });
@@ -2013,6 +2054,7 @@ button{user-select:none;-webkit-user-select:none}
     });
     $("cal-food").hidden = (v !== "food");
     $("cal-train").hidden = (v !== "train");
+    renderBalance();
   }
   $("calTabs").addEventListener("click", function (e) {
     var b = e.target.closest("[data-cal]"); if (b) setCalView(b.dataset.cal);
@@ -2047,6 +2089,7 @@ button{user-select:none;-webkit-user-select:none}
     $("gTarget").value = G.target;
     $("gFrom").value = G.startDate;
     $("gTo").value = G.endDate;
+    syncChips();
   }
   $("goalEdit").addEventListener("click", function () {
     setTab("data");
@@ -2381,7 +2424,7 @@ button{user-select:none;-webkit-user-select:none}
       msg.textContent = "Shared " + name + ".";
     }, function () {
       msg.style.color = "var(--muted)";
-      msg.textContent = "Export cancelled. Copy & paste backup below also works.";
+      msg.textContent = "Export cancelled.";
     });
     return true;
   }
@@ -2399,7 +2442,7 @@ button{user-select:none;-webkit-user-select:none}
   $("exFile").addEventListener("click", function () {
     var msg = $("exMsg");
     var name = "cut-log-" + iso(new Date()) + ".json";
-    var data = $("bkText").value;
+    var data = snapshot();
 
     // Inside the Claude viewer a page cannot start its own download, so use the
     // downloads capability. Everywhere else: share sheet, then blob link.
@@ -2426,7 +2469,7 @@ button{user-select:none;-webkit-user-select:none}
             msg.textContent = "A save prompt is already open. Try again in a moment.";
           } else {
             msg.style.color = "var(--bad)";
-            msg.textContent = "Could not save the file here. Use Copy & paste backup below.";
+            msg.textContent = "Could not save the file here. Sync keeps a copy in your repo.";
           }
         });
       }
@@ -2448,33 +2491,6 @@ button{user-select:none;-webkit-user-select:none}
     this.value = "";
   });
 
-  $("bkCopy").addEventListener("click", function () {
-    var ta = $("bkText"); ta.select();
-    var done = function (ok) { $("bkCopy").textContent = ok ? "Copied \u2713" : "Select the text and copy it"; setTimeout(function () { $("bkCopy").textContent = "Copy backup"; }, 2200); };
-    if (navigator.clipboard) navigator.clipboard.writeText(ta.value).then(function () { done(true); }, function () { done(false); });
-    else done(false);
-  });
-  $("rsGo").addEventListener("click", function () {
-    var msg = $("rsMsg");
-    try {
-      var p = JSON.parse($("rsText").value);
-      if (!p || (!Array.isArray(p.entries) && !Array.isArray(p.foods))) throw 0;
-      if (Array.isArray(p.entries)) S.entries = p.entries;
-      if (Array.isArray(p.foods)) S.foods = p.foods;
-      S.workouts = Array.isArray(p.workouts) ? p.workouts : [];
-      if (p.maintenance > 0) S.maintenance = p.maintenance;
-      if (p.cache && typeof p.cache === "object") S.cache = p.cache;
-      if (p.goal && typeof p.goal === "object") S.goal = p.goal;
-      S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
-      S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
-      S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
-      save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render(); fillGoalForm();
-      msg.textContent = "Restored " + S.entries.length + " weigh-in(s), " + S.foods.length + " food entr" + (S.foods.length === 1 ? "y" : "ies") +
-        " and " + S.workouts.length + " session(s).";
-    } catch (e) {
-      msg.textContent = "That does not look like backup text. Paste the whole thing, starting with {";
-    }
-  });
   $("wipe").addEventListener("click", function () {
     // Two-tap confirmation, since confirm() cannot be shown here.
     if (!pendingWipe) {
