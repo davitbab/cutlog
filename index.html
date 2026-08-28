@@ -874,7 +874,7 @@ button{user-select:none;-webkit-user-select:none}
         "<br>" + (Math.abs(def) < 1
           ? "at maintenance (<b>" + S.maintenance + " kcal</b>)"
           : "<b>" + Math.abs(def) + " kcal</b> " + (def > 0 ? "under" : "over") + " " + S.maintenance + " maintenance") +
-        "<br>= <b>" + (kgwk > 0 ? "+" : kgwk < 0 ? "\u2212" : "") + Math.abs(kgwk).toFixed(2) + " kg</b>/week from " + cur.toFixed(1) + " kg today";
+        "<br>= <b>" + (kgwk > 0 ? "+" : kgwk < 0 ? "\u2212" : "") + Math.abs(kgwk).toFixed(2) + " kg</b>/week";
     } else {
       $("projVal").textContent = "\u2013";
       $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weigh-in and some food to project.";
