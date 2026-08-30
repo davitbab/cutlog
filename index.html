@@ -88,8 +88,12 @@ body{
   padding-right:max(16px, env(safe-area-inset-right));
 }
 
+/* page name: always visible, sized like a tile's number, so the current
+   screen is legible even before/while the header below it settles in */
+.pagename{font-size:21px;font-weight:600;letter-spacing:-.02em;padding:14px 0 0;color:var(--ink);text-align:center}
+
 /* header */
-header{padding:22px 0 14px}
+header{padding:6px 0 14px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:600;text-wrap:balance}
 .sub{color:var(--ink-2);font-size:13.5px}
@@ -99,12 +103,24 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn)}
 .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
 
-/* tiles */
+/* tiles (still used for the Calories page's small stats, if any remain) */
 .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 11px;box-shadow:var(--shadow)}
 .tile .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .tile .val{font-size:21px;font-weight:600;letter-spacing:-.02em;margin-top:3px}
 .tile .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
+
+/* progress: a narrow bar with lost weight on the left, what's left on the
+   right, replacing three separate tiles with one compact strip */
+.progress-card{margin:16px 0}
+.progress-row{display:flex;justify-content:space-between;align-items:baseline}
+.progress-stat{display:flex;flex-direction:column}
+.progress-stat.right{align-items:flex-end}
+.progress-stat .val{font-size:21px;font-weight:600;letter-spacing:-.02em}
+.progress-stat .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
+.progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
+.progress-track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:10px}
+.progress-fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
 
 /* hero / projection */
 .hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-lg);padding:14px 15px;box-shadow:var(--shadow);margin-bottom:14px}
@@ -201,24 +217,29 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 
 /* weight entry: two wheels, whole kilos and hundred-gram steps. Each one can
    be dragged or scrolled, tapped up and down, or simply typed into. */
-.wgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:9px}
-.wunit{display:flex;flex-direction:column;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px}
-/* Slim keys: one of four ways to set the number, so height gives way. */
-.wunit button{
+/* Narrow, single-number weight entry: one field, two small step keys either
+   side, 0.1 kg per tap. Centred so it doesn't stretch across a wide screen. */
+.wsingle{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
+  padding:6px;margin:0 auto 9px;max-width:230px;
+}
+.wsingle button{
+  flex:0 0 34px;width:34px;height:34px;border-radius:9px;
   border:1px solid var(--line-2);background:var(--field);color:var(--ink);
-  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;border-radius:6px;
-  cursor:pointer;min-height:22px;height:22px;line-height:1;padding:0;
+  font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:600;
+  cursor:pointer;line-height:1;padding:0;
 }
-.wunit button:active{background:var(--accent-soft);border-color:var(--accent)}
-.wunit .rd{
-  display:flex;align-items:baseline;justify-content:center;gap:3px;padding:3px 0 1px;
-  touch-action:none;cursor:ns-resize;
+.wsingle button:active{background:var(--accent-soft);border-color:var(--accent)}
+.wsingle .rd{
+  display:flex;align-items:baseline;justify-content:center;gap:4px;
+  touch-action:none;cursor:ns-resize;flex:1 1 auto;
 }
-.wunit .rd input{
-  width:74px;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-  font-size:28px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
+.wsingle .rd input{
+  width:90px;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:30px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
 }
-.wunit .rd .u{font-size:12px;color:var(--muted);font-weight:500}
+.wsingle .rd .u{font-size:13px;color:var(--muted);font-weight:500}
 
 /* buttons */
 /* Press feedback, plus the .ok state a save flashes. */
@@ -305,8 +326,8 @@ button{user-select:none;-webkit-user-select:none}
 
 <div id="scroll">
 <div class="wrap">
+  <div class="pagename num" id="pageName">Weight</div>
   <header id="appHeader">
-    <div class="eyebrow">Cut Log</div>
     <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
@@ -316,10 +337,12 @@ button{user-select:none;-webkit-user-select:none}
 
   <div id="notices"></div>
 
-  <div class="tiles" id="tiles">
-    <div class="tile"><div class="lab">Lost</div><div class="val num" id="tLost">&ndash;</div></div>
-    <div class="tile"><div class="lab">To go</div><div class="val num" id="tGo">&ndash;</div></div>
-    <div class="tile"><div class="lab">Per week</div><div class="val num" id="tPace">&ndash;</div></div>
+  <div class="progress-card" id="progressCard">
+    <div class="progress-row">
+      <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
+      <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 
   <div class="duo" id="duo">
@@ -343,26 +366,19 @@ button{user-select:none;-webkit-user-select:none}
   <!-- WEIGHT -->
   <section id="p-weight">
     <div class="card">
-      <span class="lab" id="wFormTitle">Add weigh-in</span>
+      <span class="lab" id="wFormTitle">Add weight</span>
       <div class="whenrow mb">
         <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
         <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
       </div>
-      <label class="f">Weight <span style="opacity:.7">&mdash; drag or tap</span></label>
-      <div class="wgrid">
-        <div class="wunit">
-          <button type="button" data-wstep="1" aria-label="One kilo more">+</button>
-          <div class="rd" id="wKgWheel"><input type="text" id="wKg" inputmode="numeric" autocomplete="off" aria-label="Kilograms"><span class="u">kg</span></div>
-          <button type="button" data-wstep="-1" aria-label="One kilo less">&minus;</button>
-        </div>
-        <div class="wunit">
-          <button type="button" data-wstep="0.1" aria-label="One hundred grams more">+</button>
-          <div class="rd" id="wGWheel"><input type="text" id="wG" inputmode="numeric" autocomplete="off" aria-label="Grams"><span class="u">g</span></div>
-          <button type="button" data-wstep="-0.1" aria-label="One hundred grams less">&minus;</button>
-        </div>
+      <label class="f">Weight <span style="opacity:.7">&mdash; drag, scroll, or tap</span></label>
+      <div class="wsingle">
+        <button type="button" data-wstep="-0.1" aria-label="Decrease by 0.1 kg">&minus;</button>
+        <div class="rd" id="wKgWheel"><input type="text" id="wKg" inputmode="decimal" autocomplete="off" aria-label="Weight in kilograms"><span class="u">kg</span></div>
+        <button type="button" data-wstep="0.1" aria-label="Increase by 0.1 kg">+</button>
       </div>
       <div class="btnrow">
-        <button class="btn" id="wSave">Weigh in</button>
+        <button class="btn" id="wSave">Save weight</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
       <div class="tiny" id="wMsg" style="margin-top:8px"></div>
@@ -373,11 +389,6 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
-    <div class="subtabs" id="calTabs" role="tablist">
-      <button role="tab" data-cal="food" aria-selected="true">Food</button>
-      <button role="tab" data-cal="train" aria-selected="false">Training</button>
-    </div>
-
     <div class="card">
       <span class="lab">Balance &middot; <span id="tBalDate"></span></span>
       <table class="fx">
@@ -386,6 +397,11 @@ button{user-select:none;-webkit-user-select:none}
           <td id="tbFood">0</td><td id="tbTrain">0</td><td id="tbNet">0</td>
         </tr>
       </table>
+    </div>
+
+    <div class="subtabs" id="calTabs" role="tablist">
+      <button role="tab" data-cal="food" aria-selected="true">Food</button>
+      <button role="tab" data-cal="train" aria-selected="false">Training</button>
     </div>
 
     <div id="cal-food">
@@ -610,7 +626,7 @@ button{user-select:none;-webkit-user-select:none}
     var g = S.goal || {};
     var startDate = g.startDate;
     if (!startDate) {
-      // fall back to the earliest weigh-in, then today
+      // fall back to the earliest weight entry, then today
       var ds = S.entries.map(function (e) { return e.date; }).sort();
       startDate = ds.length ? ds[0] : iso(new Date());
     }
@@ -844,18 +860,22 @@ button{user-select:none;-webkit-user-select:none}
       ' <button class="linkbtn" data-goto="data">Open Settings</button></div></div>';
     $("notices").innerHTML = nz;
 
-    // day average, not the last reading: evening weigh-ins are heavier
+    // day average, not the last reading: evening weight entries are heavier
     var latestDay = days.length ? days[days.length - 1] : null;
     var cur = latestDay ? latestDay.w : null;
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
+    // fill share of the bar that's behind us: lost / (lost + to go)
+    var totalSpan = G.start - G.target;
+    var lostVal = cur !== null ? (G.start - cur) : 0;
+    var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
+    $("progressFill").style.width = fillPct.toFixed(1) + "%";
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
     // under a week the divisor is too small to mean anything
     var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
     var pace = perDay !== null ? perDay * 7 : null;
-    $("tPace").innerHTML = pace !== null ? (pace > 0 ? "+" : "") + pace.toFixed(2) + '<small>kg</small>' : "\u2013";
 
     /* Trend card: carry that same pace forward to the target date, so the rate
        shown and the weight shown are one calculation rather than two. */
@@ -874,7 +894,7 @@ button{user-select:none;-webkit-user-select:none}
     } else {
       $("trendCardVal").textContent = "\u2013";
       $("trendCardNote").textContent = cur === null
-        ? "Add a weigh-in to draw the trend."
+        ? "Add a weight entry to draw the trend."
         : "A week from the start date draws the trend.";
     }
     // average net intake per logged day; training-only days are skipped
@@ -899,7 +919,7 @@ button{user-select:none;-webkit-user-select:none}
         " = <b>" + (kgwk > 0 ? "+" : kgwk < 0 ? "\u2212" : "") + Math.abs(kgwk).toFixed(2) + " kg</b>/week";
     } else {
       $("projVal").textContent = "\u2013";
-      $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weigh-in and some food to project.";
+      $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weight entry and some food to project.";
     }
     $("maint").value = S.maintenance;
 
@@ -976,7 +996,7 @@ button{user-select:none;-webkit-user-select:none}
   function renderHistory() {
     var n = S.entries.length;
     $("histCount").textContent = n ? n + (n === 1 ? " entry" : " entries") : "";
-    if (!n) { $("histList").innerHTML = '<div class="empty">No weigh-ins yet. Add one above, on any date.</div>'; return; }
+    if (!n) { $("histList").innerHTML = '<div class="empty">No weight entries yet. Add one above, on any date.</div>'; return; }
     var desc = function (a, b) { return a.date === b.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date); };
     var wRow = function (e) {
       var ask = pendingDel === e.id;
@@ -1179,8 +1199,13 @@ button{user-select:none;-webkit-user-select:none}
   ];
   function renderLegend() {
     $("legend").innerHTML = SERIES_META.map(function (m) {
+      // the calorie bars are stacked protein/carbs/fat, so their swatch
+      // shows the same three colors rather than one flat block
+      var bg = m[0] === "kcal"
+        ? "linear-gradient(90deg, var(--kcal) 0 33%, var(--warn) 33% 66%, var(--bad) 66% 100%)"
+        : m[2];
       return '<button type="button" data-series="' + m[0] + '" aria-pressed="' + (SERIES[m[0]] ? "true" : "false") + '">' +
-        '<span>' + m[1] + '</span><i style="background:' + m[2] + '"></i></button>';
+        '<span>' + m[1] + '</span><i style="background:' + bg + '"></i></button>';
     }).join("");
   }
   $("legend").addEventListener("click", function (ev) {
@@ -1225,7 +1250,7 @@ button{user-select:none;-webkit-user-select:none}
     var stale = host.querySelector(".empty"); if (stale) stale.remove();
     if (!allDays.length || !days.length) {
       host.insertAdjacentHTML("afterbegin", '<div class="empty" id="chartEmpty">' +
-        (allDays.length ? "Nothing logged in this window." : "Log a weigh-in to draw the chart.") + '</div>');
+        (allDays.length ? "Nothing logged in this window." : "Log a weight entry to draw the chart.") + '</div>');
       return;
     }
 
@@ -1263,7 +1288,14 @@ button{user-select:none;-webkit-user-select:none}
 
     // calorie bars: own scale, lower half, behind everything
     var kByDay = {};
-    S.foods.forEach(function (f) { kByDay[f.date] = (kByDay[f.date] || 0) + f.calories; });
+    // macro calories per day, so each bar can show its P/C/F split
+    var pKByDay = {}, cKByDay = {}, fKByDay = {};
+    S.foods.forEach(function (f) {
+      kByDay[f.date] = (kByDay[f.date] || 0) + f.calories;
+      pKByDay[f.date] = (pKByDay[f.date] || 0) + f.protein * 4;
+      cKByDay[f.date] = (cKByDay[f.date] || 0) + f.carbs * 4;
+      fKByDay[f.date] = (fKByDay[f.date] || 0) + f.fat * 9;
+    });
     // net of training, the figure the projection uses
     Object.keys(kByDay).forEach(function (d) { kByDay[d] -= trainTotal(d); });
     var kBars = Object.keys(kByDay).map(function (d) {
@@ -1305,9 +1337,25 @@ button{user-select:none;-webkit-user-select:none}
       kBars.forEach(function (b) {
         var h = (b.k / kMax) * (kBase - kTop);
         if (h < 0.7) return;
-        svg.push('<rect x="' + (X(b.dx) - bw / 2).toFixed(1) + '" y="' + (kBase - h).toFixed(1) +
-          '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
-          '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
+        var x = (X(b.dx) - bw / 2).toFixed(1);
+        // stack protein/carbs/fat by their share of that day's macro calories;
+        // falls back to a flat bar if a day has calories but no macros logged
+        var pk = pKByDay[b.date] || 0, ck = cKByDay[b.date] || 0, fk = fKByDay[b.date] || 0;
+        var mtot = pk + ck + fk;
+        if (mtot <= 0) {
+          svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
+            '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
+          return;
+        }
+        var segs = [["fat", fk, "var(--bad)"], ["carbs", ck, "var(--warn)"], ["protein", pk, "var(--kcal)"]];
+        var y = kBase;
+        segs.forEach(function (s) {
+          var sh = (s[1] / mtot) * h;
+          if (sh < 0.4) return;
+          y -= sh;
+          svg.push('<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + sh.toFixed(1) +
+            '" fill="' + s[2] + '" opacity="0.4"/>');
+        });
       });
     }
     // ideal
@@ -1348,6 +1396,9 @@ button{user-select:none;-webkit-user-select:none}
       tip.innerHTML = '<div style="font-weight:600;margin-bottom:2px">' + esc(fmtD(best.date)) + '</div>' +
         '<div class="tr"><span class="tk">Weight</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
         (kByDay[best.date] ? '<div class="tr"><span class="tk">Calories</span><span class="num">' + kByDay[best.date] + ' kcal</span></div>' : '') +
+        ((pKByDay[best.date] || cKByDay[best.date] || fKByDay[best.date]) ?
+          '<div class="tr"><span class="tk">P / C / F</span><span class="num">' +
+          Math.round((pKByDay[best.date] || 0) / 4) + ' / ' + Math.round((cKByDay[best.date] || 0) / 4) + ' / ' + Math.round((fKByDay[best.date] || 0) / 9) + ' g</span></div>' : '') +
         (trainTotal(best.date) ? '<div class="tr"><span class="tk">Training</span><span class="num">\u2212' + trainTotal(best.date) + ' kcal</span></div>' : '') +
         '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
         '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>';
@@ -1366,18 +1417,10 @@ button{user-select:none;-webkit-user-select:none}
   function clampW(v) { return Math.min(250, Math.max(30, Math.round(v * 10) / 10)); }
   function setW(v) {
     v = clampW(isFinite(v) ? v : 90);
-    var kg = Math.floor(v + 1e-9);
-    var g = Math.round((v - kg) * 10) * 100;
-    if (g >= 1000) { kg += 1; g = 0; }        // a rounded-up 950 g becomes a kilo
-    $("wKg").value = String(kg);
-    $("wG").value = String(g);
+    $("wKg").value = v.toFixed(1);
   }
   function getW() {
-    var kg = num($("wKg").value);
-    if (!isFinite(kg)) return NaN;
-    var g = num($("wG").value);
-    if (!isFinite(g)) g = 0;
-    return kg + Math.round(g / 100) / 10;
+    return num($("wKg").value);
   }
   function stepW(delta) {
     var c = getW();
@@ -1406,18 +1449,15 @@ button{user-select:none;-webkit-user-select:none}
       else if (ev.key === "ArrowDown") { ev.preventDefault(); stepW(-step); }
     });
   }
-  bindWheel($("wKgWheel"), 1);
-  bindWheel($("wGWheel"), 0.1);
-  ["wKg", "wG"].forEach(function (id) {
-    // typing allowed; blur settles it on a real value
-    $(id).addEventListener("change", function () { setW(getW()); });
-    $(id).addEventListener("blur", function () { setW(getW()); });
-  });
+  bindWheel($("wKgWheel"), 0.1);
+  // typing allowed; blur settles it on a real value
+  $("wKg").addEventListener("change", function () { setW(getW()); });
+  $("wKg").addEventListener("blur", function () { setW(getW()); });
 
   function resetWeightForm() {
     editEntry = null;
-    $("wFormTitle").textContent = "Add weigh-in";
-    setBtnLabel("wSave", "Weigh in");
+    $("wFormTitle").textContent = "Add weight";
+    setBtnLabel("wSave", "Save weight");
     $("wCancel").style.display = "none";
     if ($("wMsg")) $("wMsg").textContent = "";
     var now = new Date();
@@ -1468,7 +1508,7 @@ button{user-select:none;-webkit-user-select:none}
       var e = S.entries.filter(function (x) { return x.id === ed.dataset.edit; })[0];
       if (!e) return;
       editEntry = e.id;
-      $("wFormTitle").textContent = "Edit weigh-in";
+      $("wFormTitle").textContent = "Edit weight";
       setBtnLabel("wSave", "Update");
       $("wCancel").style.display = "block";
       $("wDate").value = e.date; $("wTime").value = e.time;
@@ -2001,12 +2041,14 @@ button{user-select:none;-webkit-user-select:none}
   });
 
   /* Which shared cards each page shows. */
+  var TAB_NAMES = { weight: "Weight", food: "Calories", chart: "Charts", data: "Settings" };
   function setTab(t) {
     tab = t;
+    $("pageName").textContent = TAB_NAMES[t] || "";
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
     $("appHeader").hidden = (t !== "weight");
-    $("tiles").hidden = (t !== "weight");
+    $("progressCard").hidden = (t !== "weight");
     $("notices").hidden = (t === "chart");
     // one card a page: Trend on weight, Projected on calories
     $("projCard").hidden = (t !== "food");
@@ -2367,7 +2409,7 @@ button{user-select:none;-webkit-user-select:none}
     S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
     save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render(); fillGoalForm();
     var pl = function (n, one, many) { return n + " " + (n === 1 ? one : many); };
-    msgEl.textContent = "Loaded " + pl(S.entries.length, "weigh-in", "weigh-ins") + ", " +
+    msgEl.textContent = "Loaded " + pl(S.entries.length, "weight entry", "weight entries") + ", " +
       pl(S.foods.length, "food entry", "food entries") + " and " + pl(S.workouts.length, "session", "sessions") + ".";
     msgEl.style.color = "var(--accent-ink)";
   }
