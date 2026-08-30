@@ -113,7 +113,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
 .progress-card{margin:16px 0}
-.progress-endpoints{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:8px}
 .progress-track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
 .progress-fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
@@ -330,7 +330,6 @@ button{user-select:none;-webkit-user-select:none}
 <div class="wrap">
   <div class="pagename num" id="pageName">Weight</div>
   <header id="appHeader">
-    <h1 id="goalHead">92 &rarr; 82 kg</h1>
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
         style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
@@ -859,7 +858,6 @@ button{user-select:none;-webkit-user-select:none}
     var days = dayAvgs();
     var today = iso(new Date());
     var G = goal();
-    $("goalHead").textContent = G.start.toFixed(1).replace(/\.0$/, "") + " \u2192 " + G.target.toFixed(1).replace(/\.0$/, "") + " kg";
     $("daysLeft").textContent = Math.max(0, dayDiff(today, G.endDate));
     $("goalDates").textContent = fmtShort(G.startDate) + " to " + fmtLong(G.endDate);
     $("projLab").textContent = "Projected \u00b7 " + fmtShort(G.endDate);
