@@ -110,17 +110,18 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .tile .val{font-size:21px;font-weight:600;letter-spacing:-.02em;margin-top:3px}
 .tile .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
 
-/* progress: a narrow bar with lost weight on the left, what's left on the
-   right, replacing three separate tiles with one compact strip */
+/* progress: start/target weight sit above the bar's corners, lost/to-go
+   sit below it at the same size the old tiles used */
 .progress-card{margin:16px 0}
-.progress-row{display:flex;justify-content:space-between;align-items:baseline}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.progress-track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.progress-fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
+.progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
 .progress-stat .val{font-size:21px;font-weight:600;letter-spacing:-.02em}
 .progress-stat .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
 .progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
-.progress-track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:10px}
-.progress-fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
 
 /* hero / projection */
 .hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-lg);padding:14px 15px;box-shadow:var(--shadow);margin-bottom:14px}
@@ -338,11 +339,15 @@ button{user-select:none;-webkit-user-select:none}
   <div id="notices"></div>
 
   <div class="progress-card" id="progressCard">
+    <div class="progress-endpoints">
+      <span id="pStart">&ndash;</span>
+      <span id="pTarget">&ndash;</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="progress-row">
       <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
       <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
     </div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 
   <div class="duo" id="duo">
@@ -389,16 +394,6 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
-    <div class="card">
-      <span class="lab">Balance &middot; <span id="tBalDate"></span></span>
-      <table class="fx">
-        <tr><th>Food</th><th>Training</th><th>Net intake</th></tr>
-        <tr class="num" style="font-size:17px;font-weight:600">
-          <td id="tbFood">0</td><td id="tbTrain">0</td><td id="tbNet">0</td>
-        </tr>
-      </table>
-    </div>
-
     <div class="subtabs" id="calTabs" role="tablist">
       <button role="tab" data-cal="food" aria-selected="true">Food</button>
       <button role="tab" data-cal="train" aria-selected="false">Training</button>
@@ -439,13 +434,19 @@ button{user-select:none;-webkit-user-select:none}
           <td id="ftK">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
         </tr>
       </table>
+      <table class="fx" style="margin-top:10px">
+        <tr><th>Training</th><th>Net intake</th></tr>
+        <tr class="num" style="font-size:17px;font-weight:600">
+          <td id="tbTrain">0</td><td id="tbNet">0</td>
+        </tr>
+      </table>
     </div>
     <div class="lab-h"><span>Food log</span><span id="foodCount" class="num"></span></div>
     <div id="foodList"></div>
     </div>
 
     <div id="cal-train" hidden>
-    <div class="card tight">
+    <div class="card">
       <span class="lab" id="tFormTitle">Log training</span>
       <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
       <div class="whenrow mb">
@@ -478,21 +479,18 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- SETTINGS -->
   <section id="p-data" hidden>
-    <div class="card" id="goalCard">
+    <div class="card tight" id="goalCard">
       <span class="lab">Goal</span>
-      <p class="tiny mb">Everything recalculates from these four.</p>
       <div class="grid2 mb">
         <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
         <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
       </div>
-      <div class="whenrow mb">
-        <span class="dchip"><span id="gFromTxt">Start</span><i class="pen">&#9998;</i><input type="date" id="gFrom" aria-label="Start date"></span>
-        <span class="tiny">to</span>
-        <span class="dchip"><span id="gToTxt">Target</span><i class="pen">&#9998;</i><input type="date" id="gTo" aria-label="Target date"></span>
+      <div class="grid2 mb">
+        <div><label class="f" for="gFrom">Start date</label><input type="date" id="gFrom" aria-label="Start date"></div>
+        <div><label class="f" for="gTo">Target date</label><input type="date" id="gTo" aria-label="Target date"></div>
       </div>
       <div class="btnrow">
         <button class="btn" id="gSave">Save goal</button>
-        <button class="btn sec" id="gReset" style="flex:0 0 96px">Reset</button>
       </div>
       <div class="tiny" id="gMsg" style="margin-top:8px"></div>
     </div>
@@ -824,9 +822,7 @@ button{user-select:none;-webkit-user-select:none}
     { i: "wDate", t: "wDateTxt", f: chipDay },
     { i: "wTime", t: "wTimeTxt", f: chipTime },
     { i: "fDate", t: "fDateTxt", f: chipDay },
-    { i: "tDate", t: "tDateTxt", f: chipDay },
-    { i: "gFrom", t: "gFromTxt", f: chipFull },
-    { i: "gTo", t: "gToTxt", f: chipFull }
+    { i: "tDate", t: "tDateTxt", f: chipDay }
   ];
   function chipDay(v) { return v ? (v === iso(new Date()) ? "Today" : dayLabel(v)) : "Pick a date"; }
   function chipFull(v) { return v ? fmtLong(v) : "Pick a date"; }
@@ -863,6 +859,8 @@ button{user-select:none;-webkit-user-select:none}
     // day average, not the last reading: evening weight entries are heavier
     var latestDay = days.length ? days[days.length - 1] : null;
     var cur = latestDay ? latestDay.w : null;
+    $("pStart").textContent = G.start.toFixed(1) + " kg";
+    $("pTarget").textContent = G.target.toFixed(1) + " kg";
     $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
     $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
     // fill share of the bar that's behind us: lost / (lost + to go)
@@ -1098,13 +1096,11 @@ button{user-select:none;-webkit-user-select:none}
         : '<button class="iconbtn" data-wedit="' + w.id + '">Edit</button>' +
           '<button class="iconbtn del" data-wdel="' + w.id + '">\u2715</button>') + '</div>';
   }
-  /* Both sub-tabs share one balance card, so it reads the date from the form
-     that is visible. */
+  /* Training/Net now live inside the Totals card, so they read the Food
+     form's date -- the only place they're shown. */
   function renderBalance() {
-    var d = ($("cal-train").hidden ? $("fDate").value : $("tDate").value) || iso(new Date());
+    var d = $("fDate").value || iso(new Date());
     var t = foodTotals(d).calories, b = trainTotal(d);
-    $("tBalDate").textContent = fmtD(d);
-    $("tbFood").textContent = t;
     $("tbTrain").textContent = b ? "\u2212" + b : "0";
     // minus sign, not a hyphen, to match the column beside it
     $("tbNet").textContent = (t - b) < 0 ? "\u2212" + (b - t) : String(t - b);
@@ -2128,11 +2124,6 @@ button{user-select:none;-webkit-user-select:none}
             : "to hold 0.0";
     msg.textContent = "Saved \u2014 " + dir + " kg over " + dayDiff(a, b) + " days. Everything has been recalculated.";
     flash("gSave", "Saved \u2713");
-  });
-  $("gReset").addEventListener("click", function () {
-    S.goal = null; save(); render(); fillGoalForm();
-    $("gMsg").style.color = "var(--muted)";
-    $("gMsg").textContent = "Back to the defaults.";
   });
 
   /* ---------- sync: one JSON file in a GitHub repo ---------- */
