@@ -175,6 +175,20 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .seg button:active,.subtabs button:active,.legend button:active{filter:brightness(.95)}
 
 /* card + form */
+/* Settings: each section collapses behind a tappable row, like the fold
+   headers used for the food/training/weight logs, so the page reads as a
+   list rather than a wall of open cards. */
+details.card{padding:0;overflow:hidden}
+details.card > summary{
+  list-style:none;cursor:pointer;padding:15px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:13px;font-weight:600;color:var(--ink);
+}
+details.card > summary::-webkit-details-marker{display:none}
+details.card > summary::after{content:"\276F";font-size:11px;color:var(--muted);transition:transform .15s ease;flex:0 0 auto}
+details.card[open] > summary::after{transform:rotate(90deg)}
+details.card > summary:active{background:var(--field)}
+details.card > .details-body{padding:0 15px 15px}
+
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
 .card > .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
@@ -353,12 +367,11 @@ button{user-select:none;-webkit-user-select:none}
   <div class="card" id="projCard">
     <span class="lab" id="projLab">Projected</span>
     <table class="fx">
-      <tr><th>kg</th><th>Net kcal/day</th><th>Days</th><th>Vs maint.</th><th>kg/week</th></tr>
+      <tr><th>Proj. kg</th><th>Net kcal/day</th><th>kcal deficit</th><th>kg/week</th></tr>
       <tr class="num" style="font-size:15px;font-weight:600">
-        <td id="projVal">&ndash;</td><td id="projKcal">&ndash;</td><td id="projDays">&ndash;</td><td id="projDef">&ndash;</td><td id="projRate">&ndash;</td>
+        <td id="projVal">&ndash;</td><td id="projKcal">&ndash;</td><td id="projDef">&ndash;</td><td id="projRate">&ndash;</td>
       </tr>
     </table>
-    <div class="tiny" id="projNote" style="margin-top:8px"></div>
     <div class="mrow">
       <span>Maint.</span>
       <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
@@ -384,7 +397,6 @@ button{user-select:none;-webkit-user-select:none}
         <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
         <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
       </div>
-      <label class="f">Weight <span style="opacity:.7">&mdash; drag, scroll, or tap</span></label>
       <div class="wsingle">
         <button type="button" data-wstep="-0.1" aria-label="Decrease by 0.1 kg">&minus;</button>
         <div class="rd" id="wKgWheel"><input type="text" id="wKg" inputmode="decimal" autocomplete="off" aria-label="Weight in kilograms"><span class="u">kg</span></div>
@@ -498,8 +510,9 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- SETTINGS -->
   <section id="p-data" hidden>
-    <div class="card tight" id="goalCard">
-      <span class="lab">Goal</span>
+    <details class="card" id="goalCard">
+      <summary>Goal</summary>
+      <div class="details-body">
       <div class="grid2 mb">
         <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
         <div><label class="f" for="gTarget">Target weight (kg)</label><input type="text" id="gTarget" inputmode="decimal" autocomplete="off"></div>
@@ -512,18 +525,22 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="gSave">Save goal</button>
       </div>
       <div class="tiny" id="gMsg" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
-      <span class="lab">Appearance</span>
+      </div>
+    </details>
+    <details class="card">
+      <summary>Appearance</summary>
+      <div class="details-body">
       <p class="tiny mb">System follows the phone.</p>
       <div class="seg" id="themeRow">
         <button type="button" data-theme-set="system" aria-pressed="true">System</button>
         <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
         <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
       </div>
-    </div>
-    <div class="card">
-      <span class="lab">Sync via GitHub</span>
+      </div>
+    </details>
+    <details class="card">
+      <summary>Sync via GitHub</summary>
+      <div class="details-body">
       <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
@@ -543,24 +560,31 @@ button{user-select:none;-webkit-user-select:none}
       <div class="tiny" id="syMsg" style="margin-top:8px"></div>
       <div class="tiny" id="syState" style="margin-top:4px;color:var(--muted)"></div>
       <div id="syOffWrap" hidden><div style="height:10px"></div><button class="linkbtn" id="syOff">Disconnect and forget the token</button></div>
-    </div>
-    <div class="card">
-      <span class="lab">Export</span>
+      </div>
+    </details>
+    <details class="card">
+      <summary>Export</summary>
+      <div class="details-body">
       <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>.</p>
       <button class="btn" id="exFile">Export to a file</button>
       <div class="tiny" id="exMsg" style="margin-top:8px"></div>
-    </div>
-    <div class="card">
-      <span class="lab">Import</span>
+      </div>
+    </details>
+    <details class="card">
+      <summary>Import</summary>
+      <div class="details-body">
       <p class="tiny mb">Replaces everything here. With sync on, the next sync merges it into your repo.</p>
       <input type="file" id="imFile" accept=".json,application/json,text/plain" class="mb">
       <div class="tiny" id="imMsg"></div>
-    </div>
-    <div class="card">
-      <span class="lab">Reset</span>
+      </div>
+    </details>
+    <details class="card">
+      <summary>Reset</summary>
+      <div class="details-body">
       <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Export first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
-    </div>
+      </div>
+    </details>
   </section>
 </div>
 </div>
@@ -931,19 +955,11 @@ button{user-select:none;-webkit-user-select:none}
       var kgwk = -def * 7 / KCAL_PER_KG;
       $("projVal").textContent = proj.toFixed(1);
       $("projKcal").textContent = avgKcal;
-      $("projDays").textContent = fdays.length;
       $("projDef").textContent = Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def);
       $("projRate").textContent = (kgwk > 0 ? "+" : "") + kgwk.toFixed(2);
-  /* The note carries the qualitative read: under/over maintenance, net of training. */
-      $("projNote").innerHTML =
-        (trainedKcal > 0 ? "Net of training &middot; " : "") +
-        (Math.abs(def) < 1
-          ? "at maintenance (<b>" + S.maintenance + " kcal</b>)"
-          : "<b>" + Math.abs(def) + " kcal</b> " + (def > 0 ? "under" : "over") + " " + S.maintenance + " maintenance");
     } else {
       $("projVal").textContent = "\u2013";
-      ["projKcal", "projDays", "projDef", "projRate"].forEach(function (id) { $(id).textContent = "\u2013"; });
-      $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weight entry and some food to project.";
+      ["projKcal", "projDef", "projRate"].forEach(function (id) { $(id).textContent = "\u2013"; });
     }
     $("maint").value = S.maintenance;
 
@@ -1001,13 +1017,11 @@ button{user-select:none;-webkit-user-select:none}
     var byDay = c.byDay, keys = Object.keys(byDay).sort().reverse(), st = c.state;
     $(c.countEl).textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
     if (!keys.length) { $(c.listEl).innerHTML = '<div class="empty">' + c.empty + '</div>'; return; }
-    if (!st.seeded) { st.days[keys[0]] = true; st.seeded = true; }
-    if (byDay[c.focus] && st.days[c.focus] === undefined) st.days[c.focus] = true;
     var edited = function (k) { return byDay[k].list.some(c.isEdited); };
     var dayBlock = function (k) {
       var open = !!st.days[k] || edited(k);
       return '<div class="daygroup">' + foldHead(k, open, c.daySum(k, byDay[k]), c.dayAttr) +
-        (open ? byDay[k].list.map(c.row).join("") : "") + '</div>';
+        (open ? byDay[k].list.slice().reverse().map(c.row).join("") : "") + '</div>';
     };
     var sp = byMonth(keys, itself);
     $(c.listEl).innerHTML = sp.current.map(dayBlock).join("") + sp.order.map(function (mk) {
@@ -1036,8 +1050,13 @@ button{user-select:none;-webkit-user-select:none}
         '</div>';
     };
     var sp = byMonth(S.entries, dateOfRec);
-    $("histList").innerHTML = sp.current.slice().sort(desc).map(wRow).join("") + sp.order.map(function (mk) {
-      var list = sp.months[mk].slice().sort(desc);
+    var curKey = monthOf(iso(new Date()));
+    var monthsMap = {}; monthsMap[curKey] = sp.current;
+    sp.order.forEach(function (mk) { monthsMap[mk] = sp.months[mk]; });
+    var order = [curKey].concat(sp.order.filter(function (mk) { return mk !== curKey; }));
+    $("histList").innerHTML = order.map(function (mk) {
+      var list = (monthsMap[mk] || []).slice().sort(desc);
+      if (!list.length) return "";
       var avg = list.reduce(function (a, e) { return a + e.weight; }, 0) / list.length;
       var open = !!FOLD.weight.months[mk] || list.some(function (e) { return e.id === editEntry; });
       return '<div class="daygroup">' +
@@ -2175,6 +2194,7 @@ button{user-select:none;-webkit-user-select:none}
   $("goalEdit").addEventListener("click", function () {
     setTab("data");
     fillGoalForm();
+    $("goalCard").open = true;
     reveal($("goalCard"));
   });
   $("gSave").addEventListener("click", function () {
