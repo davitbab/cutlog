@@ -394,6 +394,16 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
+    <div class="card">
+      <span class="lab">Totals &middot; <span id="fTotDate"></span></span>
+      <table class="fx">
+        <tr><th>kcal</th><th>Train</th><th>Net</th><th>Prot</th><th>Carb</th><th>Fat</th></tr>
+        <tr class="num" style="font-size:15px;font-weight:600">
+          <td id="ftK">0</td><td id="tbTrain">0</td><td id="tbNet">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
+        </tr>
+      </table>
+    </div>
+
     <div class="subtabs" id="calTabs" role="tablist">
       <button role="tab" data-cal="food" aria-selected="true">Food</button>
       <button role="tab" data-cal="train" aria-selected="false">Training</button>
@@ -425,21 +435,6 @@ button{user-select:none;-webkit-user-select:none}
         <div class="tiny mb" id="fPreview"></div>
         <button class="btn sec" id="fManualSave">Add with these values</button>
       </div>
-    </div>
-    <div class="card">
-      <span class="lab">Totals &middot; <span id="fTotDate"></span></span>
-      <table class="fx">
-        <tr><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th></tr>
-        <tr class="num" style="font-size:17px;font-weight:600">
-          <td id="ftK">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
-        </tr>
-      </table>
-      <table class="fx" style="margin-top:10px">
-        <tr><th>Training</th><th>Net intake</th></tr>
-        <tr class="num" style="font-size:17px;font-weight:600">
-          <td id="tbTrain">0</td><td id="tbNet">0</td>
-        </tr>
-      </table>
     </div>
     <div class="lab-h"><span>Food log</span><span id="foodCount" class="num"></span></div>
     <div id="foodList"></div>
