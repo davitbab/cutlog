@@ -350,22 +350,30 @@ button{user-select:none;-webkit-user-select:none}
     </div>
   </div>
 
-  <div class="duo" id="duo">
-    <div class="hero" id="projCard">
-      <div class="lab" id="projLab">Projected</div>
-      <div class="big num" id="projVal">&ndash;</div>
-      <div class="note" id="projNote"></div>
-      <div class="mrow">
-        <span>Maint.</span>
-        <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
-        <span>kcal</span>
-      </div>
+  <div class="card" id="projCard">
+    <span class="lab" id="projLab">Projected</span>
+    <table class="fx">
+      <tr><th>kg</th><th>Net kcal/day</th><th>Days</th><th>Vs maint.</th><th>kg/week</th></tr>
+      <tr class="num" style="font-size:15px;font-weight:600">
+        <td id="projVal">&ndash;</td><td id="projKcal">&ndash;</td><td id="projDays">&ndash;</td><td id="projDef">&ndash;</td><td id="projRate">&ndash;</td>
+      </tr>
+    </table>
+    <div class="tiny" id="projNote" style="margin-top:8px"></div>
+    <div class="mrow">
+      <span>Maint.</span>
+      <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
+      <span>kcal</span>
     </div>
-    <div class="hero tr" id="trendCard">
-      <div class="lab" id="trendCardLab">Trend</div>
-      <div class="big num" id="trendCardVal">&ndash;</div>
-      <div class="note" id="trendCardNote"></div>
-    </div>
+  </div>
+  <div class="card" id="trendCard">
+    <span class="lab" id="trendCardLab">Trend</span>
+    <table class="fx">
+      <tr><th>kg</th><th>Pace/week</th><th>Plan today</th><th>Gap</th><th>To target</th></tr>
+      <tr class="num" style="font-size:15px;font-weight:600">
+        <td id="trendCardVal">&ndash;</td><td id="trendPace">&ndash;</td><td id="trendPlan">&ndash;</td><td id="trendGap">&ndash;</td><td id="trendTarget">&ndash;</td>
+      </tr>
+    </table>
+    <div class="tiny" id="trendCardNote" style="margin-top:8px"></div>
   </div>
 
   <!-- WEIGHT -->
@@ -895,16 +903,16 @@ button{user-select:none;-webkit-user-select:none}
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
-      $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
-      $("trendCardNote").innerHTML = "<b>" + (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg</b>/week over " + sinceStart + " days" +
-        "<br>plan today <b>" + plan.toFixed(1) + " kg</b> \u00b7 " + (Math.abs(gap) < 0.05
-          ? "on plan"
-          : "<b>" + Math.abs(gap).toFixed(1) + " kg</b> " + (gap > 0 ? "behind" : "ahead"))
-        + "<br>" + (Math.abs(off) < 0.05
-          ? "lands on target"
-          : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "short of target" : "past target"));
+      $("trendCardVal").textContent = tEnd.toFixed(1);
+      $("trendPace").textContent = (pace > 0 ? "+" : "") + pace.toFixed(2);
+      $("trendPlan").textContent = plan.toFixed(1);
+      $("trendGap").textContent = Math.abs(gap) < 0.05 ? "0.0" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1);
+      $("trendTarget").textContent = Math.abs(off) < 0.05 ? "0.0" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1);
+      $("trendCardNote").innerHTML = "Over <b>" + sinceStart + " days</b> &middot; " + (Math.abs(gap) < 0.05 ? "on plan" : "<b>" + Math.abs(gap).toFixed(1) + " kg</b> " + (gap > 0 ? "behind" : "ahead") + " today's plan") +
+        " &middot; " + (Math.abs(off) < 0.05 ? "lands on target" : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "short of" : "past") + " target");
     } else {
       $("trendCardVal").textContent = "\u2013";
+      ["trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { $(id).textContent = "\u2013"; });
       $("trendCardNote").textContent = cur === null
         ? "Add a weight entry to draw the trend."
         : "A week from the start date draws the trend.";
@@ -921,16 +929,20 @@ button{user-select:none;-webkit-user-select:none}
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
-      $("projVal").textContent = proj.toFixed(1) + " kg";
-  /* The note is the derivation; the big figure is where it lands. */
+      $("projVal").textContent = proj.toFixed(1);
+      $("projKcal").textContent = avgKcal;
+      $("projDays").textContent = fdays.length;
+      $("projDef").textContent = Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def);
+      $("projRate").textContent = (kgwk > 0 ? "+" : "") + kgwk.toFixed(2);
+  /* The note carries the qualitative read: under/over maintenance, net of training. */
       $("projNote").innerHTML =
-        "<b>" + avgKcal + " kcal</b>" + (trainedKcal > 0 ? " net" : "") + "/day across " + fdays.length + " logged day" + (fdays.length === 1 ? "" : "s") +
-        "<br>" + (Math.abs(def) < 1
+        (trainedKcal > 0 ? "Net of training &middot; " : "") +
+        (Math.abs(def) < 1
           ? "at maintenance (<b>" + S.maintenance + " kcal</b>)"
-          : "<b>" + Math.abs(def) + " kcal</b> " + (def > 0 ? "under" : "over") + " " + S.maintenance + " maintenance") +
-        " = <b>" + (kgwk > 0 ? "+" : kgwk < 0 ? "\u2212" : "") + Math.abs(kgwk).toFixed(2) + " kg</b>/week";
+          : "<b>" + Math.abs(def) + " kcal</b> " + (def > 0 ? "under" : "over") + " " + S.maintenance + " maintenance");
     } else {
       $("projVal").textContent = "\u2013";
+      ["projKcal", "projDays", "projDef", "projRate"].forEach(function (id) { $(id).textContent = "\u2013"; });
       $("projNote").textContent = cur !== null ? "Log a few days of food to project from real intake." : "Add a weight entry and some food to project.";
     }
     $("maint").value = S.maintenance;
@@ -2109,8 +2121,6 @@ button{user-select:none;-webkit-user-select:none}
     // one card a page: Trend on weight, Projected on calories
     $("projCard").hidden = (t !== "food");
     $("trendCard").hidden = (t !== "weight");
-    $("duo").hidden = !(t === "weight" || t === "food");
-    $("duo").className = "duo solo";
     if (t === "chart") renderChart(dayAvgs());
     $("scroll").scrollTop = 0;
   }
