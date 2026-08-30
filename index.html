@@ -254,6 +254,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .btn:disabled{opacity:.45;cursor:default}
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
 .btn.sec:active{background:var(--field)}
+.linklike{background:none;border:0;padding:0;font-size:12.5px;color:var(--accent-ink);font-weight:600;text-decoration:underline;cursor:pointer}
 .btnrow{display:flex;gap:8px}
 
 /* log list */
@@ -448,16 +449,32 @@ button{user-select:none;-webkit-user-select:none}
     <div id="cal-train" hidden>
     <div class="card">
       <span class="lab" id="tFormTitle">Log training</span>
-      <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
       <div class="whenrow mb">
         <span class="dchip"><span id="tDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="tDate" aria-label="Date"></span>
         <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
+      <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
       <div class="btnrow">
         <button class="btn" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
-      <div class="tiny" id="tStatus" style="margin-top:8px"></div>
+      <div class="tiny" id="tStatus" style="margin-top:9px"></div>
+
+      <div style="margin-top:6px">
+        <button type="button" id="tEstToggle" class="linklike">Don't know the calories? Estimate from minutes</button>
+      </div>
+      <div id="tManual" hidden>
+        <div style="height:12px"></div>
+        <label class="f" id="tManualLab">Estimate from activity &amp; duration</label>
+        <div class="grid2 mb">
+          <div><label class="f" for="tActivity">Activity</label>
+            <select id="tActivity"></select>
+          </div>
+          <div><label class="f" for="tMinutes">Minutes</label><input type="text" id="tMinutes" inputmode="decimal" autocomplete="off" placeholder="45"></div>
+        </div>
+        <div class="tiny mb" id="tPreview"></div>
+        <button class="btn sec" id="tManualSave">Use this estimate</button>
+      </div>
     </div>
     <div class="lab-h"><span>Training log</span><span id="trainCount" class="num"></span></div>
     <div id="trainList"></div>
@@ -748,6 +765,10 @@ button{user-select:none;-webkit-user-select:none}
     return IX;
   }
   function dayAvgs() { return index().days; }
+  function latestWeight() {
+    var days = dayAvgs();
+    return days.length ? days[days.length - 1].w : (goal().start || null);
+  }
   function regression(pts) {
     if (pts.length < 2) return null;
     var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
@@ -1072,6 +1093,51 @@ button{user-select:none;-webkit-user-select:none}
   }
 
   /* ---------- training: one number a session, entered by hand ---------- */
+  /* No CORS-friendly public API returns calorie burn for free from a static
+     page, so this estimates locally from MET values (the standard "how many
+     times resting metabolism" figures from the public-domain Compendium of
+     Physical Activities) times body weight times duration. It's an estimate,
+     same as any fitness tracker's -- not a measurement. */
+  var MET_ACTIVITIES = [
+    ["Walking, moderate", 3.5], ["Walking, brisk", 4.3],
+    ["Running, easy (8 km/h)", 8.3], ["Running, moderate (10 km/h)", 9.8], ["Running, fast (12 km/h)", 11.8],
+    ["Cycling, leisure", 4.0], ["Cycling, moderate", 8.0], ["Cycling, vigorous", 10.0],
+    ["Swimming, moderate", 6.0], ["Swimming, vigorous", 9.8],
+    ["Weight training, moderate", 3.5], ["Weight training, vigorous", 6.0],
+    ["HIIT / circuit training", 8.0], ["Rowing machine", 7.0], ["Elliptical trainer", 5.0],
+    ["Football (soccer)", 7.0], ["Basketball", 6.5], ["Tennis", 7.3],
+    ["Yoga", 2.5], ["Pilates", 3.0], ["Hiking", 6.0], ["Dancing", 4.8],
+    ["Boxing (training)", 7.8], ["Climbing stairs", 8.8], ["Yard work / gardening", 4.0]
+  ];
+  function fillActivitySelect() {
+    $("tActivity").innerHTML = MET_ACTIVITIES.map(function (a, i) {
+      return '<option value="' + i + '">' + esc(a[0]) + '</option>';
+    }).join("");
+  }
+  function updateTrainEstimate() {
+    var i = numOf("tActivity"); if (!isFinite(i)) i = $("tActivity").selectedIndex;
+    var met = (MET_ACTIVITIES[i] || MET_ACTIVITIES[0])[1];
+    var mins = numOf("tMinutes");
+    var wt = latestWeight();
+    if (!(mins > 0) || !wt) { $("tPreview").textContent = "Enter minutes to see an estimate."; return null; }
+    var kcal = Math.round(met * wt * (mins / 60));
+    $("tPreview").innerHTML = "About <b style='color:var(--ink)'>" + kcal + " kcal</b> at " + wt.toFixed(1) + " kg for " + mins + " min.";
+    return kcal;
+  }
+  $("tEstToggle").addEventListener("click", function () {
+    var show = $("tManual").hidden;
+    $("tManual").hidden = !show;
+    if (show) { fillActivitySelect(); updateTrainEstimate(); }
+  });
+  $("tActivity").addEventListener("change", updateTrainEstimate);
+  $("tMinutes").addEventListener("input", updateTrainEstimate);
+  $("tManualSave").addEventListener("click", function () {
+    var kcal = updateTrainEstimate();
+    if (!kcal) return;
+    $("tKcal").value = String(kcal);
+    $("tManual").hidden = true;
+  });
+
   function tStatus(msg, kind) {
     var el = $("tStatus");
     el.innerHTML = msg || "";
@@ -1083,6 +1149,7 @@ button{user-select:none;-webkit-user-select:none}
     setBtnLabel("tSave", "Add training");
     $("tCancel").style.display = "none";
     $("tName").value = ""; $("tKcal").value = "";
+    $("tManual").hidden = true; $("tMinutes").value = "";
     if (!$("tDate").value) $("tDate").value = iso(new Date());
     tStatus("What you did, and roughly what it burned.");
   }
