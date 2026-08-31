@@ -190,7 +190,7 @@ details.card > summary:active{background:var(--field)}
 details.card > .details-body{padding:0 15px 15px}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
-.card > .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
+.card .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
   width:100%;min-width:0;max-width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
@@ -204,9 +204,6 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
 .grid2 > *,.grid4 > *{min-width:0}
-.card.tight{padding:12px 13px;margin-bottom:14px}
-.card.tight > .lab{margin-bottom:9px}
-.card.tight .mb{margin-bottom:8px}
 .mb{margin-bottom:11px}
 
 /* Chip: our text plus a pencil, with the real input on top at zero opacity. */
@@ -230,14 +227,12 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 }
 .minif i{font-style:normal;font-size:11px;color:var(--muted)}
 
-/* weight entry: two wheels, whole kilos and hundred-gram steps. Each one can
-   be dragged or scrolled, tapped up and down, or simply typed into. */
-/* Narrow, single-number weight entry: one field, two small step keys either
-   side, 0.1 kg per tap. Centred so it doesn't stretch across a wide screen. */
+/* weight entry: one field, two small step keys either side, 0.1 kg per tap.
+   Full card width, so its edges line up with the Save button below. */
 .wsingle{
-  display:flex;align-items:center;justify-content:center;gap:10px;
+  display:flex;align-items:center;gap:10px;
   background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
-  padding:6px;margin:0 auto 9px;max-width:230px;
+  padding:6px;margin-bottom:9px;
 }
 .wsingle button{
   flex:0 0 34px;width:34px;height:34px;border-radius:9px;
@@ -248,13 +243,13 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .wsingle button:active{background:var(--accent-soft);border-color:var(--accent)}
 .wsingle .rd{
   display:flex;align-items:baseline;justify-content:center;gap:4px;
-  touch-action:none;cursor:ns-resize;flex:1 1 auto;
+  touch-action:none;cursor:ns-resize;flex:1 1 auto;min-width:0;
 }
 .wsingle .rd input{
-  width:90px;text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  width:100%;text-align:center;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
   font-size:30px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
 }
-.wsingle .rd .u{font-size:13px;color:var(--muted);font-weight:500}
+.wsingle .rd .u{font-size:13px;color:var(--muted);font-weight:500;flex:0 0 auto}
 
 /* buttons */
 /* Press feedback, plus the .ok state a save flashes. */
@@ -347,7 +342,7 @@ button{user-select:none;-webkit-user-select:none}
     <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
       <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
         style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
-    <div id="storeWrap" style="margin-top:9px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
+    <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
   </header>
 
   <div id="notices"></div>
@@ -392,10 +387,12 @@ button{user-select:none;-webkit-user-select:none}
   <!-- WEIGHT -->
   <section id="p-weight">
     <div class="card">
-      <span class="lab" id="wFormTitle">Add weight</span>
-      <div class="whenrow mb">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
+        <span class="lab" id="wFormTitle" style="margin-bottom:0">Add weight</span>
+        <div style="display:flex;gap:6px">
         <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
         <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
+        </div>
       </div>
       <div class="wsingle">
         <button type="button" data-wstep="-0.1" aria-label="Decrease by 0.1 kg">&minus;</button>
@@ -441,7 +438,7 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
-      <div class="tiny" id="fStatus" style="margin-top:9px"></div>
+      <div class="tiny" id="fStatus" style="margin-top:8px"></div>
 
       <div id="fManual" hidden>
         <div style="height:12px"></div>
@@ -472,9 +469,9 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
-      <div class="tiny" id="tStatus" style="margin-top:9px"></div>
+      <div class="tiny" id="tStatus" style="margin-top:8px"></div>
 
-      <div style="margin-top:6px">
+      <div style="margin-top:8px">
         <button type="button" id="tEstToggle" class="linklike">Don't know the calories? Estimate from minutes</button>
       </div>
       <div id="tManual" hidden>
@@ -696,6 +693,25 @@ button{user-select:none;-webkit-user-select:none}
     work: { days: {}, months: {}, seeded: false },
     weight: { months: {} }
   };
+  /* Which days/months are open is a device preference, not app data -- kept
+     out of S so it doesn't round-trip through export/import/sync. */
+  function loadFold() {
+    try {
+      var raw = sget("foldState");
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      ["food", "work"].forEach(function (k) {
+        if (saved[k]) {
+          FOLD[k].days = saved[k].days || {};
+          FOLD[k].months = saved[k].months || {};
+        }
+      });
+      if (saved.weight) FOLD.weight.months = saved.weight.months || {};
+    } catch (e) {}
+  }
+  function persistFold() {
+    try { sset("foldState", JSON.stringify(FOLD)); } catch (e) {}
+  }
   // two-tap delete: confirm() is inert in a sandboxed iframe
   var pendingDel = null, pendingFDel = null, pendingWDel = null, pendingWipe = false;
   // sync writes through save(); this stops the recursion
@@ -823,42 +839,6 @@ button{user-select:none;-webkit-user-select:none}
   }
   function netKcal(date) { return foodTotals(date).calories - trainTotal(date); }
 
-  /* ---------- built-in food table, per 100 g ---------- */
-  var DB = [
-    ["Chicken breast, grilled", 165, 31, 0, 3.6], ["Chicken thigh, roasted", 209, 26, 0, 10.9],
-    ["Beef mince 5%", 137, 21.4, 0, 5], ["Beef steak, sirloin", 206, 30, 0, 9],
-    ["Pork loin, cooked", 242, 27, 0, 14], ["Salmon, baked", 208, 20, 0, 13],
-    ["Tuna, canned in water", 116, 26, 0, 1], ["Cod, baked", 105, 23, 0, 0.9],
-    ["Shrimp, cooked", 99, 24, 0.2, 0.3], ["Egg, whole", 155, 13, 1.1, 11],
-    ["Egg white", 52, 11, 0.7, 0.2], ["Greek yogurt 2%", 73, 10, 3.9, 1.9],
-    ["Skyr, plain", 63, 11, 4, 0.2], ["Quark, low fat", 68, 12, 3.5, 0.3],
-    ["Cottage cheese", 98, 11, 3.4, 4.3], ["Milk 1.5%", 47, 3.4, 4.8, 1.5],
-    ["Cheddar", 403, 25, 1.3, 33], ["Mozzarella", 280, 22, 2.2, 20],
-    ["Feta", 264, 14, 4.1, 21], ["Whey protein powder", 380, 78, 7, 5],
-    ["Rice, white cooked", 130, 2.7, 28, 0.3], ["Rice, brown cooked", 123, 2.6, 26, 1],
-    ["Pasta, cooked", 158, 5.8, 31, 0.9], ["Potato, boiled", 87, 2, 20, 0.1],
-    ["Sweet potato, baked", 90, 2, 21, 0.2], ["Bread, wholemeal", 247, 13, 41, 3.4],
-    ["Bread, white", 265, 9, 49, 3.2], ["Oats, dry", 379, 13, 68, 6.5],
-    ["Couscous, cooked", 112, 3.8, 23, 0.2], ["Quinoa, cooked", 120, 4.4, 21, 1.9],
-    ["Lentils, cooked", 116, 9, 20, 0.4], ["Chickpeas, cooked", 164, 8.9, 27, 2.6],
-    ["Black beans, cooked", 132, 8.9, 24, 0.5], ["Tofu, firm", 144, 17, 2.8, 8.7],
-    ["Broccoli", 34, 2.8, 7, 0.4], ["Spinach", 23, 2.9, 3.6, 0.4],
-    ["Tomato", 18, 0.9, 3.9, 0.2], ["Cucumber", 15, 0.7, 3.6, 0.1],
-    ["Carrot", 41, 0.9, 10, 0.2], ["Bell pepper", 31, 1, 6, 0.3],
-    ["Onion", 40, 1.1, 9.3, 0.1], ["Mixed salad leaves", 17, 1.4, 2.9, 0.2],
-    ["Banana", 89, 1.1, 23, 0.3], ["Apple", 52, 0.3, 14, 0.2],
-    ["Orange", 47, 0.9, 12, 0.1], ["Berries, mixed", 43, 0.8, 10, 0.3],
-    ["Grapes", 69, 0.7, 18, 0.2], ["Avocado", 160, 2, 8.5, 15],
-    ["Olive oil", 884, 0, 0, 100], ["Butter", 717, 0.9, 0.1, 81],
-    ["Almonds", 579, 21, 22, 50], ["Peanut butter", 588, 25, 20, 50],
-    ["Walnuts", 654, 15, 14, 65], ["Hummus", 166, 7.9, 14, 9.6],
-    ["Pizza, cheese", 266, 11, 33, 10], ["Burger, fast food", 295, 17, 24, 14],
-    ["Fries, fast food", 312, 3.4, 41, 15], ["Doner kebab", 215, 15, 12, 12],
-    ["Shawarma", 215, 15, 12, 12], ["Gyros", 220, 16, 11, 13], ["Falafel", 333, 13, 32, 18],
-    ["Sushi roll", 145, 5.8, 26, 1.4], ["Chocolate, milk", 535, 7.6, 59, 30],
-    ["Crisps / chips", 536, 7, 53, 34], ["Beer 5%", 43, 0.5, 3.6, 0],
-    ["Wine, red", 85, 0.1, 2.6, 0], ["Coca-Cola", 42, 0, 10.6, 0]
-  ];
 
   /* ---------- render ---------- */
   var $ = function (id) { return document.getElementById(id); };
@@ -1008,6 +988,12 @@ button{user-select:none;-webkit-user-select:none}
       '<span>' + esc(dayLabel(d)) + '</span><span class="sp"></span>' +
       '<span class="avg num">' + summary + '</span></button>';
   }
+  /* An explicit user choice (true/false) always wins; with none yet, fall
+     back to the caller's default -- e.g. today starts open, everything
+     else starts closed. */
+  function foldOpen(store, key, def) {
+    return store[key] !== undefined ? store[key] : def;
+  }
 
   var dim = function (txt) { return ' <span style="color:var(--muted);font-weight:400">' + txt + '</span>'; };
 
@@ -1017,15 +1003,17 @@ button{user-select:none;-webkit-user-select:none}
     var byDay = c.byDay, keys = Object.keys(byDay).sort().reverse(), st = c.state;
     $(c.countEl).textContent = keys.length ? keys.length + (keys.length === 1 ? " day" : " days") : "";
     if (!keys.length) { $(c.listEl).innerHTML = '<div class="empty">' + c.empty + '</div>'; return; }
+    var today = iso(new Date());
     var edited = function (k) { return byDay[k].list.some(c.isEdited); };
     var dayBlock = function (k) {
-      var open = !!st.days[k] || edited(k);
+      var open = foldOpen(st.days, k, k === today) || edited(k);
       return '<div class="daygroup">' + foldHead(k, open, c.daySum(k, byDay[k]), c.dayAttr) +
         (open ? byDay[k].list.slice().reverse().map(c.row).join("") : "") + '</div>';
     };
     var sp = byMonth(keys, itself);
     $(c.listEl).innerHTML = sp.current.map(dayBlock).join("") + sp.order.map(function (mk) {
-      var dayKeys = sp.months[mk], open = !!st.months[mk] || dayKeys.some(edited);
+      var dayKeys = sp.months[mk];
+      var open = foldOpen(st.months, mk, false) || dayKeys.some(edited);
       return '<div class="daygroup">' + monthHead(mk, open, c.monthSum(dayKeys, byDay), c.monthAttr) +
         (open ? '<div class="nest">' + dayKeys.map(dayBlock).join("") + '</div>' : "") + '</div>';
     }).join("");
@@ -1058,7 +1046,8 @@ button{user-select:none;-webkit-user-select:none}
       var list = (monthsMap[mk] || []).slice().sort(desc);
       if (!list.length) return "";
       var avg = list.reduce(function (a, e) { return a + e.weight; }, 0) / list.length;
-      var open = !!FOLD.weight.months[mk] || list.some(function (e) { return e.id === editEntry; });
+      var beingEdited = list.some(function (e) { return e.id === editEntry; });
+      var open = foldOpen(FOLD.weight.months, mk, mk === curKey) || beingEdited;
       return '<div class="daygroup">' +
         monthHead(mk, open, avg.toFixed(1) + ' kg' + dim('avg of ' + list.length), "data-wmonth") +
         (open ? list.map(wRow).join("") : "") + '</div>';
@@ -1241,9 +1230,9 @@ button{user-select:none;-webkit-user-select:none}
 
   $("trainList").addEventListener("click", function (ev) {
     var tmo = ev.target.closest("[data-tmonth]");
-    if (tmo) { var tmk = tmo.dataset.tmonth; FOLD.work.months[tmk] = !FOLD.work.months[tmk]; render(); return; }
+    if (tmo) { var tmk = tmo.dataset.tmonth; FOLD.work.months[tmk] = !FOLD.work.months[tmk]; persistFold(); render(); return; }
     var fold = ev.target.closest("[data-wdayopen]");
-    if (fold) { var wk = fold.dataset.wdayopen; FOLD.work.days[wk] = !FOLD.work.days[wk]; render(); return; }
+    if (fold) { var wk = fold.dataset.wdayopen; FOLD.work.days[wk] = !FOLD.work.days[wk]; persistFold(); render(); return; }
     var ed = ev.target.closest("[data-wedit]"), dl = ev.target.closest("[data-wdel]");
     if (ed) {
       var w = S.workouts.filter(function (x) { return x.id === ed.dataset.wedit; })[0]; if (!w) return;
@@ -1589,7 +1578,7 @@ button{user-select:none;-webkit-user-select:none}
 
   $("histList").addEventListener("click", function (ev) {
     var mfold = ev.target.closest("[data-wmonth]");
-    if (mfold) { var mk = mfold.dataset.wmonth; FOLD.weight.months[mk] = !FOLD.weight.months[mk]; render(); return; }
+    if (mfold) { var mk = mfold.dataset.wmonth; FOLD.weight.months[mk] = !FOLD.weight.months[mk]; persistFold(); render(); return; }
     var ed = ev.target.closest("[data-edit]"), dl = ev.target.closest("[data-del]");
     if (ed) {
       var e = S.entries.filter(function (x) { return x.id === ed.dataset.edit; })[0];
@@ -1638,7 +1627,7 @@ button{user-select:none;-webkit-user-select:none}
     showManual(false);
     setStatus(claudeAvailable()
       ? "Type what you ate: \u201c2 eggs\u201d, \u201c250 g shawarma\u201d. Grams optional."
-      : "Type what you ate, or a brand name. Grams optional. Looks in the built-in list, then Open Food Facts.");
+      : "Type what you ate. Grams optional \u2014 looked up on Open Food Facts.");
     updatePreview();
   }
   ["fGrams", "fKcal"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
@@ -1722,20 +1711,6 @@ button{user-select:none;-webkit-user-select:none}
   function keyWords(name) {
     // match on the name with count and plural stripped
     return foodKey(name).split(" ").filter(function (w) { return w.length > 2; });
-  }
-
-  /* Fuzzy match against DB; the score carries the row it matched. */
-  function tableLookup(name) {
-    var q = keyWords(name);
-    if (!q.length) return null;
-    var best = null, bestScore = 0;
-    DB.forEach(function (r) {
-      var score = matchScore(q, r[0]);
-      if (score > bestScore) { bestScore = score; best = r; }
-    });
-    if (!best || bestScore < 0.5) return null;
-    return { calories: best[1], protein: best[2], carbs: best[3], fat: best[4],
-             src: "table", matched: best[0], score: bestScore };
   }
 
   function plausible(o) {
@@ -1970,40 +1945,20 @@ button{user-select:none;-webkit-user-select:none}
     setStatus(why, "bad");
   }
 
-  /* Lookup order: your own cache, built-in table, Claude, Open Food Facts. */
+  /* Lookup order: your own cache (handled by the caller), then Open Food Facts. */
   function resolveFood(nm, needWeight, count) {
-    var tbl = tableLookup(nm);
     var por = portionGrams(nm);
     var unitFrom = function (o) { return por ? por.unit : (o && o.unit > 0 ? o.unit : 0); };
 
-    return probeClaude().then(function () {
-      setStatus(CLAUDE.fn
-        ? (needWeight ? "Asking Claude for the portion size and the numbers\u2026" : "Asking Claude for the numbers\u2026")
-        : "Checking the built-in figures\u2026");
-      return claudeLookup(nm, needWeight);
-    }).then(function (res) {
-      if (res) {
-        return { per100: res, unit: needWeight ? res.grams / (count || 1) : unitFrom(null),
-                 how: "Claude worked out the " + (needWeight ? "portion and macros" : "macros") + "." };
+    setStatus("Searching Open Food Facts\u2026");
+    return offLookup(nm).then(function (off) {
+      if (off) {
+        return { per100: off, unit: unitFrom(off),
+                 how: "from Open Food Facts: the median of " + off.n +
+                      (off.n === 1 ? " matching product, \u201c" : " matching products, closest \u201c") +
+                      esc(off.matched) + "\u201d." };
       }
-      if (tbl && tbl.score >= 0.85) {
-        return { per100: tbl, unit: unitFrom(null),
-                 how: "using the built-in figures for \u201c" + esc(tbl.matched) + "\u201d." };
-      }
-      setStatus("Searching Open Food Facts\u2026");
-      return offLookup(nm).then(function (off) {
-        if (off) {
-          return { per100: off, unit: unitFrom(off),
-                   how: "from Open Food Facts: the median of " + off.n +
-                        (off.n === 1 ? " matching product, \u201c" : " matching products, closest \u201c") +
-                        esc(off.matched) + "\u201d." };
-        }
-        if (tbl) {
-          return { per100: tbl, unit: unitFrom(null),
-                   how: "using the built-in figures for \u201c" + esc(tbl.matched) + "\u201d." };
-        }
-        return null;
-      });
+      return null;
     });
   }
 
@@ -2083,9 +2038,9 @@ button{user-select:none;-webkit-user-select:none}
 
   $("foodList").addEventListener("click", function (ev) {
     var fmo = ev.target.closest("[data-fmonth]");
-    if (fmo) { var fm = fmo.dataset.fmonth; FOLD.food.months[fm] = !FOLD.food.months[fm]; render(); return; }
+    if (fmo) { var fm = fmo.dataset.fmonth; FOLD.food.months[fm] = !FOLD.food.months[fm]; persistFold(); render(); return; }
     var fold = ev.target.closest("[data-fdayopen]");
-    if (fold) { var fk = fold.dataset.fdayopen; FOLD.food.days[fk] = !FOLD.food.days[fk]; render(); return; }
+    if (fold) { var fk = fold.dataset.fdayopen; FOLD.food.days[fk] = !FOLD.food.days[fk]; persistFold(); render(); return; }
     var ed = ev.target.closest("[data-fedit]"), dl = ev.target.closest("[data-fdel]");
     if (ed) {
       var f = S.foods.filter(function (x) { return x.id === ed.dataset.fedit; })[0]; if (!f) return;
@@ -2600,6 +2555,7 @@ button{user-select:none;-webkit-user-select:none}
   window.addEventListener("orientationchange", function () { if (tab === "chart") setTimeout(function () { renderChart(dayAvgs()); }, 220); });
 
   /* ---------- boot ---------- */
+  loadFold();
   load();
   syLoad();
   fillSyncForm();
