@@ -351,56 +351,39 @@ button{user-select:none;-webkit-user-select:none}
 
 <div id="scroll">
 <div class="wrap">
-  <div class="pagename num" id="pageName">Weight</div>
-  <header id="appHeader">
-    <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
-      <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
-        style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
-    <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
-  </header>
-
   <div id="notices"></div>
-
-  <div class="progress-card" id="progressCard">
-    <div class="progress-endpoints">
-      <span id="pStart">&ndash;</span>
-      <span id="pTarget">&ndash;</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="progress-row">
-      <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
-      <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
-    </div>
-  </div>
-
-  <div class="card" id="projCard">
-    <span class="lab" id="projLab">Projected</span>
-    <table class="fx">
-      <tr><th>Proj. kg</th><th>Net kcal/day</th><th>kcal deficit</th><th>kg/week</th></tr>
-      <tr class="num" style="font-size:15px;font-weight:600">
-        <td id="projVal">&ndash;</td><td id="projKcal">&ndash;</td><td id="projDef">&ndash;</td><td id="projRate">&ndash;</td>
-      </tr>
-    </table>
-    <div class="mrow">
-      <span>Maint.</span>
-      <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
-      <span>kcal</span>
-    </div>
-  </div>
-  <div class="card" id="trendCard">
-    <span class="lab" id="trendCardLab">Trend</span>
-    <table class="fx">
-      <tr><th>kg</th><th>Pace/week</th><th>Plan today</th><th>Gap</th><th>To target</th></tr>
-      <tr class="num" style="font-size:15px;font-weight:600">
-        <td id="trendCardVal">&ndash;</td><td id="trendPace">&ndash;</td><td id="trendPlan">&ndash;</td><td id="trendGap">&ndash;</td><td id="trendTarget">&ndash;</td>
-      </tr>
-    </table>
-    <div class="tiny" id="trendCardNote" style="margin-top:8px"></div>
-  </div>
 
   <div id="pages">
   <!-- WEIGHT -->
   <section id="p-weight">
+    <div class="pagename num">Weight</div>
+    <header id="appHeader">
+      <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
+        <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
+          style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
+      <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
+    </header>
+    <div class="progress-card" id="progressCard">
+      <div class="progress-endpoints">
+        <span id="pStart">&ndash;</span>
+        <span id="pTarget">&ndash;</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-row">
+        <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
+        <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
+      </div>
+    </div>
+    <div class="card" id="trendCard">
+      <span class="lab" id="trendCardLab">Trend</span>
+      <table class="fx">
+        <tr><th>kg</th><th>Pace/week</th><th>Plan today</th><th>Gap</th><th>To target</th></tr>
+        <tr class="num" style="font-size:15px;font-weight:600">
+          <td id="trendCardVal">&ndash;</td><td id="trendPace">&ndash;</td><td id="trendPlan">&ndash;</td><td id="trendGap">&ndash;</td><td id="trendTarget">&ndash;</td>
+        </tr>
+      </table>
+      <div class="tiny" id="trendCardNote" style="margin-top:8px"></div>
+    </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
         <span class="lab" id="wFormTitle" style="margin-bottom:0">Add weight</span>
@@ -426,6 +409,21 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
+    <div class="pagename num">Calories</div>
+    <div class="card" id="projCard">
+      <span class="lab" id="projLab">Projected</span>
+      <table class="fx">
+        <tr><th>Proj. kg</th><th>Net kcal/day</th><th>kcal deficit</th><th>kg/week</th></tr>
+        <tr class="num" style="font-size:15px;font-weight:600">
+          <td id="projVal">&ndash;</td><td id="projKcal">&ndash;</td><td id="projDef">&ndash;</td><td id="projRate">&ndash;</td>
+        </tr>
+      </table>
+      <div class="mrow">
+        <span>Maint.</span>
+        <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
+        <span>kcal</span>
+      </div>
+    </div>
     <div class="card">
       <span class="lab">Totals &middot; <span id="fTotDate"></span></span>
       <table class="fx">
@@ -509,6 +507,7 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CHART -->
   <section id="p-chart" hidden>
+    <div class="pagename num">Charts</div>
     <div class="seg mb" id="rangeRow">
       <button type="button" data-range="all" aria-pressed="true">All</button>
       <button type="button" data-range="month" aria-pressed="false">Month</button>
@@ -522,6 +521,7 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- SETTINGS -->
   <section id="p-data" hidden>
+    <div class="pagename num">Settings</div>
     <details class="card" id="goalCard">
       <summary><span class="sname"><i class="sym">&#9678;</i>Goal</span></summary>
       <div class="details-body">
@@ -1347,10 +1347,10 @@ button{user-select:none;-webkit-user-select:none}
     }
 
     /* The chart takes the height the page can spare: the scrolling pane, less
-       the range row, the card's own padding and the legend beneath it. */
+       the page title, the range row, the card's padding and the legend under it. */
     var W = Math.max(300, host.clientWidth || 320);
     var pane = $("scroll").clientHeight || (window.innerHeight || 720) - 47;
-    var H = Math.max(300, Math.min(620, pane - 172));
+    var H = Math.max(300, Math.min(620, pane - 213));
     var mL = 34, mR = 10, mT = 10, mB = 24;
     var G = goal();
 
@@ -2098,19 +2098,12 @@ button{user-select:none;-webkit-user-select:none}
     if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
-  /* Which shared cards each page shows. */
-  var TAB_NAMES = { weight: "Weight", food: "Calories", chart: "Charts", data: "Settings" };
+  /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
     tab = t;
-    $("pageName").textContent = TAB_NAMES[t] || "";
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
-    $("appHeader").hidden = (t !== "weight");
-    $("progressCard").hidden = (t !== "weight");
     $("notices").hidden = (t === "chart");
-    // one card a page: Trend on weight, Projected on calories
-    $("projCard").hidden = (t !== "food");
-    $("trendCard").hidden = (t !== "weight");
     if (t === "chart") renderChart(dayAvgs());
     $("scroll").scrollTop = 0;
   }
@@ -2125,25 +2118,14 @@ button{user-select:none;-webkit-user-select:none}
   (function () {
     var ORDER = ["weight", "food", "chart", "data"];
     var pages = $("pages"), host = $("scroll");
-    // Cards above the pages belong to one page each, so they fade across.
-    var SHARED = ["pageName", "appHeader", "notices", "progressCard", "projCard", "trendCard"];
     var skip = function (el) { return el.closest("#chartHost, .wsingle, input, select, textarea"); };
     var x0 = 0, y0 = 0, t0 = 0, dx = 0, W = 0;
     var axis = 0, dir = 0, cur = null, nxt = null, to = "";
 
-    function fade(prog, ease) {
-      var o = String(1 - Math.min(1, Math.max(0, prog)) * 0.75);
-      SHARED.forEach(function (id) {
-        var el = $(id);
-        el.style.transition = ease ? "opacity .22s ease" : "";
-        el.style.opacity = o;
-      });
-    }
     function reset() {
       pages.classList.remove("dragging", "settling");
       pages.style.height = "";
       [cur, nxt].forEach(function (el) { if (el) el.style.transform = ""; });
-      SHARED.forEach(function (id) { $(id).style.opacity = ""; $(id).style.transition = ""; });
       cur = nxt = null; axis = 0; dir = 0; dx = 0;
     }
     function grab() {
@@ -2161,14 +2143,12 @@ button{user-select:none;-webkit-user-select:none}
     function place() {
       cur.style.transform = "translate3d(" + dx + "px,0,0)";
       nxt.style.transform = "translate3d(" + (dx + dir * W) + "px,0,0)";
-      fade(Math.abs(dx) / W, false);
     }
     function settle(commit) {
       var end = commit ? -dir * W : 0, done = false;
       pages.classList.add("settling");
       cur.style.transform = "translate3d(" + end + "px,0,0)";
       nxt.style.transform = "translate3d(" + (end + dir * W) + "px,0,0)";
-      fade(commit ? 1 : 0, true);
       var finish = function () {
         if (done) return;
         done = true;
