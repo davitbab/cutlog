@@ -35,6 +35,8 @@ try {
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --on-accent:#ffffff;
   --shadow:0 1px 2px rgba(18,22,28,.04);
+  /* Card glow: the drop shadow, then two blurred rings in the accent. */
+  --glow:0 1px 2px rgba(18,22,28,.04), 0 0 10px rgba(11,143,132,.13), 0 0 26px rgba(11,143,132,.07);
   --r:10px; --r-lg:14px;
 
 }
@@ -49,6 +51,7 @@ try {
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
     --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 1px 2px rgba(0,0,0,.3);
+    --glow:0 1px 2px rgba(0,0,0,.3), 0 0 12px rgba(34,168,154,.22), 0 0 32px rgba(34,168,154,.11);
   }
 }
 :root[data-theme="dark"] {
@@ -61,6 +64,7 @@ try {
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
   --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 1px 2px rgba(0,0,0,.3);
+  --glow:0 1px 2px rgba(0,0,0,.3), 0 0 12px rgba(34,168,154,.22), 0 0 32px rgba(34,168,154,.11);
 }
 
 *{box-sizing:border-box}
@@ -193,7 +197,7 @@ details.card[open] > summary::after{transform:rotate(90deg)}
 details.card > summary:active{background:var(--field)}
 details.card > .details-body{padding:0 15px 15px}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--glow);margin-bottom:16px}
 .card .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
@@ -302,7 +306,7 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 10px}
 
 /* chart */
-.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--shadow);margin-bottom:12px}
+.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--glow);margin-bottom:12px}
 /* The legend doubles as the series switchboard. */
 .legend{display:flex;gap:5px;padding:10px 0 2px;font-size:11px;color:var(--ink-2)}
 .legend button{
