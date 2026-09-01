@@ -316,8 +316,13 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed}
 .legend button[aria-pressed="false"] i{opacity:.3}
 #chartHost{position:relative;overflow-x:auto}
+/* inline would add descender space under the svg, which overflow-x:auto
+   then reports as a vertical scroll */
+#chartHost svg{display:block}
 #tip{
-  position:absolute;pointer-events:none;opacity:0;transition:opacity .09s;
+  /* anchored, or its static position lands under the svg and the host reports
+     a phantom scroll the height of the tooltip */
+  position:absolute;top:0;left:0;pointer-events:none;opacity:0;transition:opacity .09s;
   background:var(--surface);border:1px solid var(--line-2);border-radius:8px;
   padding:6px 8px;font-size:11.5px;box-shadow:var(--shadow);white-space:nowrap;z-index:5;color:var(--ink);
 }
@@ -519,7 +524,7 @@ button{user-select:none;-webkit-user-select:none}
     <div class="pagename num">Charts</div>
     <div class="seg mb" id="rangeRow">
       <button type="button" data-range="all" aria-pressed="true">All</button>
-      <button type="button" data-range="month" aria-pressed="false">Month</button>
+      <button type="button" data-range="d30" aria-pressed="false">30 days</button>
       <button type="button" data-range="week" aria-pressed="false">Week</button>
     </div>
     <div class="chartcard">
@@ -1314,8 +1319,9 @@ button{user-select:none;-webkit-user-select:none}
   });
 
   /* How much of the timeline the chart shows. Kept on the device like the
-     series switches. */
+     series switches. "month" was the calendar month to date, now 30 days. */
   var RANGE = sget("cut-range") || "all";
+  if (RANGE === "month") { RANGE = "d30"; sset("cut-range", RANGE); }
   function renderRange() {
     document.querySelectorAll("#rangeRow button").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.range === RANGE));
@@ -1339,7 +1345,7 @@ button{user-select:none;-webkit-user-select:none}
     // the window crops what is drawn, not what the fit learns from
     var today = iso(new Date()), winFrom = null;
     if (RANGE === "week") winFrom = iso(new Date(Date.now() - 6 * MS));
-    else if (RANGE === "month") winFrom = today.slice(0, 8) + "01";
+    else if (RANGE === "d30") winFrom = iso(new Date(Date.now() - 29 * MS));
     var days = winFrom ? allDays.filter(function (d) { return d.date >= winFrom; }) : allDays;
     host.querySelectorAll("svg").forEach(function (s) { s.remove(); });
     // drop any previous placeholder: this redraws on every visit
@@ -1354,7 +1360,7 @@ button{user-select:none;-webkit-user-select:none}
        the page title, the range row, the card's padding and the legend under it. */
     var W = Math.max(300, host.clientWidth || 320);
     var pane = $("scroll").clientHeight || (window.innerHeight || 720) - 47;
-    var H = Math.max(300, Math.min(620, pane - 213));
+    var H = Math.max(300, Math.min(620, pane - 215));
     var mL = 34, mR = 10, mT = 10, mB = 24;
     var G = goal();
 
@@ -1417,12 +1423,13 @@ button{user-select:none;-webkit-user-select:none}
       svg.push('<line x1="' + mL + '" y1="' + y.toFixed(1) + '" x2="' + (W - mR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line)" stroke-width="1"/>');
       svg.push('<text x="' + (mL - 6) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' + wv.toFixed(1) + '</text>');
     }
-    // x labels
+    // x labels; the first and last sit on the plot edges, so they anchor inwards
     var lblCount = W < 360 ? 3 : 5;
     for (var j = 0; j <= lblCount; j++) {
       var dx = Math.round(span * j / lblCount);
       var dt = new Date(parseD(start).getTime() + dx * MS);
-      svg.push('<text x="' + X(dx).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' +
+      var anch = j === 0 ? "start" : j === lblCount ? "end" : "middle";
+      svg.push('<text x="' + X(dx).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="' + anch + '" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' +
         dt.toLocaleDateString(undefined, { day: "2-digit", month: "short" }) + '</text>');
     }
     // calorie bars
