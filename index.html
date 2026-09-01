@@ -338,6 +338,13 @@ table.fx.kv td{padding:7px 6px;font-size:13px}
 table.fx.kv td:first-child{color:var(--ink-2);font-weight:500}
 table.fx.kv td:last-child{font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap}
 table.fx.kv tr:last-child td{border-bottom:0}
+/* the one kv value that's actually editable: same font/size/weight/color as
+   its read-only neighbors, just boxed enough to signal you can tap it */
+table.fx.kv input.kv-edit{
+  width:52px;text-align:right;font:inherit;font-family:"IBM Plex Mono",monospace;
+  font-size:15px;font-weight:600;color:var(--ink);background:var(--field);
+  border:1px solid var(--line-2);border-radius:6px;padding:2px 5px;
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 button{user-select:none;-webkit-user-select:none}
@@ -374,12 +381,8 @@ button{user-select:none;-webkit-user-select:none}
       <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
       <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
       <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
+      <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
     </table>
-    <div class="mrow">
-      <span>Maint.</span>
-      <input type="text" id="maint" class="num" style="width:66px;padding:4px 6px;font-size:12px" inputmode="numeric" autocomplete="off">
-      <span>kcal</span>
-    </div>
   </div>
   <div class="card" id="trendCard">
     <span class="lab" id="trendCardLab">Trend</span>
@@ -390,7 +393,6 @@ button{user-select:none;-webkit-user-select:none}
       <tr><td>Behind / ahead of plan</td><td class="num" id="trendGap">&ndash;</td></tr>
       <tr><td>Short of / past target</td><td class="num" id="trendTarget">&ndash;</td></tr>
     </table>
-    <div class="tiny" id="trendCardNote" style="margin-top:8px"></div>
   </div>
 
   <!-- WEIGHT -->
@@ -921,14 +923,9 @@ button{user-select:none;-webkit-user-select:none}
       $("trendPlan").textContent = plan.toFixed(1) + " kg";
       $("trendGap").textContent = (Math.abs(gap) < 0.05 ? "0.0" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1)) + " kg";
       $("trendTarget").textContent = (Math.abs(off) < 0.05 ? "0.0" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1)) + " kg";
-      $("trendCardNote").innerHTML = "Over <b>" + sinceStart + " days</b> &middot; " + (Math.abs(gap) < 0.05 ? "on plan" : "<b>" + Math.abs(gap).toFixed(1) + " kg</b> " + (gap > 0 ? "behind" : "ahead") + " today's plan") +
-        " &middot; " + (Math.abs(off) < 0.05 ? "lands on target" : "<b>" + Math.abs(off).toFixed(1) + " kg</b> " + (off > 0 ? "short of" : "past") + " target");
     } else {
       $("trendCardVal").textContent = "\u2013";
       ["trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { $(id).textContent = "\u2013"; });
-      $("trendCardNote").textContent = cur === null
-        ? "Add a weight entry to draw the trend."
-        : "A week from the start date draws the trend.";
     }
     // average net intake per logged day; training-only days are skipped
     var ixf = index().food, fdays = Object.keys(ixf), trainedKcal = 0, netSum = 0;
