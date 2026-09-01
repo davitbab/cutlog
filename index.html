@@ -185,6 +185,8 @@ details.card > summary{
   list-style:none;cursor:pointer;padding:15px;display:flex;align-items:center;justify-content:space-between;gap:8px;
   font-size:13px;font-weight:600;color:var(--ink);
 }
+details.card > summary .sname{display:inline-flex;align-items:center;gap:10px;min-width:0}
+details.card > summary .sym{font-style:normal;font-size:14px;line-height:1;color:var(--muted);flex:0 0 17px;text-align:center}
 details.card > summary::-webkit-details-marker{display:none}
 details.card > summary::after{content:"\276F";font-size:11px;color:var(--muted);transition:transform .15s ease;flex:0 0 auto}
 details.card[open] > summary::after{transform:rotate(90deg)}
@@ -348,55 +350,53 @@ table.fx.kv input.kv-edit{
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 button{user-select:none;-webkit-user-select:none}
+
+/* Live page drag. Out of a drag only one page is in flow; while a finger is on
+   the glass both ride it, absolutely placed side by side inside the track. */
+#pages{position:relative}
+#pages.dragging{overflow:hidden}
+#pages.dragging > section{
+  position:absolute;top:0;left:0;width:100%;
+  will-change:transform;backface-visibility:hidden;
+}
+#pages.settling > section{transition:transform .22s cubic-bezier(.22,.61,.36,1)}
 </style>
 
 <div id="scroll">
 <div class="wrap">
-  <div class="pagename num" id="pageName">Weight</div>
-  <header id="appHeader">
-    <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
-      <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
-        style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
-    <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
-  </header>
-
   <div id="notices"></div>
 
-  <div class="progress-card" id="progressCard">
-    <div class="progress-endpoints">
-      <span id="pStart">&ndash;</span>
-      <span id="pTarget">&ndash;</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    <div class="progress-row">
-      <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
-      <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
-    </div>
-  </div>
-
-  <div class="card" id="projCard">
-    <span class="lab" id="projLab">Projected</span>
-    <table class="fx kv">
-      <tr><td>Weight at goal date</td><td class="num" id="projVal">&ndash;</td></tr>
-      <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
-      <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
-      <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
-      <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
-    </table>
-  </div>
-  <div class="card" id="trendCard">
-    <span class="lab" id="trendCardLab">Trend</span>
-    <table class="fx kv">
-      <tr><td>Projected finish</td><td class="num" id="trendCardVal">&ndash;</td></tr>
-      <tr><td>Weekly pace</td><td class="num" id="trendPace">&ndash;</td></tr>
-      <tr><td>Plan for today</td><td class="num" id="trendPlan">&ndash;</td></tr>
-      <tr><td>Behind / ahead of plan</td><td class="num" id="trendGap">&ndash;</td></tr>
-      <tr><td>Short of / past target</td><td class="num" id="trendTarget">&ndash;</td></tr>
-    </table>
-  </div>
-
+  <div id="pages">
   <!-- WEIGHT -->
   <section id="p-weight">
+    <div class="pagename num">Weight</div>
+    <header id="appHeader">
+      <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
+        <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
+          style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
+      <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
+    </header>
+    <div class="progress-card" id="progressCard">
+      <div class="progress-endpoints">
+        <span id="pStart">&ndash;</span>
+        <span id="pTarget">&ndash;</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-row">
+        <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
+        <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
+      </div>
+    </div>
+    <div class="card" id="trendCard">
+      <span class="lab" id="trendCardLab">Trend</span>
+      <table class="fx kv">
+        <tr><td>Projected finish</td><td class="num" id="trendCardVal">&ndash;</td></tr>
+        <tr><td>Weekly pace</td><td class="num" id="trendPace">&ndash;</td></tr>
+        <tr><td>Plan for today</td><td class="num" id="trendPlan">&ndash;</td></tr>
+        <tr><td>Behind / ahead of plan</td><td class="num" id="trendGap">&ndash;</td></tr>
+        <tr><td>Short of / past target</td><td class="num" id="trendTarget">&ndash;</td></tr>
+      </table>
+    </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
         <span class="lab" id="wFormTitle" style="margin-bottom:0">Add weight</span>
@@ -422,6 +422,17 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CALORIES: food in, training out -->
   <section id="p-food" hidden>
+    <div class="pagename num">Calories</div>
+    <div class="card" id="projCard">
+      <span class="lab" id="projLab">Projected</span>
+      <table class="fx kv">
+        <tr><td>Weight at goal date</td><td class="num" id="projVal">&ndash;</td></tr>
+        <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
+        <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
+        <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
+        <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
+      </table>
+    </div>
     <div class="card">
       <span class="lab">Totals &middot; <span id="fTotDate"></span></span>
       <table class="fx">
@@ -505,6 +516,7 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- CHART -->
   <section id="p-chart" hidden>
+    <div class="pagename num">Charts</div>
     <div class="seg mb" id="rangeRow">
       <button type="button" data-range="all" aria-pressed="true">All</button>
       <button type="button" data-range="month" aria-pressed="false">Month</button>
@@ -518,8 +530,9 @@ button{user-select:none;-webkit-user-select:none}
 
   <!-- SETTINGS -->
   <section id="p-data" hidden>
+    <div class="pagename num">Settings</div>
     <details class="card" id="goalCard">
-      <summary>Goal</summary>
+      <summary><span class="sname"><i class="sym">&#9678;</i>Goal</span></summary>
       <div class="details-body">
       <div class="grid2 mb">
         <div><label class="f" for="gStart">Starting weight (kg)</label><input type="text" id="gStart" inputmode="decimal" autocomplete="off"></div>
@@ -536,7 +549,7 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary>Appearance</summary>
+      <summary><span class="sname"><i class="sym">&#9680;</i>Appearance</span></summary>
       <div class="details-body">
       <p class="tiny mb">System follows the phone.</p>
       <div class="seg" id="themeRow">
@@ -547,7 +560,7 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary>Sync via GitHub</summary>
+      <summary><span class="sname"><i class="sym">&#8645;</i>Sync via GitHub</span></summary>
       <div class="details-body">
       <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
@@ -571,7 +584,7 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary>Export</summary>
+      <summary><span class="sname"><i class="sym">&#8679;</i>Export</span></summary>
       <div class="details-body">
       <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>.</p>
       <button class="btn" id="exFile">Export to a file</button>
@@ -579,7 +592,7 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary>Import</summary>
+      <summary><span class="sname"><i class="sym">&#8681;</i>Import</span></summary>
       <div class="details-body">
       <p class="tiny mb">Replaces everything here. With sync on, the next sync merges it into your repo.</p>
       <input type="file" id="imFile" accept=".json,application/json,text/plain" class="mb">
@@ -587,13 +600,14 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary>Reset</summary>
+      <summary><span class="sname"><i class="sym">&#9003;</i>Reset</span></summary>
       <div class="details-body">
       <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Export first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
       </div>
     </details>
   </section>
+  </div>
 </div>
 </div>
 
@@ -1337,10 +1351,10 @@ button{user-select:none;-webkit-user-select:none}
     }
 
     /* The chart takes the height the page can spare: the scrolling pane, less
-       the range row, the card's own padding and the legend beneath it. */
+       the page title, the range row, the card's padding and the legend under it. */
     var W = Math.max(300, host.clientWidth || 320);
     var pane = $("scroll").clientHeight || (window.innerHeight || 720) - 47;
-    var H = Math.max(300, Math.min(620, pane - 172));
+    var H = Math.max(300, Math.min(620, pane - 213));
     var mL = 34, mR = 10, mT = 10, mB = 24;
     var G = goal();
 
@@ -2088,19 +2102,12 @@ button{user-select:none;-webkit-user-select:none}
     if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
-  /* Which shared cards each page shows. */
-  var TAB_NAMES = { weight: "Weight", food: "Calories", chart: "Charts", data: "Settings" };
+  /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
     tab = t;
-    $("pageName").textContent = TAB_NAMES[t] || "";
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
-    $("appHeader").hidden = (t !== "weight");
-    $("progressCard").hidden = (t !== "weight");
     $("notices").hidden = (t === "chart");
-    // one card a page: Trend on weight, Projected on calories
-    $("projCard").hidden = (t !== "food");
-    $("trendCard").hidden = (t !== "weight");
     if (t === "chart") renderChart(dayAvgs());
     $("scroll").scrollTop = 0;
   }
@@ -2108,27 +2115,93 @@ button{user-select:none;-webkit-user-select:none}
     var b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab);
   });
 
-  /* Swipe left/right anywhere in the scroll area to move between tabs.
-     Skipped over the chart, which scrolls sideways on its own, and over
-     anything already claiming horizontal drag (the weight dial). */
+  /* Drag left/right to change page: both pages follow the finger, and letting
+     go past a third of the width (or with a firm flick) completes the move.
+     Skipped over the chart, which scrolls sideways itself, and over the weight
+     dial and any field, which claim horizontal drag of their own. */
   (function () {
     var ORDER = ["weight", "food", "chart", "data"];
-    var sx = 0, sy = 0, st = 0, tracking = false;
-    var host = $("scroll");
+    var pages = $("pages"), host = $("scroll");
     var skip = function (el) { return el.closest("#chartHost, .wsingle, input, select, textarea"); };
-    host.addEventListener("touchstart", function (e) {
-      if (e.touches.length !== 1 || skip(e.target)) { tracking = false; return; }
-      sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); tracking = true;
+    var x0 = 0, y0 = 0, t0 = 0, dx = 0, W = 0;
+    var axis = 0, dir = 0, cur = null, nxt = null, to = "";
+
+    function reset() {
+      pages.classList.remove("dragging", "settling");
+      pages.style.height = "";
+      [cur, nxt].forEach(function (el) { if (el) el.style.transform = ""; });
+      cur = nxt = null; axis = 0; dir = 0; dx = 0;
+    }
+    function grab() {
+      var j = ORDER.indexOf(tab) + dir;
+      if (j < 0 || j >= ORDER.length) return false;
+      to = ORDER[j];
+      cur = $("p-" + tab); nxt = $("p-" + to);
+      W = pages.clientWidth || 320;
+      nxt.hidden = false;
+      pages.style.height = cur.offsetHeight + "px";
+      pages.classList.add("dragging");
+      nxt.style.transform = "translate3d(" + (dir * W) + "px,0,0)";
+      return true;
+    }
+    function place() {
+      cur.style.transform = "translate3d(" + dx + "px,0,0)";
+      nxt.style.transform = "translate3d(" + (dx + dir * W) + "px,0,0)";
+    }
+    function settle(commit) {
+      var end = commit ? -dir * W : 0, done = false;
+      pages.classList.add("settling");
+      cur.style.transform = "translate3d(" + end + "px,0,0)";
+      nxt.style.transform = "translate3d(" + (end + dir * W) + "px,0,0)";
+      var finish = function () {
+        if (done) return;
+        done = true;
+        if (commit) { reset(); setTab(to); return; }
+        // A cancelled drag must not lose the reader's place, so no setTab here.
+        var top = host.scrollTop;
+        nxt.hidden = true;
+        reset();
+        host.scrollTop = top;
+      };
+      cur.addEventListener("transitionend", finish, { once: true });
+      setTimeout(finish, 340);
+    }
+
+    pages.addEventListener("touchstart", function (e) {
+      if (pages.classList.contains("settling")) { axis = -1; return; }
+      if (e.touches.length !== 1 || skip(e.target)) { axis = -1; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+      dx = 0; axis = 0;
     }, { passive: true });
-    host.addEventListener("touchend", function (e) {
-      if (!tracking) return;
-      tracking = false;
-      var t = e.changedTouches[0];
-      var dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Date.now() - st > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
-      var i = ORDER.indexOf(tab);
-      if (dx < 0 && i < ORDER.length - 1) setTab(ORDER[i + 1]);
-      else if (dx > 0 && i > 0) setTab(ORDER[i - 1]);
+
+    pages.addEventListener("touchmove", function (e) {
+      if (axis === -1 || e.touches.length !== 1) return;
+      var t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+      if (axis === 0) {
+        if (Math.abs(mx) < 10 && Math.abs(my) < 10) return;
+        if (Math.abs(mx) < Math.abs(my) * 1.2) { axis = -1; return; }
+        dir = mx < 0 ? 1 : -1;
+        if (!grab()) { axis = -1; return; }
+        axis = 1;
+      }
+      // Clamped to the side being dragged: one page in, no rubber band.
+      dx = dir === 1 ? Math.max(-W, Math.min(0, mx)) : Math.min(W, Math.max(0, mx));
+      e.preventDefault();
+      place();
+    }, { passive: false });
+
+    pages.addEventListener("touchend", function () {
+      if (axis !== 1) { axis = 0; return; }
+      axis = 0;
+      // Past a third of the width, or a firm flick over an eighth of it.
+      var moved = Math.abs(dx);
+      var flick = moved / Math.max(1, Date.now() - t0) > 0.45 && moved > Math.max(24, W * 0.12);
+      settle(moved > W * 0.33 || flick);
+    }, { passive: true });
+
+    pages.addEventListener("touchcancel", function () {
+      if (axis === 1) settle(false);
+      axis = 0;
     }, { passive: true });
   })();
 
