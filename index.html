@@ -127,12 +127,22 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
   background:linear-gradient(90deg, transparent 0%, var(--accent-soft) 45%, var(--accent) 100%);
 }
+/* Once per launch the bar grows from nothing to where you are; the thumb rides
+   the fill's right edge, so it travels with it. */
+.progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
+@keyframes barGrow{from{width:0}}
 .progress-thumb{
   position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
   width:23px;height:23px;border-radius:50%;
   background:var(--accent);border:1px solid var(--surface);
   box-shadow:0 0 8px 2px var(--accent);
+  display:flex;align-items:center;justify-content:center;
 }
+/* The figure sits inside the puck: half the thumb overlaps the filled track and
+   half the empty one, so a bare silhouette would lose its outline. */
+.progress-thumb svg{width:18px;height:18px;display:block;color:var(--on-accent)}
+#markerRow button{display:flex;align-items:center;justify-content:center;padding:7px 0}
+#markerRow svg{width:20px;height:20px;display:block}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
@@ -401,7 +411,7 @@ button{user-select:none;-webkit-user-select:none}
         <span id="pStart">&ndash;</span>
         <span id="pTarget">&ndash;</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb"></span></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb" id="progressThumb"></span></div></div>
       <div class="progress-row">
         <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
         <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
@@ -572,10 +582,17 @@ button{user-select:none;-webkit-user-select:none}
       <summary><span class="sname"><i class="sym">&#9680;</i>Appearance</span></summary>
       <div class="details-body">
       <p class="tiny mb">System follows the phone.</p>
-      <div class="seg" id="themeRow">
+      <div class="seg mb" id="themeRow">
         <button type="button" data-theme-set="system" aria-pressed="true">System</button>
         <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
         <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+      </div>
+      <p class="tiny mb">Progress marker.</p>
+      <div class="seg" id="markerRow">
+        <button type="button" data-marker="dot" aria-pressed="true" aria-label="Plain dot"></button>
+        <button type="button" data-marker="run" aria-pressed="false" aria-label="Runner"></button>
+        <button type="button" data-marker="bike" aria-pressed="false" aria-label="Cyclist"></button>
+        <button type="button" data-marker="lift" aria-pressed="false" aria-label="Weight lifter"></button>
       </div>
       </div>
     </details>
@@ -904,6 +921,7 @@ button{user-select:none;-webkit-user-select:none}
   }
   CHIPS.forEach(function (c) { $(c.i).addEventListener("change", syncChips); });
 
+  var barGrown = false;
   function render() {
     touch();
     syncChips();
@@ -938,7 +956,15 @@ button{user-select:none;-webkit-user-select:none}
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
     var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
-    $("progressFill").style.width = fillPct.toFixed(1) + "%";
+    var fill = $("progressFill");
+    fill.style.width = fillPct.toFixed(1) + "%";
+    if (!barGrown) {
+      // First paint of the run: animate up from zero, then hand the width back
+      // to its short transition so later saves just nudge it.
+      barGrown = true;
+      fill.classList.add("boot");
+      setTimeout(function () { fill.classList.remove("boot"); }, 1000);
+    }
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
@@ -2279,6 +2305,48 @@ button{user-select:none;-webkit-user-select:none}
     var b = e.target.closest("[data-theme-set]"); if (b) applyTheme(b.dataset.themeSet);
   });
 
+  /* ---- progress marker: the thumb is a plain dot or a small figure ----
+     Drawn as strokes rather than filled shapes: at 19 px a silhouette closes
+     up, while a few round-capped lines still read. */
+  var SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var MARKERS = {
+    dot: "",
+    run: SVG +
+      '<circle cx="15.8" cy="4.6" r="2"/>' +
+      '<path d="M14.6 8.2 L11 12.8"/>' +
+      '<path d="M14.6 8.8 L17.8 10.6 L16.4 12.8"/>' +
+      '<path d="M13.8 9.4 L10.6 8.6"/>' +
+      '<path d="M11 12.8 L14.6 14.6 L13.2 19"/>' +
+      '<path d="M11 12.8 L7.6 16.6 L9.4 20.4"/></svg>',
+    bike: SVG +
+      '<circle cx="5.2" cy="17.6" r="3.4"/>' +
+      '<circle cx="18.8" cy="17.6" r="3.4"/>' +
+      '<path d="M5.2 17.6 L10.6 17.6 L13.8 10.8 L18.8 17.6"/>' +
+      '<circle cx="15.6" cy="6.2" r="1.9"/>' +
+      '<path d="M11.4 12.6 L14.4 8.4 L17.6 10.6"/></svg>',
+    lift: SVG +
+      '<path d="M3.4 4.2 H20.6"/>' +
+      '<path d="M5.4 2 V6.4 M18.6 2 V6.4"/>' +
+      '<circle cx="12" cy="9.6" r="2"/>' +
+      '<path d="M8.4 4.4 L10.6 8 M15.6 4.4 L13.4 8"/>' +
+      '<path d="M12 11.6 V15.8"/>' +
+      '<path d="M12 15.8 L9.2 21.4 M12 15.8 L14.8 21.4"/></svg>'
+  };
+  var DOT_ICON = SVG + '<circle cx="12" cy="12" r="4.2" fill="currentColor"/></svg>';
+  var MARKER = MARKERS[sget("cut-marker")] === undefined ? "dot" : sget("cut-marker");
+  function applyMarker(m) {
+    MARKER = MARKERS[m] === undefined ? "dot" : m;
+    sset("cut-marker", MARKER);
+    $("progressThumb").innerHTML = MARKERS[MARKER];
+    document.querySelectorAll("#markerRow button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.marker === MARKER));
+      if (!b.firstChild) b.innerHTML = MARKERS[b.dataset.marker] || DOT_ICON;
+    });
+  }
+  $("markerRow").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-marker]"); if (b) applyMarker(b.dataset.marker);
+  });
+
   /* ---- goal ---- */
   function fillGoalForm() {
     var G = goal();
@@ -2709,6 +2777,7 @@ button{user-select:none;-webkit-user-select:none}
   fillGoalForm();
   render();
   applyTheme(THEME);
+  applyMarker(MARKER);
   setCalView("food");
   setTab("weight");
   renderSync();
