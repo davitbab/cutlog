@@ -31,6 +31,7 @@ try {
   --line:#e4e4e9; --line-2:#d1d1d6;
   --accent:#0b8f84; --accent-ink:#07655d; --accent-soft:#e2f1ef;
   --trend:#c0562a; --neutral-series:#8a94a1; --kcal:#5f7a9e;
+  --macro-p:#3d7ea6; --macro-c:#c98a2e; --macro-f:#a65d7e;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --on-accent:#ffffff;
@@ -45,6 +46,7 @@ try {
     --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d;
     --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
+    --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
     --on-accent:#08201e; --field:#3a3a3c;
@@ -57,6 +59,7 @@ try {
   --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d;
   --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
+  --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
   --on-accent:#08201e; --field:#3a3a3c;
@@ -115,9 +118,21 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
 .progress-card{margin:16px 0}
-.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:8px}
-.progress-track{height:8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
-.progress-fill{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .3s ease}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:10px}
+.progress-track{
+  height:22px;border-radius:999px;position:relative;overflow:visible;
+  background:var(--surface-2);border:1.5px solid var(--accent);
+}
+.progress-fill{
+  height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
+  background:linear-gradient(90deg, transparent 0%, var(--accent-soft) 45%, var(--accent) 100%);
+}
+.progress-thumb{
+  position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
+  width:24px;height:24px;border-radius:50%;
+  background:var(--accent);border:2.5px solid var(--surface);
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
@@ -386,7 +401,7 @@ button{user-select:none;-webkit-user-select:none}
         <span id="pStart">&ndash;</span>
         <span id="pTarget">&ndash;</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb"></span></div></div>
       <div class="progress-row">
         <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
         <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
@@ -398,8 +413,8 @@ button{user-select:none;-webkit-user-select:none}
         <tr><td>Projected finish</td><td class="num" id="trendCardVal">&ndash;</td></tr>
         <tr><td>Weekly pace</td><td class="num" id="trendPace">&ndash;</td></tr>
         <tr><td>Plan for today</td><td class="num" id="trendPlan">&ndash;</td></tr>
-        <tr><td>Behind / ahead of plan</td><td class="num" id="trendGap">&ndash;</td></tr>
-        <tr><td>Short of / past target</td><td class="num" id="trendTarget">&ndash;</td></tr>
+        <tr><td id="trendGapLab">Behind plan</td><td class="num" id="trendGap">&ndash;</td></tr>
+        <tr><td id="trendTargetLab">Short of target</td><td class="num" id="trendTarget">&ndash;</td></tr>
       </table>
     </div>
     <div class="card">
@@ -441,9 +456,9 @@ button{user-select:none;-webkit-user-select:none}
     <div class="card">
       <span class="lab">Totals &middot; <span id="fTotDate"></span></span>
       <table class="fx">
-        <tr><th>kcal</th><th>Train</th><th>Net</th><th>Prot</th><th>Carb</th><th>Fat</th></tr>
+        <tr><th>Net</th><th>Intake</th><th>Train</th><th>Prot</th><th>Carb</th><th>Fat</th></tr>
         <tr class="num" style="font-size:15px;font-weight:600">
-          <td id="ftK">0</td><td id="tbTrain">0</td><td id="tbNet">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
+          <td id="tbNet">0</td><td id="ftK">0</td><td id="tbTrain">0</td><td id="ftP">0</td><td id="ftC">0</td><td id="ftF">0</td>
         </tr>
       </table>
     </div>
@@ -940,10 +955,21 @@ button{user-select:none;-webkit-user-select:none}
       $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
       $("trendPace").textContent = (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk";
       $("trendPlan").textContent = plan.toFixed(1) + " kg";
-      $("trendGap").textContent = (Math.abs(gap) < 0.05 ? "0.0" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1)) + " kg";
-      $("trendTarget").textContent = (Math.abs(off) < 0.05 ? "0.0" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1)) + " kg";
+      if (Math.abs(gap) < 0.05) {
+        $("trendGapLab").textContent = "On plan"; $("trendGap").textContent = "0.0 kg";
+      } else {
+        $("trendGapLab").textContent = gap > 0 ? "Behind plan" : "Ahead of plan";
+        $("trendGap").textContent = (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg";
+      }
+      if (Math.abs(off) < 0.05) {
+        $("trendTargetLab").textContent = "On target"; $("trendTarget").textContent = "0.0 kg";
+      } else {
+        $("trendTargetLab").textContent = off > 0 ? "Short of target" : "Past target";
+        $("trendTarget").textContent = (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg";
+      }
     } else {
       $("trendCardVal").textContent = "\u2013";
+      $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
       ["trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { $(id).textContent = "\u2013"; });
     }
     // average net intake per logged day; training-only days are skipped
@@ -1303,7 +1329,7 @@ button{user-select:none;-webkit-user-select:none}
       // the calorie bars are stacked protein/carbs/fat, so their swatch
       // shows the same three colors rather than one flat block
       var bg = m[0] === "kcal"
-        ? "linear-gradient(90deg, var(--kcal) 0 33%, var(--warn) 33% 66%, var(--bad) 66% 100%)"
+        ? "linear-gradient(90deg, var(--macro-p) 0 33%, var(--macro-c) 33% 66%, var(--macro-f) 66% 100%)"
         : m[2];
       return '<button type="button" data-series="' + m[0] + '" aria-pressed="' + (SERIES[m[0]] ? "true" : "false") + '">' +
         '<span>' + m[1] + '</span><i style="background:' + bg + '"></i></button>';
@@ -1417,7 +1443,7 @@ button{user-select:none;-webkit-user-select:none}
 
     var svg = ['<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Weight against ideal pace and current trend">'];
     // grid + y labels
-    var ticks = 4;
+    var ticks = 8;
     for (var i = 0; i <= ticks; i++) {
       var wv = lo + (hi - lo) * i / ticks, y = Y(wv);
       svg.push('<line x1="' + mL + '" y1="' + y.toFixed(1) + '" x2="' + (W - mR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line)" stroke-width="1"/>');
@@ -1447,10 +1473,10 @@ button{user-select:none;-webkit-user-select:none}
         var mtot = pk + ck + fk;
         if (mtot <= 0) {
           svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
-            '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
+            '" rx="1.5" fill="var(--macro-p)" opacity="0.22"/>');
           return;
         }
-        var segs = [["fat", fk, "var(--bad)"], ["carbs", ck, "var(--warn)"], ["protein", pk, "var(--kcal)"]];
+        var segs = [["fat", fk, "var(--macro-f)"], ["carbs", ck, "var(--macro-c)"], ["protein", pk, "var(--macro-p)"]];
         var y = kBase;
         segs.forEach(function (s) {
           var sh = (s[1] / mtot) * h;
