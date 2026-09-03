@@ -605,7 +605,7 @@ button{user-select:none;-webkit-user-select:none}
     <details class="card">
       <summary><span class="sname"><i class="sym">&#8645;</i>Sync via GitHub</span></summary>
       <div class="details-body">
-      <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
+      <p class="tiny mb">One <b class="num">log.json</b> in a private repo you own.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
         <div><label class="f" for="syRepo">Repository</label><input type="text" id="syRepo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="cutlog-data"></div>
@@ -614,7 +614,7 @@ button{user-select:none;-webkit-user-select:none}
         <div><label class="f" for="syPath">File in the repo</label><input type="text" id="syPath" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="log.json"></div>
         <div><label class="f" for="syBranch">Branch</label><input type="text" id="syBranch" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="main"></div>
       </div>
-      <label class="f" for="syToken">Access token</label>
+      <label class="f" for="syToken">Access token <span style="opacity:.7">&mdash; Contents: read and write</span></label>
       <input type="password" id="syToken" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." class="mb">
       <div class="btnrow">
         <button class="btn" id="syNow">Sync now</button>
