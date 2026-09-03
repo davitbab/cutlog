@@ -98,7 +98,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text; user-select:te
 .pagename{font-size:21px;font-weight:600;letter-spacing:-.02em;padding:14px 0 0;color:var(--ink);text-align:center}
 
 /* header */
-header{padding:6px 0 14px}
+header{padding:6px 0 6px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:600;text-wrap:balance}
 .sub{color:var(--ink-2);font-size:13.5px}
@@ -117,11 +117,11 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
-.progress-card{margin:16px 0}
+.progress-card{margin:8px 0 16px}
 .progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:10px}
 .progress-track{
   height:22px;border-radius:999px;position:relative;overflow:visible;
-  background:var(--surface-2);border:1px solid var(--accent-dim);
+  background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid var(--accent-dim);
 }
 .progress-fill{
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
@@ -129,7 +129,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 }
 .progress-thumb{
   position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
-  width:19px;height:19px;border-radius:50%;
+  width:23px;height:23px;border-radius:50%;
   background:var(--accent);border:1px solid var(--surface);
   box-shadow:0 0 8px 2px var(--accent);
 }
