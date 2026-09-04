@@ -927,7 +927,6 @@ button{user-select:none;-webkit-user-select:none}
   }
   CHIPS.forEach(function (c) { $(c.i).addEventListener("change", syncChips); });
 
-  var barGrown = false;
   function render() {
     touch();
     syncChips();
@@ -964,13 +963,6 @@ button{user-select:none;-webkit-user-select:none}
     var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
     var fill = $("progressFill");
     fill.style.width = fillPct.toFixed(1) + "%";
-    if (!barGrown) {
-      // First paint of the run: animate up from zero, then hand the width back
-      // to its short transition so later saves just nudge it.
-      barGrown = true;
-      fill.classList.add("boot");
-      setTimeout(function () { fill.classList.remove("boot"); }, 1000);
-    }
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
@@ -2168,12 +2160,23 @@ button{user-select:none;-webkit-user-select:none}
   });
 
   /* Each page owns its own header and cards, so showing a page is one line. */
+  /* Replays the bar's grow-from-zero animation. The keyframe only defines
+     "from", so re-adding the class after a reflow animates up to whatever
+     width is already set -- no need to know the target here. */
+  function growBar() {
+    var fill = $("progressFill");
+    fill.classList.remove("boot");
+    void fill.offsetWidth;
+    fill.classList.add("boot");
+    setTimeout(function () { fill.classList.remove("boot"); }, 1000);
+  }
   function setTab(t) {
     tab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
     $("notices").hidden = (t === "chart");
     if (t === "chart") renderChart(dayAvgs());
+    if (t === "weight") growBar();
     $("scroll").scrollTop = 0;
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
