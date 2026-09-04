@@ -127,6 +127,11 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
   background:linear-gradient(90deg, transparent 0%, var(--accent-soft) 45%, var(--accent) 100%);
 }
+/* Plays every time the weight page becomes active (see growBar()), not just
+   once at boot -- the keyframe only defines "from", so it animates up to
+   whatever width is already set. */
+.progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
+@keyframes barGrow{from{width:0}}
 .progress-thumb{
   position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
   width:23px;height:23px;border-radius:50%;
@@ -2135,6 +2140,16 @@ button{user-select:none;-webkit-user-select:none}
     if (v > 0) { S.maintenance = v; save(); render(); }
   });
 
+  /* Replays the bar's grow-from-zero animation. The keyframe only defines
+     "from", so re-adding the class after a reflow animates up to whatever
+     width is already set -- no need to know the target here. */
+  function growBar() {
+    var fill = $("progressFill");
+    fill.classList.remove("boot");
+    void fill.offsetWidth;
+    fill.classList.add("boot");
+    setTimeout(function () { fill.classList.remove("boot"); }, 1000);
+  }
   /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
     tab = t;
@@ -2142,6 +2157,7 @@ button{user-select:none;-webkit-user-select:none}
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
     $("notices").hidden = (t === "chart");
     if (t === "chart") renderChart(dayAvgs());
+    if (t === "weight") growBar();
     $("scroll").scrollTop = 0;
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
