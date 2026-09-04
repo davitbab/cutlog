@@ -127,28 +127,12 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
   background:linear-gradient(90deg, transparent 0%, var(--accent-soft) 45%, var(--accent) 100%);
 }
-/* Once per launch the bar grows from nothing to where you are; the thumb rides
-   the fill's right edge, so it travels with it. */
-.progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
-@keyframes barGrow{from{width:0}}
 .progress-thumb{
   position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
-  display:flex;align-items:center;justify-content:center;
-}
-.progress-thumb.dot{
   width:23px;height:23px;border-radius:50%;
   background:var(--accent);border:1px solid var(--surface);
   box-shadow:0 0 8px 2px var(--accent);
 }
-/* A figure marker stands on the bar rather than sitting in a puck, so it is
-   taller than the track and keeps the glow the puck had. */
-.progress-thumb.fig{width:31px;height:31px}
-.progress-thumb.fig svg{
-  width:31px;height:31px;display:block;
-  filter:drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 6px var(--accent));
-}
-#markerRow button{display:flex;align-items:center;justify-content:center;padding:5px 0}
-#markerRow svg{width:26px;height:26px;display:block}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
@@ -417,7 +401,7 @@ button{user-select:none;-webkit-user-select:none}
         <span id="pStart">&ndash;</span>
         <span id="pTarget">&ndash;</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb" id="progressThumb"></span></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb"></span></div></div>
       <div class="progress-row">
         <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
         <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
@@ -588,24 +572,17 @@ button{user-select:none;-webkit-user-select:none}
       <summary><span class="sname"><i class="sym">&#9680;</i>Appearance</span></summary>
       <div class="details-body">
       <p class="tiny mb">System follows the phone.</p>
-      <div class="seg mb" id="themeRow">
+      <div class="seg" id="themeRow">
         <button type="button" data-theme-set="system" aria-pressed="true">System</button>
         <button type="button" data-theme-set="light" aria-pressed="false">Light</button>
         <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
-      </div>
-      <p class="tiny mb">Progress marker.</p>
-      <div class="seg" id="markerRow">
-        <button type="button" data-marker="dot" aria-pressed="true" aria-label="Plain dot"></button>
-        <button type="button" data-marker="run" aria-pressed="false" aria-label="Runner"></button>
-        <button type="button" data-marker="bike" aria-pressed="false" aria-label="Cyclist"></button>
-        <button type="button" data-marker="lift" aria-pressed="false" aria-label="Weight lifter"></button>
       </div>
       </div>
     </details>
     <details class="card">
       <summary><span class="sname"><i class="sym">&#8645;</i>Sync via GitHub</span></summary>
       <div class="details-body">
-      <p class="tiny mb">One <b class="num">log.json</b> in a private repo you own.</p>
+      <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
         <div><label class="f" for="syRepo">Repository</label><input type="text" id="syRepo" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="cutlog-data"></div>
@@ -614,7 +591,7 @@ button{user-select:none;-webkit-user-select:none}
         <div><label class="f" for="syPath">File in the repo</label><input type="text" id="syPath" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="log.json"></div>
         <div><label class="f" for="syBranch">Branch</label><input type="text" id="syBranch" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="main"></div>
       </div>
-      <label class="f" for="syToken">Access token <span style="opacity:.7">&mdash; Contents: read and write</span></label>
+      <label class="f" for="syToken">Access token</label>
       <input type="password" id="syToken" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_..." class="mb">
       <div class="btnrow">
         <button class="btn" id="syNow">Sync now</button>
@@ -961,8 +938,7 @@ button{user-select:none;-webkit-user-select:none}
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
     var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
-    var fill = $("progressFill");
-    fill.style.width = fillPct.toFixed(1) + "%";
+    $("progressFill").style.width = fillPct.toFixed(1) + "%";
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
@@ -2160,23 +2136,12 @@ button{user-select:none;-webkit-user-select:none}
   });
 
   /* Each page owns its own header and cards, so showing a page is one line. */
-  /* Replays the bar's grow-from-zero animation. The keyframe only defines
-     "from", so re-adding the class after a reflow animates up to whatever
-     width is already set -- no need to know the target here. */
-  function growBar() {
-    var fill = $("progressFill");
-    fill.classList.remove("boot");
-    void fill.offsetWidth;
-    fill.classList.add("boot");
-    setTimeout(function () { fill.classList.remove("boot"); }, 1000);
-  }
   function setTab(t) {
     tab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
     $("notices").hidden = (t === "chart");
     if (t === "chart") renderChart(dayAvgs());
-    if (t === "weight") growBar();
     $("scroll").scrollTop = 0;
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
@@ -2312,60 +2277,6 @@ button{user-select:none;-webkit-user-select:none}
   }
   $("themeRow").addEventListener("click", function (e) {
     var b = e.target.closest("[data-theme-set]"); if (b) applyTheme(b.dataset.themeSet);
-  });
-
-  /* ---- progress marker: a plain dot, or a figure standing on the bar ----
-     Round-capped strokes, which paint as capsules and read as a solid
-     silhouette. Colours match the dot: an accent body over a thin surface
-     outline, which does the same job as the dot's 1px border -- the marker
-     straddles the seam, and over the filled half the outline is what separates
-     the figure from the track behind it.
-     Weight is per figure -- a bicycle carries more lines than a runner, so it
-     needs thinner ones to stay open at this size. */
-  var FIGS = {
-    run: { w: 2.6, d:
-      '<circle cx="13.4" cy="4" r="1.6" fill="currentColor"/>' +
-      '<path d="M13 7.6 L10.6 13"/>' +                  // torso, leaning into the run
-      '<path d="M13 8.2 L17.4 9.6 L16.2 6.2"/>' +       // leading arm, forearm up
-      '<path d="M12.4 8.8 L8.4 9 L7.6 11.8"/>' +        // trailing arm, forearm down
-      '<path d="M10.6 13 L14.8 14.2 L14 18.8"/>' +      // front leg, knee up, foot landing
-      '<path d="M10.6 13 L7 15.6 L4.6 17.4"/>' },       // trailing leg, bent, foot behind
-    bike: { w: 2.4, d:
-      '<circle cx="5.4" cy="17.8" r="3.6"/>' +
-      '<circle cx="18.6" cy="17.8" r="3.6"/>' +
-      '<path d="M5.4 17.8 H11 L14.2 10.8 L18.6 17.8"/>' +
-      '<path d="M11 17.8 L13.4 11.4"/>' +
-      '<circle cx="16.2" cy="5.6" r="1.7" fill="currentColor"/>' +
-      '<path d="M11.6 12.6 L15 8.2 L18.2 10.4"/>' },
-    lift: { w: 2.9, d:
-      '<path d="M3.2 4.6 H20.8"/>' +
-      '<path d="M5.6 2.2 V7 M18.4 2.2 V7"/>' +
-      '<circle cx="12" cy="8.9" r="1.7" fill="currentColor"/>' +
-      '<path d="M8.8 4.8 L10.9 7.6 M15.2 4.8 L13.1 7.6"/>' +
-      '<path d="M12 10.4 V15.6"/>' +
-      '<path d="M12 15.6 L9 21.2 M12 15.6 L15 21.2"/>' }
-  };
-  function figSvg(k) {
-    var f = FIGS[k];
-    return '<svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<g color="var(--surface)" stroke="currentColor" stroke-width="' + (f.w + 2.6).toFixed(1) + '">' + f.d + '</g>' +
-      '<g color="var(--accent)" stroke="currentColor" stroke-width="' + f.w + '">' + f.d + '</g></svg>';
-  }
-  var DOT_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="var(--accent)"/></svg>';
-  var MARKER = FIGS[sget("cut-marker")] ? sget("cut-marker") : "dot";
-  function applyMarker(m) {
-    MARKER = FIGS[m] ? m : "dot";
-    sset("cut-marker", MARKER);
-    var th = $("progressThumb");
-    th.className = "progress-thumb " + (MARKER === "dot" ? "dot" : "fig");
-    th.innerHTML = MARKER === "dot" ? "" : figSvg(MARKER);
-    document.querySelectorAll("#markerRow button").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.marker === MARKER));
-      if (!b.firstChild) b.innerHTML = FIGS[b.dataset.marker] ? figSvg(b.dataset.marker) : DOT_ICON;
-    });
-  }
-  $("markerRow").addEventListener("click", function (e) {
-    var b = e.target.closest("[data-marker]"); if (b) applyMarker(b.dataset.marker);
   });
 
   /* ---- goal ---- */
@@ -2798,7 +2709,6 @@ button{user-select:none;-webkit-user-select:none}
   fillGoalForm();
   render();
   applyTheme(THEME);
-  applyMarker(MARKER);
   setCalView("food");
   setTab("weight");
   renderSync();
