@@ -34,6 +34,7 @@ try {
   --macro-p:#3d7ea6; --macro-c:#c98a2e; --macro-f:#a65d7e;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
+  --fx-good:#2563c9; --fx-good-rgb:37,99,201; --fx-bad:#c0392f; --fx-bad-rgb:192,57,47;
   --on-accent:#ffffff;
   --shadow:0 2px 6px rgba(18,22,28,.10);
   --r:10px; --r-lg:14px;
@@ -49,6 +50,7 @@ try {
     --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
+    --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
     --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 2px 8px rgba(0,0,0,.45);
   }
@@ -62,6 +64,7 @@ try {
   --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
+  --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
   --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 2px 8px rgba(0,0,0,.45);
 }
@@ -144,6 +147,27 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .progress-stat .val{font-size:21px;font-weight:600;letter-spacing:-.02em}
 .progress-stat .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
 .progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
+
+/* Live stats: a number that moved pulses for 3.4s -- blue when it moved the
+   good way, red when it did not -- and keeps a tiny arrow for which way it
+   went. Every tracked number carries the arrow's slot whether or not it has an
+   arrow, so one appearing never shifts the column. */
+.arw{
+  display:inline-block;width:1.2em;margin-left:1px;text-align:center;
+  font-size:.58em;line-height:1;vertical-align:.16em;font-style:normal;opacity:0;
+}
+.arw.on{opacity:.72}
+.arw.good{color:var(--fx-good)}
+.arw.bad{color:var(--fx-bad)}
+.pulse{animation:statPulse .85s ease-in-out 4;--fx-rgb:122,122,130}
+/* the kv table sets td colour at higher specificity, hence the second selector */
+.pulse.good,table.fx.kv td.pulse.good{color:var(--fx-good);--fx-rgb:var(--fx-good-rgb)}
+.pulse.bad,table.fx.kv td.pulse.bad{color:var(--fx-bad);--fx-rgb:var(--fx-bad-rgb)}
+@keyframes statPulse{
+  0%,100%{text-shadow:0 0 0 rgba(var(--fx-rgb),0)}
+  50%{text-shadow:0 0 5px rgba(var(--fx-rgb),.85),0 0 13px rgba(var(--fx-rgb),.45)}
+}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
 
 /* hero / projection */
 .hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-lg);padding:14px 15px;box-shadow:var(--shadow);margin-bottom:14px}
@@ -455,7 +479,7 @@ button{user-select:none;-webkit-user-select:none}
         <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
         <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
         <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
-        <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
+        <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal<i class="arw"></i></td></tr>
       </table>
     </div>
     <div class="card">
@@ -909,6 +933,43 @@ button{user-select:none;-webkit-user-select:none}
   }
   CHIPS.forEach(function (c) { $(c.i).addEventListener("change", syncChips); });
 
+  /* ---------- live stats: glow + arrow when a number moves ----------
+     stat() writes the number and remembers it. dir is the good direction,
+     +1 up or -1 down, or null for a reference row that only needs the arrow
+     slot. Change is judged on the rendered text, so sub-decimal drift and
+     plain re-renders (folds, deletes) stay quiet. */
+  var PREV = {}, pulseT = {};
+  function stat(id, txt, v, dir) {
+    var el = $(id), p = PREV[id], a = p ? p.a : 0, c = p ? p.c : "", hit = false;
+    if (dir === null) v = null;
+    if (!p || p.t !== txt) {
+      if (p && v !== null && p.v !== null) {
+        var gain = dir * (v - p.v);
+        c = gain > 1e-9 ? "good" : gain < -1e-9 ? "bad" : "";
+        a = v > p.v ? 1 : v < p.v ? -1 : 0;
+        hit = a !== 0 || c !== "";
+      } else { a = 0; c = ""; }
+    }
+    PREV[id] = { t: txt, v: v, a: a, c: c, due: (p && p.due) || hit };
+    el.innerHTML = txt + '<i class="arw' + (a ? " on " + c : "") + '">' +
+      (a > 0 ? "&#9650;" : a < 0 ? "&#9660;" : "") + "</i>";
+  }
+  /* Run once per render, after every stat is written: one layout read, and a
+     number that moved on a hidden page waits to glow until that page is up. */
+  function flushStats() {
+    Object.keys(PREV).forEach(function (id) {
+      var p = PREV[id]; if (!p.due) return;
+      var el = $(id); if (!el.offsetParent) return;
+      p.due = false;
+      el.classList.remove("pulse", "good", "bad");
+      void el.offsetWidth;                      // restart one already running
+      el.classList.add("pulse");
+      if (p.c) el.classList.add(p.c);
+      clearTimeout(pulseT[id]);
+      pulseT[id] = setTimeout(function () { el.classList.remove("pulse", "good", "bad"); }, 3400);
+    });
+  }
+
   function render() {
     touch();
     syncChips();
@@ -937,8 +998,11 @@ button{user-select:none;-webkit-user-select:none}
     var cur = latestDay ? latestDay.w : null;
     $("pStart").textContent = G.start.toFixed(1) + " kg";
     $("pTarget").textContent = G.target.toFixed(1) + " kg";
-    $("tLost").innerHTML = cur !== null ? (G.start - cur).toFixed(1) + '<small>kg</small>' : "\u2013";
-    $("tGo").innerHTML = cur !== null ? (cur - G.target).toFixed(1) + '<small>kg</small>' : (G.start - G.target).toFixed(1) + '<small>kg</small>';
+    // good direction: down while cutting, up while gaining
+    var gdir = G.target < G.start ? -1 : 1;
+    var lost = cur !== null ? G.start - cur : null, togo = (cur !== null ? cur : G.start) - G.target;
+    stat("tLost", lost !== null ? lost.toFixed(1) + "<small>kg</small>" : "\u2013", lost, -gdir);
+    stat("tGo", togo.toFixed(1) + "<small>kg</small>", togo, gdir);
     // fill share of the bar that's behind us: lost / (lost + to go)
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
@@ -957,25 +1021,24 @@ button{user-select:none;-webkit-user-select:none}
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
-      $("trendCardVal").textContent = tEnd.toFixed(1) + " kg";
-      $("trendPace").textContent = (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk";
-      $("trendPlan").textContent = plan.toFixed(1) + " kg";
+      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir);
+      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir);
+      stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       if (Math.abs(gap) < 0.05) {
-        $("trendGapLab").textContent = "On plan"; $("trendGap").textContent = "0.0 kg";
+        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir);
       } else {
         $("trendGapLab").textContent = gap > 0 ? "Behind plan" : "Ahead of plan";
-        $("trendGap").textContent = (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg";
+        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir);
       }
       if (Math.abs(off) < 0.05) {
-        $("trendTargetLab").textContent = "On target"; $("trendTarget").textContent = "0.0 kg";
+        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir);
       } else {
         $("trendTargetLab").textContent = off > 0 ? "Short of target" : "Past target";
-        $("trendTarget").textContent = (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg";
+        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir);
       }
     } else {
-      $("trendCardVal").textContent = "\u2013";
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
-      ["trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { $(id).textContent = "\u2013"; });
+      ["trendCardVal", "trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { stat(id, "\u2013", null, null); });
     }
     // average net intake per logged day; training-only days are skipped
     var ixf = index().food, fdays = Object.keys(ixf), trainedKcal = 0, netSum = 0;
@@ -989,16 +1052,16 @@ button{user-select:none;-webkit-user-select:none}
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
-      $("projVal").textContent = proj.toFixed(1) + " kg";
-      $("projKcal").textContent = avgKcal + " kcal";
-      $("projDef").textContent = (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal";
-      $("projRate").textContent = (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk";
+      stat("projVal", proj.toFixed(1) + " kg", proj, gdir);
+      stat("projKcal", avgKcal + " kcal", avgKcal, gdir);
+      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", def, -gdir);
+      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir);
     } else {
-      $("projVal").textContent = "\u2013";
-      ["projKcal", "projDef", "projRate"].forEach(function (id) { $(id).textContent = "\u2013"; });
+      ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
     }
     $("maint").value = S.maintenance;
 
+    flushStats();
     renderHistory();
     renderFood();
     renderTraining();
@@ -2158,6 +2221,7 @@ button{user-select:none;-webkit-user-select:none}
     $("notices").hidden = (t === "chart");
     if (t === "chart") renderChart(dayAvgs());
     if (t === "weight") growBar();
+    flushStats();                              // glows held back while hidden
     $("scroll").scrollTop = 0;
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
