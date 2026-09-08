@@ -31,7 +31,7 @@ try {
   --line:#e4e4e9; --line-2:#d1d1d6;
   --accent:#0b8f84; --accent-ink:#07655d; --accent-soft:#e2f1ef; --accent-dim:#0a5f57;
   --trend:#c0562a; --neutral-series:#8a94a1; --kcal:#5f7a9e;
-  --macro-p:#3d7ea6; --macro-c:#c98a2e; --macro-f:#a65d7e;
+  --macro-p:#c8971a; --macro-c:#3d7ea6; --macro-f:#b3453c;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --fx-good:#2563c9; --fx-good-rgb:37,99,201; --fx-bad:#c0392f; --fx-bad-rgb:192,57,47;
@@ -47,7 +47,7 @@ try {
     --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
     --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-    --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
+    --macro-p:#e3bd5a; --macro-c:#6fa8d6; --macro-f:#e08b82;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
     --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -61,7 +61,7 @@ try {
   --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
   --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-  --macro-p:#6fa8d6; --macro-c:#e0b25f; --macro-f:#d68fb0;
+  --macro-p:#e3bd5a; --macro-c:#6fa8d6; --macro-f:#e08b82;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
   --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -1078,7 +1078,9 @@ button{user-select:none;-webkit-user-select:none}
       var kgwk = -def * 7 / KCAL_PER_KG;
       stat("projVal", proj.toFixed(1) + " kg", proj, gdir);
       stat("projKcal", avgKcal + " kcal", avgKcal, gdir);
-      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", def, -gdir);
+      // shown as a balance against maintenance, so a 450 deficit reads "\u2212450":
+      // track the printed sign, or the arrow disagrees with its own number
+      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir);
       stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir);
     } else {
       ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
@@ -1526,20 +1528,36 @@ button{user-select:none;-webkit-user-select:none}
 
     // y domain across every series drawn
     var vals = days.map(function (d) { return d.w; });
-    // goal posts widen the axis only in the All window
+    // goal posts widen the axis only in the All window; the ideal and trend
+    // lines are projections and get clipped rather than widening anything
     if (!winFrom) vals = vals.concat([G.target, G.start]);
-    if (reg) vals.push(reg.b + reg.m * 0, reg.b + reg.m * span);
-    var lo = Math.min.apply(null, vals) - 0.8, hi = Math.max.apply(null, vals) + 0.8;
+    /* Gridlines land on whole kilos counted off the target, so in the All
+       window the bottom line is the target and each line above it is one kilo
+       more, up to the start weight. A reading outside that band pushes the
+       nearest end out by whole kilos too. A wide goal would crowd the labels,
+       so the step opens up to the next round figure when it has to. */
+    var plotH = H - mT - mB, maxT = Math.max(3, Math.floor(plotH / 22));
+    var dLo = Math.min.apply(null, vals), dHi = Math.max.apply(null, vals);
+    var STEPS = [1, 2, 5, 10, 20, 50], kStep = 1, lo, hi;
+    for (var si = 0; si < STEPS.length; si++) {
+      kStep = STEPS[si];
+      lo = G.target + Math.floor((dLo - G.target) / kStep) * kStep;
+      hi = G.target + Math.ceil((dHi - G.target) / kStep) * kStep;
+      if ((hi - lo) / kStep + 1 <= maxT) break;
+    }
+    if (hi - lo < kStep) hi = lo + kStep;     // one flat reading still needs a band
     var X = function (dx) { return mL + (dx / span) * (W - mL - mR); };
-    var Y = function (w) { return mT + (hi - w) / (hi - lo) * (H - mT - mB); };
+    var Y = function (w) { return mT + (hi - w) / (hi - lo) * plotH; };
 
     var svg = ['<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Weight against ideal pace and current trend">'];
+    svg.push('<defs><clipPath id="plotClip"><rect x="' + mL + '" y="' + mT +
+      '" width="' + (W - mL - mR) + '" height="' + plotH + '"/></clipPath></defs>');
     // grid + y labels
-    var ticks = 8;
+    var ticks = Math.round((hi - lo) / kStep);
     for (var i = 0; i <= ticks; i++) {
-      var wv = lo + (hi - lo) * i / ticks, y = Y(wv);
+      var wv = Math.round((lo + i * kStep) * 10) / 10, y = Y(wv);
       svg.push('<line x1="' + mL + '" y1="' + y.toFixed(1) + '" x2="' + (W - mR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line)" stroke-width="1"/>');
-      svg.push('<text x="' + (mL - 6) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' + wv.toFixed(1) + '</text>');
+      svg.push('<text x="' + (mL - 6) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' + (wv % 1 === 0 ? wv : wv.toFixed(1)) + '</text>');
     }
     // x labels; the first and last sit on the plot edges, so they anchor inwards
     var lblCount = W < 360 ? 3 : 5;
@@ -1582,12 +1600,12 @@ button{user-select:none;-webkit-user-select:none}
     // ideal
     if (SERIES.ideal) {
       svg.push('<line x1="' + X(gx0).toFixed(1) + '" y1="' + Y(G.start).toFixed(1) + '" x2="' + X(gx1).toFixed(1) + '" y2="' + Y(G.target).toFixed(1) +
-        '" stroke="var(--neutral-series)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>');
+        '" stroke="var(--neutral-series)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" clip-path="url(#plotClip)"/>');
     }
     // trend
     if (reg && SERIES.trend) {
       svg.push('<line x1="' + X(0) + '" y1="' + Y(reg.b).toFixed(1) + '" x2="' + X(span) + '" y2="' + Y(reg.b + reg.m * span).toFixed(1) +
-        '" stroke="var(--trend)" stroke-width="2" stroke-dasharray="2 3" stroke-linecap="round"/>');
+        '" stroke="var(--trend)" stroke-width="2" stroke-dasharray="2 3" stroke-linecap="round" clip-path="url(#plotClip)"/>');
     }
     // dots + line; chartPts is built even with the line off, for hover
     chartPts = days.map(function (d) { return { x: X(dayDiff(start, d.date)), y: Y(d.w), date: d.date, w: d.w, n: d.n }; });
