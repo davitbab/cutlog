@@ -1577,23 +1577,24 @@ button{user-select:none;-webkit-user-select:none}
         var h = (b.k / kMax) * (kBase - kTop);
         if (h < 0.7) return;
         var x = (X(b.dx) - bw / 2).toFixed(1);
-        // stack protein/carbs/fat by their share of that day's macro calories;
-        // falls back to a flat bar if a day has calories but no macros logged
+        // split by each macro's share of that day's macro calories, stacked
+        // protein / carbs / fat from the bottom up; a day with calories but no
+        // macros logged falls back to one flat bar in the calorie colour
         var pk = pKByDay[b.date] || 0, ck = cKByDay[b.date] || 0, fk = fKByDay[b.date] || 0;
         var mtot = pk + ck + fk;
         if (mtot <= 0) {
           svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
-            '" rx="1.5" fill="var(--macro-p)" opacity="0.22"/>');
+            '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
           return;
         }
-        var segs = [["fat", fk, "var(--macro-f)"], ["carbs", ck, "var(--macro-c)"], ["protein", pk, "var(--macro-p)"]];
+        var segs = [[pk, "var(--macro-p)"], [ck, "var(--macro-c)"], [fk, "var(--macro-f)"]];
         var y = kBase;
         segs.forEach(function (s) {
-          var sh = (s[1] / mtot) * h;
+          var sh = (s[0] / mtot) * h;
           if (sh < 0.4) return;
           y -= sh;
           svg.push('<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + sh.toFixed(1) +
-            '" fill="' + s[2] + '" opacity="0.4"/>');
+            '" fill="' + s[1] + '" opacity="0.4"/>');
         });
       });
     }
