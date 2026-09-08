@@ -31,7 +31,7 @@ try {
   --line:#e4e4e9; --line-2:#d1d1d6;
   --accent:#0b8f84; --accent-ink:#07655d; --accent-soft:#e2f1ef; --accent-dim:#0a5f57;
   --trend:#c0562a; --neutral-series:#8a94a1; --kcal:#5f7a9e;
-  --macro-p:#c8971a; --macro-c:#3d7ea6; --macro-f:#b3453c;
+  --macro-p:#3d7ea6; --macro-c:#cc8a20; --macro-f:#b3453c;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --fx-good:#2563c9; --fx-good-rgb:37,99,201; --fx-bad:#c0392f; --fx-bad-rgb:192,57,47;
@@ -47,7 +47,7 @@ try {
     --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
     --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-    --macro-p:#e3bd5a; --macro-c:#6fa8d6; --macro-f:#e08b82;
+    --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
     --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -61,7 +61,7 @@ try {
   --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
   --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-  --macro-p:#e3bd5a; --macro-c:#6fa8d6; --macro-f:#e08b82;
+  --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
   --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -1579,12 +1579,12 @@ button{user-select:none;-webkit-user-select:none}
         var x = (X(b.dx) - bw / 2).toFixed(1);
         // split by each macro's share of that day's macro calories, stacked
         // protein / carbs / fat from the bottom up; a day with calories but no
-        // macros logged falls back to one flat bar in the calorie colour
+        // macros logged falls back to one flat grey bar, its split unknown
         var pk = pKByDay[b.date] || 0, ck = cKByDay[b.date] || 0, fk = fKByDay[b.date] || 0;
         var mtot = pk + ck + fk;
         if (mtot <= 0) {
           svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
-            '" rx="1.5" fill="var(--kcal)" opacity="0.22"/>');
+            '" rx="1.5" fill="var(--neutral-series)" opacity="0.26"/>');
           return;
         }
         var segs = [[pk, "var(--macro-p)"], [ck, "var(--macro-c)"], [fk, "var(--macro-f)"]];
