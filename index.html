@@ -149,11 +149,11 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
 
 /* Live stats: a number that moved pulses for 3.4s -- blue when it moved the
-   good way, red when it did not -- and keeps a tiny arrow for which way it
-   went. Every tracked number carries the arrow's slot whether or not it has an
-   arrow, so one appearing never shifts the column. */
+   good way, red when it did not -- and keeps a small arrow in front for which
+   way it went. The arrow outlives the glow and the session. Its slot is always
+   there, arrow or not, so one appearing never nudges the number sideways. */
 .arw{
-  display:inline-block;width:1.2em;margin-left:1px;text-align:center;
+  display:inline-block;width:1.05em;margin-right:2px;text-align:center;
   font-size:.58em;line-height:1;vertical-align:.16em;font-style:normal;opacity:0;
 }
 .arw.on{opacity:.72}
@@ -479,7 +479,7 @@ button{user-select:none;-webkit-user-select:none}
         <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
         <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
         <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
-        <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal<i class="arw"></i></td></tr>
+        <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
       </table>
     </div>
     <div class="card">
@@ -937,22 +937,45 @@ button{user-select:none;-webkit-user-select:none}
      stat() writes the number and remembers it. dir is the good direction,
      +1 up or -1 down, or null for a reference row that only needs the arrow
      slot. Change is judged on the rendered text, so sub-decimal drift and
-     plain re-renders (folds, deletes) stay quiet. */
-  var PREV = {}, pulseT = {};
+     plain re-renders (folds, deletes) stay quiet.
+
+     Arrows are kept across launches; the values behind them are not. A number
+     is only ever compared with what it read earlier in the same session, so
+     opening the app on a later day cannot glow at calendar drift. */
+  var PREV = {}, pulseT = {}, marksDirty = false;
+  (function () {
+    var m;
+    try { m = JSON.parse(sget("cut-marks") || "{}"); } catch (e) { m = {}; }
+    Object.keys(m).forEach(function (id) {
+      PREV[id] = { t: null, v: null, a: m[id].a, c: m[id].c, due: false };
+    });
+  })();
+  function clearMarks() { PREV = {}; marksDirty = true; }
+  function saveMarks() {
+    var m = {};
+    Object.keys(PREV).forEach(function (id) {
+      if (PREV[id].a) m[id] = { a: PREV[id].a, c: PREV[id].c };
+    });
+    sset("cut-marks", JSON.stringify(m));
+    marksDirty = false;
+  }
   function stat(id, txt, v, dir) {
     var el = $(id), p = PREV[id], a = p ? p.a : 0, c = p ? p.c : "", hit = false;
     if (dir === null) v = null;
     if (!p || p.t !== txt) {
-      if (p && v !== null && p.v !== null) {
+      if (v === null) { a = 0; c = ""; }            // no number to point at
+      else if (p && p.v !== null) {
         var gain = dir * (v - p.v);
         c = gain > 1e-9 ? "good" : gain < -1e-9 ? "bad" : "";
         a = v > p.v ? 1 : v < p.v ? -1 : 0;
         hit = a !== 0 || c !== "";
-      } else { a = 0; c = ""; }
+      }
+      // else: first value this session -- keep the restored arrow, take a baseline
     }
+    if (p && (p.a !== a || p.c !== c)) marksDirty = true;
     PREV[id] = { t: txt, v: v, a: a, c: c, due: (p && p.due) || hit };
-    el.innerHTML = txt + '<i class="arw' + (a ? " on " + c : "") + '">' +
-      (a > 0 ? "&#9650;" : a < 0 ? "&#9660;" : "") + "</i>";
+    el.innerHTML = '<i class="arw' + (a ? " on " + c : "") + '">' +
+      (a > 0 ? "&#9650;" : a < 0 ? "&#9660;" : "") + "</i>" + txt;
   }
   /* Run once per render, after every stat is written: one layout read, and a
      number that moved on a hidden page waits to glow until that page is up. */
@@ -968,6 +991,7 @@ button{user-select:none;-webkit-user-select:none}
       clearTimeout(pulseT[id]);
       pulseT[id] = setTimeout(function () { el.classList.remove("pulse", "good", "bad"); }, 3400);
     });
+    if (marksDirty) saveMarks();
   }
 
   function render() {
@@ -2665,6 +2689,7 @@ button{user-select:none;-webkit-user-select:none}
     S.entries.forEach(function (e) { if (!e.id) e.id = uid(); if (!e.time) e.time = "08:00"; e.weight = +e.weight; });
     S.foods.forEach(function (f) { if (!f.id) f.id = uid(); });
     S.workouts.forEach(function (w) { if (!w.id) w.id = uid(); w.calories = Math.round(+w.calories) || 0; });
+    clearMarks();
     save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render(); fillGoalForm();
     var pl = function (n, one, many) { return n + " " + (n === 1 ? one : many); };
     msgEl.textContent = "Loaded " + pl(S.entries.length, "weight entry", "weight entries") + ", " +
@@ -2769,6 +2794,7 @@ button{user-select:none;-webkit-user-select:none}
     // tombstone everything first, or the next sync pulls it back
     allRecords().forEach(function (r) { if (S.deleted.indexOf(r.id) < 0) S.deleted.push(r.id); });
     S.entries = []; S.foods = []; S.workouts = []; S.cache = {};
+    clearMarks();
     save(); resetWeightForm(); resetFoodForm(); resetTrainForm(); render();
   });
 
