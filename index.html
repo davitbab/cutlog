@@ -137,10 +137,20 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 @keyframes barGrow{from{width:0}}
 .progress-thumb{
   position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
-  width:23px;height:23px;border-radius:50%;
+  width:27px;height:27px;border-radius:50%;
   background:var(--accent);border:1px solid var(--surface);
   box-shadow:0 0 8px 2px var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8.5px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--on-accent);
 }
+/* Before the first weigh-in there is no reading to carry, so it stays a plain
+   dot rather than an empty ring. */
+.progress-thumb:empty{width:23px;height:23px}
+
+/* Time, not weight: how much of the goal window has gone. Two pixels, so it
+   reads as a rule under the dates rather than a second bar to weigh up. */
+.timebar{height:2px;border-radius:999px;background:var(--line-2);margin-top:7px}
+.timebar i{display:block;height:100%;width:0;border-radius:999px;background:var(--neutral-series);transition:width .3s ease}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
@@ -254,7 +264,60 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .grid2 > *,.grid4 > *{min-width:0}
 .mb{margin-bottom:11px}
 
+/* Type-ahead over the foods already on file. It floats over the card instead
+   of pushing the button down, so nothing moves under your thumb as you type. */
+.ac{position:relative}
+.sug{
+  position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:6;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
+  box-shadow:var(--shadow);max-height:164px;overflow:hidden;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.sug .s{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
+  background:none;border:0;border-radius:0;border-bottom:1px solid var(--line);
+  padding:10px 11px;font:inherit;font-size:14px;color:var(--ink);
+}
+.sug .s:last-child{border-bottom:0}
+.sug .s.on,.sug .s:active{background:var(--surface-2)}
+.sug .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug .kc{flex:0 0 auto;font-size:11.5px;color:var(--muted)}
+
 /* Chip: our text plus a pencil, with the real input on top at zero opacity. */
+/* Card head: what the card is on the left, when it applies to on the right,
+   sharing the line the title had to itself before. */
+.cardhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px}
+.cardhead .lab{margin-bottom:0}
+
+/* The date up there is a label rather than a field: small text and a pencil,
+   with the real date input invisible on top of it. The negative margin keeps
+   its tap target a finger wide without making the head any taller. */
+.dtiny{
+  position:relative;display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;
+  font-size:11.5px;color:var(--muted);cursor:pointer;padding:7px 3px;margin:-7px -3px;
+}
+.dtiny .pen{font-style:normal;font-size:12px;line-height:1}
+.dtiny:active,.dtiny:focus-within{color:var(--accent-ink)}
+.dtiny input{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  opacity:0;border:0;padding:0;margin:0;background:transparent;cursor:pointer;
+}
+
+/* What you ate and how much of it on one line, two thirds to the name and one
+   third to the amount. Grid, not flex: a flex basis of zero is floored by the
+   item's own padding, so the padded chip and the padded name field each took
+   their border box back off the top and the ratio was applied to what was
+   left -- which came out differently on the two cards, since one name field
+   is a bare input and the other is wrapped for the suggestion list. A grid
+   column is the same width whatever sits in it. */
+.namerow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px;align-items:stretch}
+.namerow .ac,.namerow > input,.namerow .minif{min-width:0}
+.namerow .ac{display:flex}
+/* the number takes whatever the unit does not: "kcal" and "g" are given the
+   same slot, so the digits line up between the two cards as well */
+.namerow .minif input{width:52px;flex:1 1 auto;min-width:0}
+.namerow .minif i{flex:0 0 auto;min-width:24px}
+
 .whenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .dchip,.minif{
   position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;
@@ -420,9 +483,10 @@ button{user-select:none;-webkit-user-select:none}
   <section id="p-weight">
     <div class="pagename num">Weight</div>
     <header id="appHeader">
-      <div class="sub"><span id="daysLeft" class="num"></span> days left &middot; <span id="goalDates"></span>
+      <div class="sub"><span id="goalLine"></span>
         <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
           style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
+      <div class="timebar" aria-hidden="true"><i id="timeFill"></i></div>
       <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
     </header>
     <div class="progress-card" id="progressCard">
@@ -430,7 +494,7 @@ button{user-select:none;-webkit-user-select:none}
         <span id="pStart">&ndash;</span>
         <span id="pTarget">&ndash;</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb"></span></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb num" id="pNow"></span></div></div>
       <div class="progress-row">
         <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
         <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
@@ -447,8 +511,8 @@ button{user-select:none;-webkit-user-select:none}
       </table>
     </div>
     <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
-        <span class="lab" id="wFormTitle" style="margin-bottom:0">Add weight</span>
+      <div class="cardhead">
+        <span class="lab" id="wFormTitle">Add weight</span>
         <div style="display:flex;gap:6px">
         <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
         <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
@@ -499,18 +563,26 @@ button{user-select:none;-webkit-user-select:none}
 
     <div id="cal-food">
     <div class="card">
-      <span class="lab" id="fFormTitle">Log food</span>
-      <div class="whenrow mb">
-        <span class="dchip"><span id="fDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="fDate" aria-label="Date"></span>
+      <div class="cardhead">
+        <span class="lab" id="fFormTitle">Log food</span>
+        <span class="dtiny"><span id="fDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="fDate" aria-label="Date"></span>
+      </div>
+      <div class="namerow mb">
+        <div class="ac">
+          <input type="text" id="fName" placeholder="2 eggs, or 250 g shawarma" autocomplete="off" aria-label="What did you eat" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fSug">
+          <div class="sug" id="fSug" role="listbox" aria-label="Foods you have logged before" hidden></div>
+        </div>
         <span class="minif"><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="250" aria-label="Grams, optional"><i>g</i></span>
       </div>
-      <input type="text" id="fName" class="mb" placeholder="2 eggs, or an apple, or 250 g shawarma" autocomplete="off" aria-label="What did you eat">
       <div class="btnrow">
         <button class="btn" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
       <div class="tiny" id="fStatus" style="margin-top:8px"></div>
 
+      <div style="margin-top:8px">
+        <button type="button" id="fManualToggle" class="linklike">Know the numbers? Enter them per 100 g</button>
+      </div>
       <div id="fManual" hidden>
         <div style="height:12px"></div>
         <label class="f" id="fManualLab">Per 100 g</label>
@@ -530,12 +602,14 @@ button{user-select:none;-webkit-user-select:none}
 
     <div id="cal-train" hidden>
     <div class="card">
-      <span class="lab" id="tFormTitle">Log training</span>
-      <div class="whenrow mb">
-        <span class="dchip"><span id="tDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="tDate" aria-label="Date"></span>
+      <div class="cardhead">
+        <span class="lab" id="tFormTitle">Log training</span>
+        <span class="dtiny"><span id="tDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="tDate" aria-label="Date"></span>
+      </div>
+      <div class="namerow mb">
+        <input type="text" id="tName" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
         <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
-      <input type="text" id="tName" class="mb" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
       <div class="btnrow">
         <button class="btn" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
@@ -672,7 +746,6 @@ button{user-select:none;-webkit-user-select:none}
   "use strict";
 
   var KCAL_PER_KG = 7700;
-  var DEFAULT_GOAL = { start: 92, target: 82, startDate: "", endDate: "2026-10-07" };
   var MS = 86400000;
 
   /* ---------- date helpers: strictly LOCAL time ---------- */
@@ -734,22 +807,30 @@ button{user-select:none;-webkit-user-select:none}
 
   /* The goal is user-editable; everything downstream reads it through here so a
      half-filled or nonsensical setting can never produce a broken chart. */
+  /* Until a goal is saved there is nothing to aim at, and inventing one puts
+     somebody else's weights on a stranger's screen. So `set` is false and both
+     weights are zero, which the weight page and the chart read as "show
+     nothing" rather than drawing a target nobody chose. The dates still hold
+     real values, only to keep the arithmetic finite: the start is the first
+     reading or today, the end twelve weeks on. Neither is shown until there
+     is a goal to show it for. */
   function goal() {
-    var g = S.goal || {};
+    var g = S.goal || {}, set = !!S.goal;
     var startDate = g.startDate;
     if (!startDate) {
       // fall back to the earliest weight entry, then today
       var ds = S.entries.map(function (e) { return e.date; }).sort();
       startDate = ds.length ? ds[0] : iso(new Date());
     }
-    var endDate = g.endDate || DEFAULT_GOAL.endDate;
+    var endDate = g.endDate || iso(new Date(parseD(startDate).getTime() + 84 * MS));
     // an end at or before the start would make the pace infinite
     if (dayDiff(startDate, endDate) < 1) {
       endDate = iso(new Date(parseD(startDate).getTime() + MS));
     }
-    var start = (typeof g.start === "number" && g.start > 0) ? g.start : DEFAULT_GOAL.start;
-    var target = (typeof g.target === "number" && g.target > 0) ? g.target : DEFAULT_GOAL.target;
-    return { start: start, target: target, startDate: startDate, endDate: endDate };
+    // latestWeight() asks us for a fallback, so never ask it for one back
+    var start = (typeof g.start === "number" && g.start > 0) ? g.start : 0;
+    var target = (typeof g.target === "number" && g.target > 0) ? g.target : 0;
+    return { set: set, start: start, target: target, startDate: startDate, endDate: endDate };
   }
   function fmtLong(s) { return parseD(s).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); }
   function fmtShort(s) { return parseD(s).toLocaleDateString(undefined, { day: "numeric", month: "short" }); }
@@ -939,6 +1020,18 @@ button{user-select:none;-webkit-user-select:none}
      slot. Change is judged on the rendered text, so sub-decimal drift and
      plain re-renders (folds, deletes) stay quiet.
 
+     The two marks answer different questions. Colour is the judgement: blue
+     means the goal came closer, red means it moved away, whichever way the
+     digits went. The arrow is the size of whatever the label names -- and on
+     rows printed as a signed balance (a deficit, a rate, a distance from
+     plan) the sign says which way while the digits say how much, so `mag`
+     points the arrow at the size. A deficit deepening from -600 to -900 is
+     an increase in the deficit and reads as one, even though -900 is the
+     smaller number. Crossing zero is the exception: there is no size to
+     compare across a change of identity, but a crossing can only be the good
+     way or the bad, so the plain direction is taken and it agrees with the
+     colour by construction.
+
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
      opening the app on a later day cannot glow at calendar drift. */
@@ -959,7 +1052,7 @@ button{user-select:none;-webkit-user-select:none}
     sset("cut-marks", JSON.stringify(m));
     marksDirty = false;
   }
-  function stat(id, txt, v, dir) {
+  function stat(id, txt, v, dir, mag) {
     var el = $(id), p = PREV[id], a = p ? p.a : 0, c = p ? p.c : "", hit = false;
     if (dir === null) v = null;
     if (!p || p.t !== txt) {
@@ -967,7 +1060,9 @@ button{user-select:none;-webkit-user-select:none}
       else if (p && p.v !== null) {
         var gain = dir * (v - p.v);
         c = gain > 1e-9 ? "good" : gain < -1e-9 ? "bad" : "";
-        a = v > p.v ? 1 : v < p.v ? -1 : 0;
+        var x = v, px = p.v;
+        if (mag && v * p.v >= 0) { x = Math.abs(v); px = Math.abs(p.v); }
+        a = x > px ? 1 : x < px ? -1 : 0;
         hit = a !== 0 || c !== "";
       }
       // else: first value this session -- keep the restored arrow, take a baseline
@@ -993,6 +1088,14 @@ button{user-select:none;-webkit-user-select:none}
     });
     if (marksDirty) saveMarks();
   }
+  /* Switching pages is when you actually look, so that is when the numbers
+     announce themselves: everything on the page that just opened glows once,
+     moved or not. The ones that did move keep their own blue or red; the rest
+     glow plain. Stats on the other pages stay due and glow when you get there. */
+  function glowAll() {
+    Object.keys(PREV).forEach(function (id) { PREV[id].due = true; });
+    flushStats();
+  }
 
   function render() {
     touch();
@@ -1000,10 +1103,16 @@ button{user-select:none;-webkit-user-select:none}
     var days = dayAvgs();
     var today = iso(new Date());
     var G = goal();
-    $("daysLeft").textContent = Math.max(0, dayDiff(today, G.endDate));
-    $("goalDates").textContent = fmtShort(G.startDate) + " to " + fmtLong(G.endDate);
-    $("projLab").textContent = "Projected \u00b7 " + fmtShort(G.endDate);
-    $("trendCardLab").textContent = "Trend \u00b7 " + fmtShort(G.endDate);
+    $("goalLine").innerHTML = G.set
+      ? '<span class="num">' + Math.max(0, dayDiff(today, G.endDate)) + "</span> days left \u00b7 " +
+        fmtShort(G.startDate) + " to " + fmtLong(G.endDate)
+      : "No goal set yet";
+    // the hairline under those dates: how much of the window has gone
+    var goneD = dayDiff(G.startDate, today), spanD = dayDiff(G.startDate, G.endDate);
+    $("timeFill").style.width =
+      (G.set && spanD > 0 ? Math.max(0, Math.min(100, (goneD / spanD) * 100)) : 0).toFixed(1) + "%";
+    $("projLab").textContent = "Projected" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
+    $("trendCardLab").textContent = "Trend" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
 
     // the pill appears only when saving is blocked
     $("storeWrap").hidden = persistent;
@@ -1020,18 +1129,20 @@ button{user-select:none;-webkit-user-select:none}
     // day average, not the last reading: evening weight entries are heavier
     var latestDay = days.length ? days[days.length - 1] : null;
     var cur = latestDay ? latestDay.w : null;
-    $("pStart").textContent = G.start.toFixed(1) + " kg";
-    $("pTarget").textContent = G.target.toFixed(1) + " kg";
+    $("pStart").textContent = G.set ? G.start.toFixed(1) + " kg" : "\u2013";
+    $("pTarget").textContent = G.set ? G.target.toFixed(1) + " kg" : "\u2013";
     // good direction: down while cutting, up while gaining
     var gdir = G.target < G.start ? -1 : 1;
     var lost = cur !== null ? G.start - cur : null, togo = (cur !== null ? cur : G.start) - G.target;
-    stat("tLost", lost !== null ? lost.toFixed(1) + "<small>kg</small>" : "\u2013", lost, -gdir);
-    stat("tGo", togo.toFixed(1) + "<small>kg</small>", togo, gdir);
+    stat("tLost", G.set && lost !== null ? lost.toFixed(1) + "<small>kg</small>" : "\u2013", lost, G.set ? -gdir : null);
+    stat("tGo", G.set ? togo.toFixed(1) + "<small>kg</small>" : "\u2013", togo, G.set ? gdir : null);
     // fill share of the bar that's behind us: lost / (lost + to go)
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
     var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
     $("progressFill").style.width = fillPct.toFixed(1) + "%";
+    // the reading rides on the thumb: the bar says where you are, not only how far
+    $("pNow").textContent = G.set && cur !== null ? cur.toFixed(1) : "";
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
@@ -1041,24 +1152,24 @@ button{user-select:none;-webkit-user-select:none}
 
     /* Trend card: carry that same pace forward to the target date, so the rate
        shown and the weight shown are one calculation rather than two. */
-    if (perDay !== null) {
+    if (G.set && perDay !== null) {
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
       stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir);
-      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir);
+      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, true);
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       if (Math.abs(gap) < 0.05) {
-        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir);
+        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir, true);
       } else {
         $("trendGapLab").textContent = gap > 0 ? "Behind plan" : "Ahead of plan";
-        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir);
+        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir, true);
       }
       if (Math.abs(off) < 0.05) {
-        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir);
+        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir, true);
       } else {
         $("trendTargetLab").textContent = off > 0 ? "Short of target" : "Past target";
-        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir);
+        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir, true);
       }
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
@@ -1072,16 +1183,16 @@ button{user-select:none;-webkit-user-select:none}
     });
     var avgKcal = fdays.length ? Math.round(netSum / fdays.length) : null;
     var dleft = Math.max(0, dayDiff(today, G.endDate));
-    if (avgKcal !== null && cur !== null) {
+    if (G.set && avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
       stat("projVal", proj.toFixed(1) + " kg", proj, gdir);
       stat("projKcal", avgKcal + " kcal", avgKcal, gdir);
       // shown as a balance against maintenance, so a 450 deficit reads "\u2212450":
-      // track the printed sign, or the arrow disagrees with its own number
-      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir);
-      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir);
+      // track the printed sign, or the colour disagrees with its own number
+      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, true);
+      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, true);
     } else {
       ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
     }
@@ -1282,6 +1393,13 @@ button{user-select:none;-webkit-user-select:none}
     $("tPreview").innerHTML = "About <b style='color:var(--ink)'>" + kcal + " kcal</b> at " + wt.toFixed(1) + " kg for " + mins + " min.";
     return kcal;
   }
+  /* The food card's own way in to the numbers, shaped like the training
+     estimator so the two cards behave alike as well as look alike. */
+  $("fManualToggle").addEventListener("click", function () {
+    var show = $("fManual").hidden;
+    showManual(show);
+    if (show) { $("fManualLab").textContent = "Per 100 g"; updatePreview(); }
+  });
   $("tEstToggle").addEventListener("click", function () {
     var show = $("tManual").hidden;
     $("tManual").hidden = !show;
@@ -1494,7 +1612,7 @@ button{user-select:none;-webkit-user-select:none}
       // axis spans the goal window plus anything logged outside it
       start = G.startDate;
       if (dayDiff(days[0].date, start) > 0) start = days[0].date;
-      end = G.endDate;
+      end = G.set ? G.endDate : days[days.length - 1].date;
       var lastLogged = days[days.length - 1].date;
       if (dayDiff(end, lastLogged) > 0) end = lastLogged;
     }
@@ -1530,7 +1648,7 @@ button{user-select:none;-webkit-user-select:none}
     var vals = days.map(function (d) { return d.w; });
     // goal posts widen the axis only in the All window; the ideal and trend
     // lines are projections and get clipped rather than widening anything
-    if (!winFrom) vals = vals.concat([G.target, G.start]);
+    if (G.set && !winFrom) vals = vals.concat([G.target, G.start]);
     /* Gridlines land on whole kilos counted off the target, so in the All
        window the bottom line is the target and each line above it is one kilo
        more, up to the start weight. A reading outside that band pushes the
@@ -1539,10 +1657,12 @@ button{user-select:none;-webkit-user-select:none}
     var plotH = H - mT - mB, maxT = Math.max(3, Math.floor(plotH / 22));
     var dLo = Math.min.apply(null, vals), dHi = Math.max.apply(null, vals);
     var STEPS = [1, 2, 5, 10, 20, 50], kStep = 1, lo, hi;
+    // without a goal to count off, the lowest whole kilo on show does the job
+    var anchor = G.set ? G.target : Math.floor(dLo);
     for (var si = 0; si < STEPS.length; si++) {
       kStep = STEPS[si];
-      lo = G.target + Math.floor((dLo - G.target) / kStep) * kStep;
-      hi = G.target + Math.ceil((dHi - G.target) / kStep) * kStep;
+      lo = anchor + Math.floor((dLo - anchor) / kStep) * kStep;
+      hi = anchor + Math.ceil((dHi - anchor) / kStep) * kStep;
       if ((hi - lo) / kStep + 1 <= maxT) break;
     }
     if (hi - lo < kStep) hi = lo + kStep;     // one flat reading still needs a band
@@ -1599,7 +1719,7 @@ button{user-select:none;-webkit-user-select:none}
       });
     }
     // ideal
-    if (SERIES.ideal) {
+    if (G.set && SERIES.ideal) {
       svg.push('<line x1="' + X(gx0).toFixed(1) + '" y1="' + Y(G.start).toFixed(1) + '" x2="' + X(gx1).toFixed(1) + '" y2="' + Y(G.target).toFixed(1) +
         '" stroke="var(--neutral-series)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" clip-path="url(#plotClip)"/>');
     }
@@ -1704,7 +1824,11 @@ button{user-select:none;-webkit-user-select:none}
     $("wDate").value = iso(now);
     $("wTime").value = hhmm(now);
     var asc = sortedAsc();
-    setW(asc.length ? asc[asc.length - 1].weight : 90);
+    // your last reading, else the weight you started the goal at; with neither
+    // on file there is nothing to offer, so the field waits empty
+    if (asc.length) setW(asc[asc.length - 1].weight);
+    else if (S.goal) setW(goal().start);
+    else $("wKg").value = "";
   }
   document.querySelectorAll("[data-wstep]").forEach(function (b) {
     b.addEventListener("click", function () { stepW(parseFloat(b.dataset.wstep)); });
@@ -1789,9 +1913,9 @@ button{user-select:none;-webkit-user-select:none}
     $("fName").value = ""; $("fGrams").value = "";
     $("fKcal").value = ""; $("fP").value = ""; $("fC").value = ""; $("fF").value = "";
     showManual(false);
-    setStatus(claudeAvailable()
-      ? "Type what you ate: \u201c2 eggs\u201d, \u201c250 g shawarma\u201d. Grams optional."
-      : "Type what you ate. Grams optional \u2014 looked up on Open Food Facts.");
+    $("fManualLab").textContent = "Per 100 g";
+    hideSug();
+    setStatus("What you ate, and how much of it. Grams optional.");
     updatePreview();
   }
   ["fGrams", "fKcal"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
@@ -2077,6 +2201,138 @@ button{user-select:none;-webkit-user-select:none}
     }).catch(function () { return null; });
   }
 
+  /* ---------- foods you have logged before ----------
+     Every food you add leaves its per-100 g figures in S.cache, keyed on the
+     name with the count and plurals stripped, so "1 egg" teaches "3 eggs".
+     That memo is read before any lookup, rides along in the export and syncs
+     between devices. What it could not do was help when the same food got
+     spelled a little differently the second time round -- hence this list,
+     which puts the choice in your hands rather than guessing at it. */
+
+  var sugList = [], sugAt = -1;
+
+  /* One row per remembered food, newest first, labelled with the words you
+     typed minus the count. A key whose log rows are all gone -- deleted, or
+     synced in from another device -- still shows, under the key itself. */
+  function remembered() {
+    var out = [], seen = {};
+    var fs = S.foods.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    for (var i = fs.length - 1; i >= 0; i--) {
+      var k = foodKey(fs[i].name), w = wordSet(k);
+      if (seen[w] || !S.cache[k] || !plausible(S.cache[k])) continue;
+      seen[w] = 1;
+      out.push({ key: k, label: parseQty(fs[i].name).rest || k, v: S.cache[k] });
+    }
+    Object.keys(S.cache).forEach(function (k) {
+      var w = wordSet(k);
+      if (!seen[w] && plausible(S.cache[k])) { seen[w] = 1; out.push({ key: k, label: k, v: S.cache[k] }); }
+    });
+    return out;
+  }
+
+  /* Every word typed so far has to start a word in the name, so "chick b"
+     finds "chicken breast" and "beef" does not. Matching the opening word
+     ranks above matching a later one, and your own figures win ties. */
+  function sugMatch(text) {
+    var all = remembered();
+    var words = norm(parseQty(text).rest).split(" ").filter(function (w) { return w; });
+    if (!words.length) return all.slice(0, 5);
+    var out = [];
+    all.forEach(function (r) {
+      var hay = " " + singular(norm(r.label)) + " " + r.key + " ", score = 0;
+      for (var i = 0; i < words.length; i++) {
+        var w = singular(words[i]), at = hay.indexOf(w);
+        while (at > 0 && hay.charAt(at - 1) !== " ") at = hay.indexOf(w, at + 1);
+        if (at < 0) return;                       // a word you typed is nowhere in it
+        score += at === 1 ? 2 : 1;
+      }
+      r.score = score + (r.v.src === "manual" ? 0.5 : 0);
+      out.push(r);
+    });
+    // sort is stable, so an equal score keeps the newest-first order above
+    out.sort(function (a, b) { return b.score - a.score; });
+    return out.slice(0, 5);
+  }
+
+  function hideSug() {
+    sugList = []; sugAt = -1;
+    $("fSug").hidden = true;
+    $("fName").setAttribute("aria-expanded", "false");
+  }
+  function drawSug() {
+    $("fSug").innerHTML = sugList.map(function (r, i) {
+      return '<button class="s' + (i === sugAt ? " on" : "") + '" role="option" aria-selected="' +
+        (i === sugAt) + '" data-pick="' + esc(r.key) + '"><span class="nm">' + esc(r.label) +
+        '</span><span class="kc">' + Math.round(r.v.calories) + " kcal" +
+        (r.v.src === "manual" ? " \u00b7 yours" : "") + "</span></button>";
+    }).join("");
+    $("fSug").hidden = false;
+    $("fName").setAttribute("aria-expanded", "true");
+  }
+  function openSug() {
+    if (editFood) { hideSug(); return; }          // editing works on the numbers, not the name
+    sugList = sugMatch($("fName").value);
+    sugAt = -1;
+    if (sugList.length) drawSug(); else hideSug();
+  }
+  /* Keep whatever count or weight is already typed and swap in the food, so
+     picking "eggs" with "3 " in the field leaves "3 eggs". */
+  function pickSug(key) {
+    var r = null;
+    sugList.forEach(function (x) { if (x.key === key) r = x; });
+    if (!r) return;
+    var el = $("fName"), q = parseQty(el.value);
+    el.value = (q.grams > 0 ? q.grams + " g " : q.n !== 1 ? q.n + " " : "") + r.label;
+    hideSug();
+  }
+
+  $("fName").addEventListener("input", openSug);
+  $("fName").addEventListener("focus", openSug);
+  $("fName").addEventListener("blur", function () { setTimeout(hideSug, 120); });
+  // holding focus through the tap means the blur above never races the pick
+  $("fSug").addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+  $("fSug").addEventListener("click", function (ev) {
+    var p = ev.target.closest("[data-pick]");
+    if (p) pickSug(p.dataset.pick);
+  });
+  $("fName").addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") { hideSug(); return; }
+    if (!sugList.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      var d = ev.key === "ArrowDown" ? 1 : -1;
+      sugAt = sugAt < 0 ? (d > 0 ? 0 : sugList.length - 1)
+                        : (sugAt + d + sugList.length) % sugList.length;
+      drawSug(); ev.preventDefault();
+    } else if (ev.key === "Enter") {
+      // return takes the highlighted row, or just gets the list out of the way
+      if (sugAt >= 0) pickSug(sugList[sugAt].key); else hideSug();
+      ev.preventDefault();
+    }
+  });
+
+  /* The same words in another order are the same dinner, so "shawarma chicken"
+     finds what you saved as "chicken shawarma". Anything looser is left to the
+     list above: a near miss is a guess, and a guess belongs in front of you
+     rather than in your calorie total. */
+  function wordSet(key) {
+    var w = key.split(" ").filter(function (x) { return x; });
+    return w.length ? w.sort().join(" ") : "";
+  }
+  function mine(v) { return v && v.src === "manual" ? "your own figures" : "the figures on file"; }
+  function recallFood(nm) {
+    var key = foodKey(nm);
+    if (S.cache[key] && plausible(S.cache[key])) return { key: key, v: S.cache[key] };
+    var want = wordSet(key);
+    if (!want) return null;
+    var best = null;
+    Object.keys(S.cache).forEach(function (k) {
+      if (wordSet(k) !== want || !plausible(S.cache[k])) return;
+      // a figure you typed beats one a lookup guessed
+      if (!best || (S.cache[k].src === "manual" && best.v.src !== "manual")) best = { key: k, v: S.cache[k] };
+    });
+    return best;
+  }
+
   function commit(per100, name, grams, date, unitGrams) {
     var wasEdit = !!editFood;
     grams = Math.round(grams * 10) / 10;
@@ -2090,13 +2346,17 @@ button{user-select:none;-webkit-user-select:none}
     if (editFood) S.foods = S.foods.map(function (x) { return x.id === editFood ? rec : x; });
     else S.foods.push(rec);
     // keyed with the count stripped, so "1 egg" teaches "3 eggs"
-    var key = foodKey(name);
-    var prev = S.cache[key] || {};
-    S.cache[key] = {
-      calories: per100.calories, protein: per100.protein, carbs: per100.carbs, fat: per100.fat,
-      src: per100.src || "manual",
-      unitGrams: (unitGrams > 0 ? Math.round(unitGrams * 10) / 10 : prev.unitGrams)
-    };
+    var key = foodKey(name), prev = S.cache[key] || {}, src = per100.src || "manual";
+    // figures you entered yourself outrank a lookup for the same food later on,
+    // though the weight of one of them is still worth learning from it. A
+    // manual figure outside the plausible range was a slip and gets replaced.
+    if (!(prev.src === "manual" && plausible(prev)) || src === "manual") {
+      S.cache[key] = {
+        calories: per100.calories, protein: per100.protein, carbs: per100.carbs, fat: per100.fat,
+        src: src,
+        unitGrams: (unitGrams > 0 ? Math.round(unitGrams * 10) / 10 : prev.unitGrams)
+      };
+    } else if (unitGrams > 0) prev.unitGrams = Math.round(unitGrams * 10) / 10;
     save(); resetFoodForm(); render();
     // the manual block collapses on reset: confirm on the button left
     flash("fSave", wasEdit ? "Updated \u2713" : "Added \u2713");
@@ -2142,12 +2402,14 @@ button{user-select:none;-webkit-user-select:none}
     };
 
     // 1. known already: reuse macros, and the unit weight if needed
-    var hit = S.cache[key];
-    if (hit && plausible(hit)) {
+    var rec = recallFood(nm), hit = rec && rec.v;
+    if (hit) {
       var g1 = haveG ? typed : (hit.unitGrams > 0 ? hit.unitGrams * q.n : null);
       if (g1 > 0) {
         var r0 = commit(hit, nm, g1, date, hit.unitGrams);
-        setStatus("Added " + r0.calories + " kcal" + howMuch(g1) + " \u2014 remembered from last time.", "ok");
+        setStatus("Added " + r0.calories + " kcal" + howMuch(g1) + " \u2014 " +
+          (rec.key === key ? "remembered from last time."
+                           : mine(hit) + " for \u201c" + esc(rec.key) + "\u201d."), "ok");
         return;
       }
     }
@@ -2160,9 +2422,10 @@ button{user-select:none;-webkit-user-select:none}
       if (c) {
         var g = haveG ? typed : (c.unit > 0 ? c.unit * q.n : 0);
         if (g > 0) {
-          var r = commit(c.per100, nm, g, date, haveG ? 0 : c.unit);
-          setStatus("Added " + r.calories + " kcal" + howMuch(g) + " \u2014 " + c.how +
-            " Edit it if that is not close enough.", "ok");
+          var r = commit(hit || c.per100, nm, g, date, haveG ? 0 : c.unit);
+          setStatus("Added " + r.calories + " kcal" + howMuch(g) + " \u2014 " +
+            (hit ? mine(hit) + " for \u201c" + esc(rec.key) + "\u201d, once the weight was known."
+                 : c.how + " Edit it if that is not close enough."), "ok");
           return;
         }
         // 2. macros found, weight not: ask for the grams only
@@ -2174,7 +2437,17 @@ button{user-select:none;-webkit-user-select:none}
           "\u201c" + esc(nm) + "\u201d \u2014 type the grams and add it.", "bad");
         return;
       }
-      // 3. nothing anywhere: say which lookups came up empty
+      // 3. nothing anywhere. If your own figures are on file, the only thing
+      //    still missing is the weight, so fill them in and ask for that.
+      if (hit) {
+        showManual(true);
+        $("fKcal").value = hit.calories; $("fP").value = hit.protein;
+        $("fC").value = hit.carbs; $("fF").value = hit.fat;
+        updatePreview();
+        setStatus("No lookup found it, but " + mine(hit) + " for \u201c" + esc(rec.key) +
+          "\u201d are filled in below \u2014 all that is missing is how much you ate.", "bad");
+        return;
+      }
       var why = [];
       if (!claudeAvailable()) why.push("this page cannot reach Claude");
       // a refusal is indistinguishable from offline, so cover both
@@ -2264,7 +2537,7 @@ button{user-select:none;-webkit-user-select:none}
     $("notices").hidden = (t === "chart");
     if (t === "chart") renderChart(dayAvgs());
     if (t === "weight") growBar();
-    flushStats();                              // glows held back while hidden
+    glowAll();                                 // the page you just opened lights up
     $("scroll").scrollTop = 0;
   }
   document.querySelector(".tabs").addEventListener("click", function (e) {
@@ -2405,10 +2678,10 @@ button{user-select:none;-webkit-user-select:none}
   /* ---- goal ---- */
   function fillGoalForm() {
     var G = goal();
-    $("gStart").value = G.start;
-    $("gTarget").value = G.target;
-    $("gFrom").value = G.startDate;
-    $("gTo").value = G.endDate;
+    $("gStart").value = G.set ? G.start : "";
+    $("gTarget").value = G.set ? G.target : "";
+    $("gFrom").value = G.startDate;          // the first reading, or today
+    $("gTo").value = G.set ? G.endDate : "";
     syncChips();
   }
   $("goalEdit").addEventListener("click", function () {
