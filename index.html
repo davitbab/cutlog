@@ -117,6 +117,9 @@ header{padding:6px 0 6px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:600;text-wrap:balance}
 .sub{color:var(--ink-2);font-size:13.5px}
+/* how long is left on one side, the window it counts down on the other */
+.goalrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.goalwhen{display:inline-flex;align-items:center;min-width:0}
 
 /* storage pill */
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 9px;border-radius:999px;
@@ -156,7 +159,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 @keyframes barGrow{from{width:0}}
 .progress-now{
   position:absolute;right:0;bottom:calc(100% + 4px);transform:translateX(50%);
-  font-size:13px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink);white-space:nowrap;
+  font-size:13px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink-2);white-space:nowrap;
 }
 .progress-now::after{
   content:"";position:absolute;left:50%;top:calc(100% + 1px);transform:translateX(-50%);
@@ -176,14 +179,13 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   box-shadow:0 0 4px 1.5px var(--accent);
 }
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
-.progress-stat{display:flex;flex-direction:column}
-.progress-stat.right{align-items:flex-end}
+.progress-stat{display:flex;align-items:baseline;gap:8px}
 .progress-stat .val{font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2)}
 /* These two read as a pair with the start and target above the bar, which
    carry no mark of their own, so the arrow would be the odd one out. The
    glow still lands: its colour goes on the number itself. */
 #tLost .arw,#tGo .arw{display:none}
-.progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
+.progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
 /* Live stats: a number that moved pulses for 3.4s -- blue when it moved the
    good way, red when it did not -- and keeps a small arrow in front for which
@@ -534,9 +536,12 @@ button{user-select:none;-webkit-user-select:none}
   <section id="p-weight">
     <div class="pagename num">Weight</div>
     <header id="appHeader">
-      <div class="sub"><span id="goalLine"></span>
+      <div class="sub goalrow">
+        <span id="goalLeft"></span>
+        <span class="goalwhen"><span id="goalDates"></span>
         <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
-          style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
+          style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></span>
+      </div>
       <div class="timebar" id="timeBar" aria-hidden="true"><i id="timeFill"></i></div>
       <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
     </header>
@@ -547,8 +552,8 @@ button{user-select:none;-webkit-user-select:none}
       </div>
       <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-now num" id="pNow"></span></div></div>
       <div class="progress-row">
-        <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
-        <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
+        <div class="progress-stat"><span class="lab">Lost</span><span class="val num" id="tLost">&ndash;</span></div>
+        <div class="progress-stat"><span class="lab">To go</span><span class="val num" id="tGo">&ndash;</span></div>
       </div>
     </div>
     <div class="card" id="trendCard">
@@ -1159,10 +1164,11 @@ button{user-select:none;-webkit-user-select:none}
     var days = dayAvgs();
     var today = iso(new Date());
     var G = goal();
-    $("goalLine").innerHTML = G.set
-      ? '<span class="num">' + Math.max(0, dayDiff(today, G.endDate)) + "</span> days left \u00b7 " +
-        fmtShort(G.startDate) + " to " + fmtLong(G.endDate)
+    $("goalLeft").innerHTML = G.set
+      ? '<span class="num">' + Math.max(0, dayDiff(today, G.endDate)) + "</span> days left"
       : "No goal set yet";
+    // empty without a goal, and the pencil stays put as the way to set one
+    $("goalDates").textContent = G.set ? fmtShort(G.startDate) + " to " + fmtLong(G.endDate) : "";
     // the hairline under those dates: how much of the window has gone
     var goneD = dayDiff(G.startDate, today), spanD = dayDiff(G.startDate, G.endDate);
     $("timeFill").style.width =
@@ -1196,10 +1202,11 @@ button{user-select:none;-webkit-user-select:none}
     // fill share of the bar that's behind us: lost / (lost + to go)
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
-    var fillPct = totalSpan > 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
+    var fillPct = totalSpan !== 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
     $("progressFill").style.width = fillPct.toFixed(1) + "%";
-    // the reading rides on the thumb: the bar says where you are, not only how far
-    $("pNow").textContent = G.set && cur !== null ? cur.toFixed(1) : "";
+    // the share of the way there, which is what the bar is drawing anyway --
+    // the weight itself is already on the card below, at ten times the size
+    $("pNow").textContent = G.set && cur !== null ? Math.round(fillPct) + "%" : "";
   /* Pace over the whole period: start weight against now, spread over every
      calendar day since the start date. Signed: negative is loss. */
     var sinceStart = dayDiff(G.startDate, today);
