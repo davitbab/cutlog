@@ -38,6 +38,8 @@ try {
   --on-accent:#ffffff;
   --shadow:0 2px 6px rgba(18,22,28,.10);
   --name-shadow:0 1px 2px rgba(18,22,28,.20);
+  --groove:inset 0 2px 4px rgba(18,22,28,.20), inset 0 -1px 0 rgba(255,255,255,.55);
+  --raised:0 1px 2px rgba(18,22,28,.30), inset 0 1px 0 rgba(255,255,255,.28);
   --r:10px; --r-lg:14px;
 
 }
@@ -55,6 +57,8 @@ try {
     --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 2px 8px rgba(0,0,0,.45);
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
+  --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
+  --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
   }
 }
 :root[data-theme="dark"] {
@@ -70,6 +74,8 @@ try {
   --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 2px 8px rgba(0,0,0,.45);
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
+  --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
+  --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
 }
 
 *{box-sizing:border-box}
@@ -127,7 +133,9 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
 .progress-card{margin:8px 0 16px}
-.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:29px}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:20px}
+/* the unit is not the number: same on all four figures around the bar */
+.progress-endpoints small,.progress-stat .val small{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:3px}
 /* An outlined rail with the fill riding inside it, rather than a bar with a
    handle on the end: the padding is what makes the fill read as sitting in a
    track instead of being the track. The reading floats above on a pointer,
@@ -135,10 +143,11 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .progress-track{
   height:28px;border-radius:999px;position:relative;overflow:visible;padding:4px;
   background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid var(--accent-dim);
+  box-shadow:var(--groove);
 }
 .progress-fill{
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
-  background:var(--accent);box-shadow:0 0 10px -1px var(--accent);
+  background:var(--accent);box-shadow:var(--raised), 0 0 9px -2px var(--accent);
 }
 /* Plays every time the weight page becomes active (see growBar()), not just
    once at boot -- the keyframe only defines "from", so it animates up to
@@ -146,12 +155,12 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
 @keyframes barGrow{from{width:0}}
 .progress-now{
-  position:absolute;right:0;bottom:calc(100% + 9px);transform:translateX(50%);
-  font-size:14px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink);white-space:nowrap;
+  position:absolute;right:0;bottom:calc(100% + 4px);transform:translateX(50%);
+  font-size:13px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink);white-space:nowrap;
 }
 .progress-now::after{
-  content:"";position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);
-  border:4px solid transparent;border-top-color:var(--accent);
+  content:"";position:absolute;left:50%;top:calc(100% + 1px);transform:translateX(-50%);
+  border:3.5px solid transparent;border-top-color:var(--accent);
 }
 .progress-now:empty{display:none}
 
@@ -405,6 +414,9 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .btn:disabled{opacity:.45;cursor:default}
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
 .btn.sec:active{background:var(--field)}
+/* Only shows when there is something to say; empty, it takes no room. */
+.formstatus{margin-top:8px}
+.formstatus:empty{margin-top:0}
 .linklike{background:none;border:0;padding:0;font-size:12.5px;color:var(--accent-ink);font-weight:600;text-decoration:underline;cursor:pointer}
 .btnrow{display:flex;gap:8px}
 
@@ -617,7 +629,7 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
-      <div class="tiny" id="fStatus" style="margin-top:8px"></div>
+      <div class="tiny formstatus" id="fStatus"></div>
 
       <div style="margin-top:8px">
         <button type="button" id="fManualToggle" class="linklike">Know the numbers? Enter them per 100 g</button>
@@ -653,7 +665,7 @@ button{user-select:none;-webkit-user-select:none}
         <button class="btn" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
-      <div class="tiny" id="tStatus" style="margin-top:8px"></div>
+      <div class="tiny formstatus" id="tStatus"></div>
 
       <div style="margin-top:8px">
         <button type="button" id="tEstToggle" class="linklike">Don't know the calories? Estimate from minutes</button>
@@ -1174,13 +1186,13 @@ button{user-select:none;-webkit-user-select:none}
     // day average, not the last reading: evening weight entries are heavier
     var latestDay = days.length ? days[days.length - 1] : null;
     var cur = latestDay ? latestDay.w : null;
-    $("pStart").textContent = G.set ? G.start.toFixed(1) + " kg" : "\u2013";
-    $("pTarget").textContent = G.set ? G.target.toFixed(1) + " kg" : "\u2013";
+    $("pStart").innerHTML = G.set ? G.start.toFixed(1) + "<small>kg</small>" : "\u2013";
+    $("pTarget").innerHTML = G.set ? G.target.toFixed(1) + "<small>kg</small>" : "\u2013";
     // good direction: down while cutting, up while gaining
     var gdir = G.target < G.start ? -1 : 1;
     var lost = cur !== null ? G.start - cur : null, togo = (cur !== null ? cur : G.start) - G.target;
-    stat("tLost", G.set && lost !== null ? lost.toFixed(1) + " kg" : "\u2013", lost, G.set ? -gdir : null);
-    stat("tGo", G.set ? togo.toFixed(1) + " kg" : "\u2013", togo, G.set ? gdir : null);
+    stat("tLost", G.set && lost !== null ? lost.toFixed(1) + "<small>kg</small>" : "\u2013", lost, G.set ? -gdir : null);
+    stat("tGo", G.set ? togo.toFixed(1) + "<small>kg</small>" : "\u2013", togo, G.set ? gdir : null);
     // fill share of the bar that's behind us: lost / (lost + to go)
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
@@ -1472,7 +1484,7 @@ button{user-select:none;-webkit-user-select:none}
     $("tName").value = ""; $("tKcal").value = "";
     $("tManual").hidden = true; $("tMinutes").value = "";
     if (!$("tDate").value) $("tDate").value = iso(new Date());
-    tStatus("What you did, and roughly what it burned.");
+    tStatus("");
   }
   function trainRow(w) {
     return '<div class="row' + (editWork === w.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(w.name) + '</div>' +
@@ -2042,7 +2054,7 @@ button{user-select:none;-webkit-user-select:none}
     showManual(false);
     $("fManualLab").textContent = "Per 100 g";
     hideSug();
-    setStatus("What you ate, and how much of it. Grams optional.");
+    setStatus("");
     updatePreview();
   }
   ["fGrams", "fKcal"].forEach(function (id) { $(id).addEventListener("input", updatePreview); });
@@ -2649,12 +2661,15 @@ button{user-select:none;-webkit-user-select:none}
   /* Replays the bar's grow-from-zero animation. The keyframe only defines
      "from", so re-adding the class after a reflow animates up to whatever
      width is already set -- no need to know the target here. */
+  var barT = 0;
   function growBar() {
     var fill = $("progressFill");
+    // the clear left over from the last visit would cut this run short
+    clearTimeout(barT);
     fill.classList.remove("boot");
     void fill.offsetWidth;
     fill.classList.add("boot");
-    setTimeout(function () { fill.classList.remove("boot"); }, 1000);
+    barT = setTimeout(function () { fill.classList.remove("boot"); }, 1000);
   }
   /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
