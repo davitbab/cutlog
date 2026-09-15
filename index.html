@@ -1073,21 +1073,21 @@ button{user-select:none;-webkit-user-select:none}
      slot. Change is judged on the rendered text, so sub-decimal drift and
      plain re-renders (folds, deletes) stay quiet.
 
-     The two marks answer different questions. Colour is the judgement: blue
-     means the goal came closer, red means it moved away, whichever way the
-     digits went. The arrow is the size of whatever the label names -- and on
-     rows printed as a signed balance (a deficit, a rate, a distance from
-     plan) the sign says which way while the digits say how much, so `mag`
-     points the arrow at the size. A deficit deepening from -600 to -900 is
-     an increase in the deficit and reads as one, even though -900 is the
-     smaller number. Crossing zero is the exception: there is no size to
-     compare across a change of identity, but a crossing can only be the good
-     way or the bad, so the plain direction is taken and it agrees with the
-     colour by construction. A row may hand in both marks ready-made where
-     the move is a poor proxy for what the row is about -- the Projected rows
-     read the logged day against the usual day, and the Trend rows the last
-     week on the scale against the pace since the start, rather than either
-     average's own drift.
+     The two marks answer different questions, and each answers only its own.
+     The arrow is the fact: which way the printed number went, read straight
+     off the digits and nothing else. A weekly rate falling from -0.55 to
+     -0.88 is a number going down and points down, even though it is a bigger
+     loss. Colour is the judgement laid over that fact: blue when the move
+     took the goal closer, red when it pushed it away -- so on that same rate
+     the down arrow is blue while cutting, and would be red while gaining.
+     Down is good on every row of both cards while cutting, up while gaining,
+     because every one of those numbers falls when the week goes well.
+
+     A row may hand its colour in ready-made where its own movement is a poor
+     proxy for the judgement: the Projected rows read the logged day against
+     the usual day, and the two Trend rates the last week on the scale against
+     the pace since the start, rather than either average's own drift. The
+     arrow is never handed in -- it always reports the digits.
 
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
@@ -1109,7 +1109,7 @@ button{user-select:none;-webkit-user-select:none}
     sset("cut-marks", JSON.stringify(m));
     marksDirty = false;
   }
-  function stat(id, txt, v, dir, mag, mark) {
+  function stat(id, txt, v, dir, judge) {
     var el = $(id), p = PREV[id], a = p ? p.a : 0, c = p ? p.c : "", hit = false;
     if (dir === null) v = null;
     if (!p || p.t !== txt) {
@@ -1117,10 +1117,8 @@ button{user-select:none;-webkit-user-select:none}
       else if (p && p.v !== null) {
         var gain = dir * (v - p.v);
         c = gain > 1e-9 ? "good" : gain < -1e-9 ? "bad" : "";
-        var x = v, px = p.v;
-        if (mag && v * p.v >= 0) { x = Math.abs(v); px = Math.abs(p.v); }
-        a = x > px ? 1 : x < px ? -1 : 0;
-        if (mark) { c = mark.c; a = mark.a; }
+        if (judge !== undefined && judge !== null) c = judge;
+        a = v > p.v ? 1 : v < p.v ? -1 : 0;
         hit = a !== 0 || c !== "";
       }
       // else: first value this session -- keep the restored arrow, take a baseline
@@ -1214,8 +1212,8 @@ button{user-select:none;-webkit-user-select:none}
     /* The trend rows move on the scale, not the plate, so they take the same
        kind of reading in weight: the pace across the last week of weigh-ins
        against the pace since the start. Moving toward the goal faster than
-       usual is blue, and each arrow follows what its own row names. */
-    var paceMark = null, finishMark = null;
+       usual is blue. The two figures are one calculation, so they share it. */
+    var paceCol = null;
     if (perDay !== null && days.length > 1) {
       var lastD = days[days.length - 1], refD = days[0];
       for (var q = days.length - 2; q >= 0; q--) {
@@ -1225,9 +1223,7 @@ button{user-select:none;-webkit-user-select:none}
       var recSpan = dayDiff(refD.date, lastD.date);
       if (recSpan > 0) {
         var edge = gdir * ((lastD.w - refD.w) / recSpan - perDay);
-        var quick = edge > 1e-9 ? 1 : edge < -1e-9 ? -1 : 0;
-        paceMark = { c: quick > 0 ? "good" : quick < 0 ? "bad" : "", a: quick };
-        finishMark = { c: paceMark.c, a: gdir * quick };   // faster down, lighter at the end
+        paceCol = edge > 1e-9 ? "good" : edge < -1e-9 ? "bad" : "";
       }
     }
 
@@ -1237,20 +1233,20 @@ button{user-select:none;-webkit-user-select:none}
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
-      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir, false, finishMark);
-      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, true, paceMark);
+      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir, paceCol);
+      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, paceCol);
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       if (Math.abs(gap) < 0.05) {
-        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir, true);
+        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir);
       } else {
         $("trendGapLab").textContent = gap > 0 ? "Behind plan" : "Ahead of plan";
-        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir, true);
+        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir);
       }
       if (Math.abs(off) < 0.05) {
-        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir, true);
+        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir);
       } else {
         $("trendTargetLab").textContent = off > 0 ? "Short of target" : "Past target";
-        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir, true);
+        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir);
       }
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
@@ -1267,32 +1263,28 @@ button{user-select:none;-webkit-user-select:none}
     /* Every row on the Projected card is one meal seen four ways, and no
        average moves far enough on a single day for its own drift to read as
        anything. So all four take their marks from the day being logged against
-       the mean of the other logged days. `over` is whether more was eaten than
-       usual and sets each arrow; `away` is whether that pushed the goal off,
-       which is the opposite question while gaining, and sets the colour. */
-    var focusD = $("fDate").value || today;
-    var eatMark = null, defMark = null, wMark = null, rateMark = null;
+       the mean of the other logged days, and all four share the verdict. A day
+       over the usual lifts every one of the four numbers -- more intake, a
+       shallower balance, more weight at the goal date, a slacker rate -- so
+       the arrows agree without being told; only whether that is progress
+       needs saying, and while gaining it is. */
+    var focusD = $("fDate").value || today, eatCol = null;
     if (ixf[focusD] && fdays.length > 1) {
       var dayNet = ixf[focusD].calories - trainTotal(focusD);
       var usual = (netSum - dayNet) / (fdays.length - 1);
-      var over = dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0;
-      var away = gdir < 0 ? over : -over;
-      var col = away > 0 ? "bad" : away < 0 ? "good" : "";
-      eatMark = { c: col, a: over };        // the intake itself
-      defMark = { c: col, a: -over };       // the balance it eats into
-      wMark = { c: col, a: over };          // more eaten, more weight at the goal date
-      rateMark = { c: col, a: -away };      // size of the weekly move it buys
+      var away = (dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0) * (gdir < 0 ? 1 : -1);
+      eatCol = away > 0 ? "bad" : away < 0 ? "good" : "";
     }
     if (G.set && avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
-      stat("projVal", proj.toFixed(1) + " kg", proj, gdir, false, wMark);
-      stat("projKcal", avgKcal + " kcal", avgKcal, gdir, false, eatMark);
+      stat("projVal", proj.toFixed(1) + " kg", proj, gdir, eatCol);
+      stat("projKcal", avgKcal + " kcal", avgKcal, gdir, eatCol);
       // shown as a balance against maintenance, so a 450 deficit reads "\u2212450":
       // track the printed sign, or the colour disagrees with its own number
-      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, true, defMark);
-      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, true, rateMark);
+      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, eatCol);
+      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, eatCol);
     } else {
       ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
     }
