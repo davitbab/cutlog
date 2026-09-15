@@ -45,7 +45,7 @@ try {
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground:#1c1c1e; --surface:#2c2c2e; --surface-2:#3a3a3c;
+    --ground:#000000; --surface:#1c1c1e; --surface-2:#2c2c2e;
     --ink:#f2f2f7; --ink-2:#c7c7cc; --muted:#9a9aa0;
     --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
@@ -62,7 +62,7 @@ try {
   }
 }
 :root[data-theme="dark"] {
-  --ground:#1c1c1e; --surface:#2c2c2e; --surface-2:#3a3a3c;
+  --ground:#000000; --surface:#1c1c1e; --surface-2:#2c2c2e;
   --ink:#f2f2f7; --ink-2:#c7c7cc; --muted:#9a9aa0;
   --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
@@ -198,6 +198,10 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .arw.on{opacity:.72}
 .arw.good{color:var(--fx-good)}
 .arw.bad{color:var(--fx-bad)}
+/* the color itself is permanent once a stat moves; only the glow (.pulse)
+   is temporary -- previously both faded together, losing the color too */
+.good,table.fx.kv td.good{color:var(--fx-good)}
+.bad,table.fx.kv td.bad{color:var(--fx-bad)}
 .pulse{animation:statPulse .85s ease-in-out 4;--fx-rgb:122,122,130}
 /* the kv table sets td colour at higher specificity, hence the second selector */
 .pulse.good,table.fx.kv td.pulse.good{color:var(--fx-good);--fx-rgb:var(--fx-good-rgb)}
@@ -1180,7 +1184,7 @@ button{user-select:none;-webkit-user-select:none}
       el.classList.add("pulse");
       if (p.c) el.classList.add(p.c);
       clearTimeout(pulseT[id]);
-      pulseT[id] = setTimeout(function () { el.classList.remove("pulse", "good", "bad"); }, 3400);
+      pulseT[id] = setTimeout(function () { el.classList.remove("pulse"); }, 3400);
     });
     if (marksDirty) saveMarks();
   }
