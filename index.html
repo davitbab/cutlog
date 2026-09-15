@@ -478,7 +478,13 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 #zoomReset:active{background:var(--surface-2)}
 /* inline would add descender space under the svg, which overflow-x:auto
    then reports as a vertical scroll */
-#chartHost svg{display:block}
+#chartHost svg{display:block;position:relative;z-index:1}
+/* Every touch lands here rather than on the drawing. A pinch redraws the
+   chart many times, and a finger whose target has been removed keeps sending
+   its moves to the detached node -- so the gesture died after one frame on a
+   phone, where there is no wheel to fall back on. This layer is never
+   replaced, so the fingers always have something attached to talk to. */
+#chartHit{position:absolute;left:0;top:0;right:0;bottom:0;z-index:2}
 #tip{
   /* anchored, or its static position lands under the svg and the host reports
      a phantom scroll the height of the tooltip */
@@ -702,7 +708,7 @@ button{user-select:none;-webkit-user-select:none}
       <button type="button" data-range="week" aria-pressed="false">Week</button>
     </div>
     <div class="chartcard">
-      <div id="chartHost"><div id="tip"></div><button id="zoomReset" hidden>Reset zoom</button></div>
+      <div id="chartHost"><div id="chartHit"></div><div id="tip"></div><button id="zoomReset" hidden>Reset zoom</button></div>
       <div class="legend" id="legend"></div>
     </div>
   </section>
@@ -1680,6 +1686,7 @@ button{user-select:none;-webkit-user-select:none}
     }
     host.addEventListener("touchstart", function (ev) {
       if (ev.touches.length > 1) { pinching = true; hideTip(); }
+      else pinching = false;                    // one finger: whatever came before is over
       if (ev.touches.length === 2 && CHART.on) {
         pz = { d: gap(ev), m: frac(mid(ev)), k: ZOOM.k, cx: ZOOM.cx };
         return;
@@ -1710,6 +1717,57 @@ button{user-select:none;-webkit-user-select:none}
     $("zoomReset").addEventListener("click", function () { zoomOff(); zoomDraw(); });
   })();
 
+  /* A band of whole steps counted off an anchor, the step opening to the next
+     round figure when the labels would crowd. The tenths are for a zoomed-in
+     axis, where a whole kilo can be the entire window. */
+  function snapBand(dLo, dHi, anchor, maxT) {
+    var STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50], k = 1, lo, hi;
+    for (var i = 0; i < STEPS.length; i++) {
+      k = STEPS[i];
+      lo = anchor + Math.floor((dLo - anchor) / k) * k;
+      hi = anchor + Math.ceil((dHi - anchor) / k) * k;
+      if ((hi - lo) / k + 1 <= maxT) break;
+    }
+    if (hi - lo < k) hi = lo + k;               // one flat reading still needs a band
+    return { lo: lo, hi: hi, kStep: k };
+  }
+
+  /* Set by each render, read by the one readout handler below: hoisted out of
+     renderChart so the handler can be bound once, to the layer that persists. */
+  var CV = null;
+  (function () {
+    var hit = $("chartHit"), tip = $("tip");
+    function move(ev) {
+      if (pinching || (ev.touches && ev.touches.length > 1)) { hideTip(); return; }
+      if (!CV || !CV.pts.length) return;
+      var r = hit.getBoundingClientRect();
+      var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+      var best = null, bd = 1e9;
+      CV.pts.forEach(function (p) { var d = Math.abs(p.x - cx); if (d < bd) { bd = d; best = p; } });
+      if (!best || bd > 40) { hideTip(); return; }
+      var c = document.querySelector("#chartHost #cross");
+      if (c) { c.setAttribute("x1", best.x); c.setAttribute("x2", best.x); c.setAttribute("opacity", 1); }
+      var idealAt = CV.idealAtX(dayDiff(CV.start, best.date));
+      tip.innerHTML = '<div style="font-weight:600;margin-bottom:2px">' + esc(fmtD(best.date)) + '</div>' +
+        '<div class="tr"><span class="tk">Weight</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
+        (CV.k[best.date] ? '<div class="tr"><span class="tk">Calories</span><span class="num">' + CV.k[best.date] + ' kcal</span></div>' : '') +
+        ((CV.p[best.date] || CV.c[best.date] || CV.f[best.date]) ?
+          '<div class="tr"><span class="tk">P / C / F</span><span class="num">' +
+          Math.round((CV.p[best.date] || 0) / 4) + ' / ' + Math.round((CV.c[best.date] || 0) / 4) + ' / ' + Math.round((CV.f[best.date] || 0) / 9) + ' g</span></div>' : '') +
+        (trainTotal(best.date) ? '<div class="tr"><span class="tk">Training</span><span class="num">\u2212' + trainTotal(best.date) + ' kcal</span></div>' : '') +
+        '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
+        '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>';
+      tip.style.opacity = 1;
+      var tw = tip.offsetWidth || 130;
+      tip.style.left = Math.max(2, Math.min(CV.W - tw - 2, best.x - tw / 2)) + "px";
+      tip.style.top = Math.max(2, best.y - tip.offsetHeight - 12) + "px";
+    }
+    hit.addEventListener("mousemove", move);
+    hit.addEventListener("touchstart", move, { passive: true });
+    hit.addEventListener("touchmove", move, { passive: true });
+    hit.addEventListener("mouseleave", hideTip);
+  })();
+
   var chartPts = [];
   function renderChart(allDays) {
     var host = $("chartHost");
@@ -1726,6 +1784,7 @@ button{user-select:none;-webkit-user-select:none}
     // drop any previous placeholder: this redraws on every visit
     var stale = host.querySelector(".empty"); if (stale) stale.remove();
     if (!allDays.length || !days.length) {
+      CV = null; hideTip();
       host.insertAdjacentHTML("afterbegin", '<div class="empty" id="chartEmpty">' +
         (allDays.length ? "Nothing logged in this window." : "Log a weight entry to draw the chart.") + '</div>');
       return;
@@ -1812,16 +1871,22 @@ button{user-select:none;-webkit-user-select:none}
        so the step opens up to the next round figure when it has to. */
     var plotH = H - mT - mB, maxT = Math.max(3, Math.floor(plotH / 22));
     var dLo = Math.min.apply(null, vals), dHi = Math.max.apply(null, vals);
-    var STEPS = [1, 2, 5, 10, 20, 50], kStep = 1, lo, hi;
     // without a goal to count off, the lowest whole kilo on show does the job
     var anchor = G.set ? G.target : Math.floor(dLo);
-    for (var si = 0; si < STEPS.length; si++) {
-      kStep = STEPS[si];
-      lo = anchor + Math.floor((dLo - anchor) / kStep) * kStep;
-      hi = anchor + Math.ceil((dHi - anchor) / kStep) * kStep;
-      if ((hi - lo) / kStep + 1 <= maxT) break;
+    var band = snapBand(dLo, dHi, anchor, maxT);
+    /* Zooming magnifies the picture rather than re-fitting it: the axis gives
+       up the same share of kilos as the x axis gives up of days, so a line
+       keeps the slope it had across the whole span. The share is taken off
+       the unzoomed band, which is why that one is worked out here from
+       everything logged rather than from what is on screen. */
+    if (CHART.on && ZOOM.k > 1.001) {
+      var v0 = allDays.map(function (d) { return d.w; });
+      if (G.set) v0 = v0.concat([G.target, G.start]);
+      var full = snapBand(Math.min.apply(null, v0), Math.max.apply(null, v0), anchor, maxT);
+      var half = (full.hi - full.lo) / ZOOM.k / 2, midW = (dLo + dHi) / 2;
+      band = snapBand(midW - half, midW + half, anchor, maxT);
     }
-    if (hi - lo < kStep) hi = lo + kStep;     // one flat reading still needs a band
+    var lo = band.lo, hi = band.hi, kStep = band.kStep;
     var X = function (dx) { return mL + (dx / span) * (W - mL - mR); };
     var Y = function (w) { return mT + (hi - w) / (hi - lo) * plotH; };
 
@@ -1897,37 +1962,9 @@ button{user-select:none;-webkit-user-select:none}
     svg.push("</svg>");
     host.insertAdjacentHTML("afterbegin", svg.join(""));
 
-    // hover / touch layer
-    var el = host.querySelector("svg");
-    function move(ev) {
-      if (pinching || (ev.touches && ev.touches.length > 1)) { hideTip(); return; }
-      var r = el.getBoundingClientRect();
-      var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
-      var best = null, bd = 1e9;
-      chartPts.forEach(function (p) { var d = Math.abs(p.x - cx); if (d < bd) { bd = d; best = p; } });
-      if (!best || bd > 40) { hideTip(); return; }
-      var c = el.querySelector("#cross");
-      if (c) { c.setAttribute("x1", best.x); c.setAttribute("x2", best.x); c.setAttribute("opacity", 1); }
-      var dx = dayDiff(start, best.date);
-      var idealAt = idealAtX(dx);
-      tip.innerHTML = '<div style="font-weight:600;margin-bottom:2px">' + esc(fmtD(best.date)) + '</div>' +
-        '<div class="tr"><span class="tk">Weight</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
-        (kByDay[best.date] ? '<div class="tr"><span class="tk">Calories</span><span class="num">' + kByDay[best.date] + ' kcal</span></div>' : '') +
-        ((pKByDay[best.date] || cKByDay[best.date] || fKByDay[best.date]) ?
-          '<div class="tr"><span class="tk">P / C / F</span><span class="num">' +
-          Math.round((pKByDay[best.date] || 0) / 4) + ' / ' + Math.round((cKByDay[best.date] || 0) / 4) + ' / ' + Math.round((fKByDay[best.date] || 0) / 9) + ' g</span></div>' : '') +
-        (trainTotal(best.date) ? '<div class="tr"><span class="tk">Training</span><span class="num">\u2212' + trainTotal(best.date) + ' kcal</span></div>' : '') +
-        '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
-        '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>';
-      tip.style.opacity = 1;
-      var tw = tip.offsetWidth || 130;
-      tip.style.left = Math.max(2, Math.min(W - tw - 2, best.x - tw / 2)) + "px";
-      tip.style.top = Math.max(2, best.y - tip.offsetHeight - 12) + "px";
-    }
-    el.addEventListener("mousemove", move);
-    el.addEventListener("touchstart", move, { passive: true });
-    el.addEventListener("touchmove", move, { passive: true });
-    el.addEventListener("mouseleave", hideTip);
+    // what a touch on the layer above needs to know about this drawing
+    CV = { pts: chartPts, start: start, idealAtX: idealAtX, W: W,
+           k: kByDay, p: pKByDay, c: cKByDay, f: fKByDay };
   }
 
   /* ---------- weight form: a kilo wheel and a 100 g wheel ---------- */
