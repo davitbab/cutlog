@@ -1083,7 +1083,11 @@ button{user-select:none;-webkit-user-select:none}
      smaller number. Crossing zero is the exception: there is no size to
      compare across a change of identity, but a crossing can only be the good
      way or the bad, so the plain direction is taken and it agrees with the
-     colour by construction.
+     colour by construction. A row may hand in both marks ready-made where
+     the move is a poor proxy for what the row is about -- the Projected rows
+     read the logged day against the usual day, and the Trend rows the last
+     week on the scale against the pace since the start, rather than either
+     average's own drift.
 
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
@@ -1105,7 +1109,7 @@ button{user-select:none;-webkit-user-select:none}
     sset("cut-marks", JSON.stringify(m));
     marksDirty = false;
   }
-  function stat(id, txt, v, dir, mag) {
+  function stat(id, txt, v, dir, mag, mark) {
     var el = $(id), p = PREV[id], a = p ? p.a : 0, c = p ? p.c : "", hit = false;
     if (dir === null) v = null;
     if (!p || p.t !== txt) {
@@ -1116,6 +1120,7 @@ button{user-select:none;-webkit-user-select:none}
         var x = v, px = p.v;
         if (mag && v * p.v >= 0) { x = Math.abs(v); px = Math.abs(p.v); }
         a = x > px ? 1 : x < px ? -1 : 0;
+        if (mark) { c = mark.c; a = mark.a; }
         hit = a !== 0 || c !== "";
       }
       // else: first value this session -- keep the restored arrow, take a baseline
@@ -1206,14 +1211,34 @@ button{user-select:none;-webkit-user-select:none}
     var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
     var pace = perDay !== null ? perDay * 7 : null;
 
+    /* The trend rows move on the scale, not the plate, so they take the same
+       kind of reading in weight: the pace across the last week of weigh-ins
+       against the pace since the start. Moving toward the goal faster than
+       usual is blue, and each arrow follows what its own row names. */
+    var paceMark = null, finishMark = null;
+    if (perDay !== null && days.length > 1) {
+      var lastD = days[days.length - 1], refD = days[0];
+      for (var q = days.length - 2; q >= 0; q--) {
+        refD = days[q];
+        if (dayDiff(days[q].date, lastD.date) >= 7) break;
+      }
+      var recSpan = dayDiff(refD.date, lastD.date);
+      if (recSpan > 0) {
+        var edge = gdir * ((lastD.w - refD.w) / recSpan - perDay);
+        var quick = edge > 1e-9 ? 1 : edge < -1e-9 ? -1 : 0;
+        paceMark = { c: quick > 0 ? "good" : quick < 0 ? "bad" : "", a: quick };
+        finishMark = { c: paceMark.c, a: gdir * quick };   // faster down, lighter at the end
+      }
+    }
+
     /* Trend card: carry that same pace forward to the target date, so the rate
        shown and the weight shown are one calculation rather than two. */
     if (G.set && perDay !== null) {
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
-      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir);
-      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, true);
+      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir, false, finishMark);
+      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, true, paceMark);
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       if (Math.abs(gap) < 0.05) {
         $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir, true);
@@ -1239,16 +1264,35 @@ button{user-select:none;-webkit-user-select:none}
     });
     var avgKcal = fdays.length ? Math.round(netSum / fdays.length) : null;
     var dleft = Math.max(0, dayDiff(today, G.endDate));
+    /* Every row on the Projected card is one meal seen four ways, and no
+       average moves far enough on a single day for its own drift to read as
+       anything. So all four take their marks from the day being logged against
+       the mean of the other logged days. `over` is whether more was eaten than
+       usual and sets each arrow; `away` is whether that pushed the goal off,
+       which is the opposite question while gaining, and sets the colour. */
+    var focusD = $("fDate").value || today;
+    var eatMark = null, defMark = null, wMark = null, rateMark = null;
+    if (ixf[focusD] && fdays.length > 1) {
+      var dayNet = ixf[focusD].calories - trainTotal(focusD);
+      var usual = (netSum - dayNet) / (fdays.length - 1);
+      var over = dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0;
+      var away = gdir < 0 ? over : -over;
+      var col = away > 0 ? "bad" : away < 0 ? "good" : "";
+      eatMark = { c: col, a: over };        // the intake itself
+      defMark = { c: col, a: -over };       // the balance it eats into
+      wMark = { c: col, a: over };          // more eaten, more weight at the goal date
+      rateMark = { c: col, a: -away };      // size of the weekly move it buys
+    }
     if (G.set && avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
-      stat("projVal", proj.toFixed(1) + " kg", proj, gdir);
-      stat("projKcal", avgKcal + " kcal", avgKcal, gdir);
+      stat("projVal", proj.toFixed(1) + " kg", proj, gdir, false, wMark);
+      stat("projKcal", avgKcal + " kcal", avgKcal, gdir, false, eatMark);
       // shown as a balance against maintenance, so a 450 deficit reads "\u2212450":
       // track the printed sign, or the colour disagrees with its own number
-      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, true);
-      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, true);
+      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, true, defMark);
+      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, true, rateMark);
     } else {
       ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
     }
