@@ -655,7 +655,10 @@ button{user-select:none;-webkit-user-select:none}
         <span class="dtiny"><span id="tDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="tDate" aria-label="Date"></span>
       </div>
       <div class="namerow mb">
-        <input type="text" id="tName" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session">
+        <div class="ac">
+          <input type="text" id="tName" placeholder="Gym, 45 min run, football" autocomplete="off" aria-label="Session" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="tSug">
+          <div class="sug" id="tSug" role="listbox" aria-label="Sessions you have logged before" hidden></div>
+        </div>
         <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
       <div class="btnrow">
@@ -2434,6 +2437,101 @@ button{user-select:none;-webkit-user-select:none}
     } else if (ev.key === "Enter") {
       // return takes the highlighted row, or just gets the list out of the way
       if (sugAt >= 0) pickSug(sugList[sugAt].key); else hideSug();
+      ev.preventDefault();
+    }
+  });
+
+  /* ---------- training suggestions ----------
+     The same list over the sessions you have logged, down to the keys and the
+     blur timing. Training keeps no figures of its own the way food does, so
+     the log is the whole memory: what you burned last time under that name is
+     what it offers, and deleting the last row of a session forgets it with no
+     help from anyone. Counts are part of a session's name -- "45 min run" is
+     what it is called -- so nothing is stripped off the front here. */
+
+  var tSugList = [], tSugAt = -1;
+
+  function remTrain() {
+    var out = [], seen = {};
+    var ws = S.workouts.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    for (var i = ws.length - 1; i >= 0; i--) {
+      var k = norm(ws[i].name);
+      if (!k || seen[k]) continue;
+      seen[k] = 1;
+      out.push({ key: k, label: ws[i].name, kcal: ws[i].calories });
+    }
+    return out;
+  }
+  function tSugMatch(text) {
+    var all = remTrain();
+    var words = norm(text).split(" ").filter(function (w) { return w; });
+    if (!words.length) return all.slice(0, 5);
+    var out = [];
+    all.forEach(function (r) {
+      var hay = " " + singular(norm(r.label)) + " ", score = 0;
+      for (var i = 0; i < words.length; i++) {
+        var w = singular(words[i]), at = hay.indexOf(w);
+        while (at > 0 && hay.charAt(at - 1) !== " ") at = hay.indexOf(w, at + 1);
+        if (at < 0) return;                       // a word you typed is nowhere in it
+        score += at === 1 ? 2 : 1;
+      }
+      r.score = score;
+      out.push(r);
+    });
+    out.sort(function (a, b) { return b.score - a.score; });
+    return out.slice(0, 5);
+  }
+  function hideTSug() {
+    tSugList = []; tSugAt = -1;
+    $("tSug").hidden = true;
+    $("tName").setAttribute("aria-expanded", "false");
+  }
+  function drawTSug() {
+    $("tSug").innerHTML = tSugList.map(function (r, i) {
+      return '<button class="s' + (i === tSugAt ? " on" : "") + '" role="option" aria-selected="' +
+        (i === tSugAt) + '" data-tpick="' + esc(r.key) + '"><span class="nm">' + esc(r.label) +
+        '</span><span class="kc">' + Math.round(r.kcal) + " kcal</span></button>";
+    }).join("");
+    $("tSug").hidden = false;
+    $("tName").setAttribute("aria-expanded", "true");
+  }
+  function openTSug() {
+    if (editWork) { hideTSug(); return; }         // editing works on the numbers, not the name
+    tSugList = tSugMatch($("tName").value);
+    tSugAt = -1;
+    if (tSugList.length) drawTSug(); else hideTSug();
+  }
+  /* The burn comes along with the name, but only into an empty box: a number
+     already typed is the one you meant for today. */
+  function pickTSug(key) {
+    var r = null;
+    tSugList.forEach(function (x) { if (x.key === key) r = x; });
+    if (!r) return;
+    $("tName").value = r.label;
+    if (!String($("tKcal").value).trim()) $("tKcal").value = r.kcal;
+    hideTSug();
+  }
+
+  $("tName").addEventListener("input", openTSug);
+  $("tName").addEventListener("focus", openTSug);
+  $("tName").addEventListener("blur", function () { setTimeout(hideTSug, 120); });
+  // holding focus through the tap means the blur above never races the pick
+  $("tSug").addEventListener("mousedown", function (ev) { ev.preventDefault(); });
+  $("tSug").addEventListener("click", function (ev) {
+    var p = ev.target.closest("[data-tpick]");
+    if (p) pickTSug(p.dataset.tpick);
+  });
+  $("tName").addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") { hideTSug(); return; }
+    if (!tSugList.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      var d = ev.key === "ArrowDown" ? 1 : -1;
+      tSugAt = tSugAt < 0 ? (d > 0 ? 0 : tSugList.length - 1)
+                          : (tSugAt + d + tSugList.length) % tSugList.length;
+      drawTSug(); ev.preventDefault();
+    } else if (ev.key === "Enter") {
+      // return takes the highlighted row, or just gets the list out of the way
+      if (tSugAt >= 0) pickTSug(tSugList[tSugAt].key); else hideTSug();
       ev.preventDefault();
     }
   });
