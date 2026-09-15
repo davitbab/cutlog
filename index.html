@@ -1128,12 +1128,42 @@ button{user-select:none;-webkit-user-select:none}
     el.innerHTML = '<i class="arw' + (a ? " on " + c : "") + '">' +
       (a > 0 ? "&#9650;" : a < 0 ? "&#9660;" : "") + "</i>" + txt;
   }
+  /* Rows that are one calculation seen several ways have to move as one, or
+     rounding freezes one of them while its neighbours go and it is left
+     wearing an older verdict: the weekly rate steps 0.01 kg/wk at a time,
+     which is 11 kcal on the daily deficit beside it. The group takes one
+     reading from the figure behind all of them -- every row rises when that
+     figure rises -- and any one printed line moving re-stamps all of them.
+     The key carries the group's own memory and owns no element of its own. */
+  function statGroup(key, v, dir, judge, rows) {
+    var p = PREV[key], a = p ? p.a : 0, c = p ? p.c : "", hit = false, moved = false;
+    if (dir === null) v = null;
+    rows.forEach(function (r) { if (!PREV[r.id] || PREV[r.id].t !== r.txt) moved = true; });
+    if (moved) {
+      if (v === null) { a = 0; c = ""; }
+      else if (p && p.v !== null) {
+        var gain = dir * (v - p.v);
+        c = gain > 1e-9 ? "good" : gain < -1e-9 ? "bad" : "";
+        if (judge !== undefined && judge !== null) c = judge;
+        a = v > p.v ? 1 : v < p.v ? -1 : 0;
+        hit = a !== 0 || c !== "";
+      }
+    }
+    if (p && (p.a !== a || p.c !== c)) marksDirty = true;
+    PREV[key] = { t: null, v: v, a: a, c: c, due: false };
+    rows.forEach(function (r) {
+      var q = PREV[r.id];
+      PREV[r.id] = { t: r.txt, v: v, a: a, c: c, due: (q && q.due) || hit };
+      $(r.id).innerHTML = '<i class="arw' + (a ? " on " + c : "") + '">' +
+        (a > 0 ? "&#9650;" : a < 0 ? "&#9660;" : "") + "</i>" + r.txt;
+    });
+  }
   /* Run once per render, after every stat is written: one layout read, and a
      number that moved on a hidden page waits to glow until that page is up. */
   function flushStats() {
     Object.keys(PREV).forEach(function (id) {
       var p = PREV[id]; if (!p.due) return;
-      var el = $(id); if (!el.offsetParent) return;
+      var el = $(id); if (!el || !el.offsetParent) return;
       p.due = false;
       el.classList.remove("pulse", "good", "bad");
       void el.offsetWidth;                      // restart one already running
@@ -1233,24 +1263,20 @@ button{user-select:none;-webkit-user-select:none}
       var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
       var plan = plannedWeight(G, today), gap = cur - plan;
-      stat("trendCardVal", tEnd.toFixed(1) + " kg", tEnd, gdir, paceCol);
-      stat("trendPace", (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk", pace, gdir, paceCol);
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
-      if (Math.abs(gap) < 0.05) {
-        $("trendGapLab").textContent = "On plan"; stat("trendGap", "0.0 kg", gap, gdir);
-      } else {
-        $("trendGapLab").textContent = gap > 0 ? "Behind plan" : "Ahead of plan";
-        stat("trendGap", (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg", gap, gdir);
-      }
-      if (Math.abs(off) < 0.05) {
-        $("trendTargetLab").textContent = "On target"; stat("trendTarget", "0.0 kg", off, gdir);
-      } else {
-        $("trendTargetLab").textContent = off > 0 ? "Short of target" : "Past target";
-        stat("trendTarget", (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg", off, gdir);
-      }
+      $("trendGapLab").textContent = Math.abs(gap) < 0.05 ? "On plan" : gap > 0 ? "Behind plan" : "Ahead of plan";
+      $("trendTargetLab").textContent = Math.abs(off) < 0.05 ? "On target" : off > 0 ? "Short of target" : "Past target";
+      // all four ride on the latest weight: heavier lifts every one of them
+      statGroup("trendRows", cur, gdir, paceCol, [
+        { id: "trendCardVal", txt: tEnd.toFixed(1) + " kg" },
+        { id: "trendPace", txt: (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk" },
+        { id: "trendGap", txt: Math.abs(gap) < 0.05 ? "0.0 kg" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg" },
+        { id: "trendTarget", txt: Math.abs(off) < 0.05 ? "0.0 kg" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg" }
+      ]);
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
-      ["trendCardVal", "trendPace", "trendPlan", "trendGap", "trendTarget"].forEach(function (id) { stat(id, "\u2013", null, null); });
+      stat("trendPlan", "\u2013", null, null);
+      statGroup("trendRows", null, null, null, ["trendCardVal", "trendPace", "trendGap", "trendTarget"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
     // average net intake per logged day; training-only days are skipped
     var ixf = index().food, fdays = Object.keys(ixf), trainedKcal = 0, netSum = 0;
@@ -1279,14 +1305,17 @@ button{user-select:none;-webkit-user-select:none}
       var def = S.maintenance - avgKcal;
       var proj = cur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
-      stat("projVal", proj.toFixed(1) + " kg", proj, gdir, eatCol);
-      stat("projKcal", avgKcal + " kcal", avgKcal, gdir, eatCol);
-      // shown as a balance against maintenance, so a 450 deficit reads "\u2212450":
-      // track the printed sign, or the colour disagrees with its own number
-      stat("projDef", (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal", -def, gdir, eatCol);
-      stat("projRate", (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk", kgwk, gdir, eatCol);
+      /* All four ride on the average intake: eat more and every one of them
+         rises, the deficit included -- it is printed as a balance, so a 450
+         deficit reads "\u2212450" and a shallower one is the larger number. */
+      statGroup("projRows", avgKcal, gdir, eatCol, [
+        { id: "projVal", txt: proj.toFixed(1) + " kg" },
+        { id: "projKcal", txt: avgKcal + " kcal" },
+        { id: "projDef", txt: (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal" },
+        { id: "projRate", txt: (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk" }
+      ]);
     } else {
-      ["projVal", "projKcal", "projDef", "projRate"].forEach(function (id) { stat(id, "\u2013", null, null); });
+      statGroup("projRows", null, null, null, ["projVal", "projKcal", "projDef", "projRate"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
     $("maint").value = S.maintenance;
 
@@ -2304,8 +2333,11 @@ button{user-select:none;-webkit-user-select:none}
   var sugList = [], sugAt = -1;
 
   /* One row per remembered food, newest first, labelled with the words you
-     typed minus the count. A key whose log rows are all gone -- deleted, or
-     synced in from another device -- still shows, under the key itself. */
+     typed minus the count. The log is the list: a food is offered because you
+     have it logged, so deleting the last row that used it takes it off the
+     list too. Figures that outlive their rows -- synced in from another device
+     ahead of the log, or left behind by a delete -- are still filled in when
+     you type that name, they just stop being suggested. */
   function remembered() {
     var out = [], seen = {};
     var fs = S.foods.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
@@ -2315,11 +2347,15 @@ button{user-select:none;-webkit-user-select:none}
       seen[w] = 1;
       out.push({ key: k, label: parseQty(fs[i].name).rest || k, v: S.cache[k] });
     }
-    Object.keys(S.cache).forEach(function (k) {
-      var w = wordSet(k);
-      if (!seen[w] && plausible(S.cache[k])) { seen[w] = 1; out.push({ key: k, label: k, v: S.cache[k] }); }
-    });
     return out;
+  }
+  /* Figures are kept for the sake of the rows that used them. Once the last of
+     those is gone, drop them rather than let a deleted food keep answering. */
+  function forgetFood(name) {
+    var k = foodKey(name);
+    if (!k || !S.cache[k]) return;
+    var used = S.foods.some(function (f) { return foodKey(f.name) === k; });
+    if (!used) delete S.cache[k];
   }
 
   /* Every word typed so far has to start a word in the name, so "chick b"
@@ -2596,7 +2632,9 @@ button{user-select:none;-webkit-user-select:none}
     var fyes = ev.target.closest("[data-fdelyes]");
     if (fyes) {
       var fid = fyes.dataset.fdelyes;
+      var goneF = S.foods.filter(function (x) { return x.id === fid; })[0];
       S.foods = S.foods.filter(function (x) { return x.id !== fid; });
+      if (goneF) forgetFood(goneF.name);
       if (S.deleted.indexOf(fid) < 0) S.deleted.push(fid);
       if (editFood === fid) resetFoodForm();
       pendingFDel = null;
