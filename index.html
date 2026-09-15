@@ -1644,6 +1644,14 @@ button{user-select:none;-webkit-user-select:none}
      The gestures listen on the host, not on the drawing: every redraw
      replaces the drawing, and a listener on it would die mid-pinch. */
   var ZOOM = { k: 1, cx: 0.5 }, CHART = { W: 320, mL: 34, mR: 10, on: false }, zoomRaf = 0;
+  /* One finger asks what a day was; two are shaping the axis and want to see
+     it, so the readout stays down for the whole of a two-finger gesture --
+     including the moment one finger lifts before the other. */
+  var pinching = false;
+  function hideTip() {
+    var t = $("tip"); if (t) t.style.opacity = 0;
+    var c = document.querySelector("#chartHost #cross"); if (c) c.setAttribute("opacity", 0);
+  }
   function zoomOff() { ZOOM.k = 1; ZOOM.cx = 0.5; }
   function zoomDraw() {
     if (zoomRaf) return;                        // one redraw a frame, not one a touch
@@ -1671,6 +1679,7 @@ button{user-select:none;-webkit-user-select:none}
       zoomDraw();
     }
     host.addEventListener("touchstart", function (ev) {
+      if (ev.touches.length > 1) { pinching = true; hideTip(); }
       if (ev.touches.length === 2 && CHART.on) {
         pz = { d: gap(ev), m: frac(mid(ev)), k: ZOOM.k, cx: ZOOM.cx };
         return;
@@ -1688,8 +1697,9 @@ button{user-select:none;-webkit-user-select:none}
       // fingers spreading scales up; fingers sliding together pans
       to(Math.max(1, Math.min(30, pz.k * (gap(ev) / Math.max(1, pz.d)))), frac(mid(ev)), pz);
     }, { passive: false });
-    host.addEventListener("touchend", function () { pz = null; });
-    host.addEventListener("touchcancel", function () { pz = null; });
+    function lift(ev) { pz = null; if (!ev.touches.length) pinching = false; }
+    host.addEventListener("touchend", lift);
+    host.addEventListener("touchcancel", lift);
     host.addEventListener("wheel", function (ev) {
       if (!CHART.on) return;
       ev.preventDefault();
@@ -1890,11 +1900,12 @@ button{user-select:none;-webkit-user-select:none}
     // hover / touch layer
     var el = host.querySelector("svg");
     function move(ev) {
+      if (pinching || (ev.touches && ev.touches.length > 1)) { hideTip(); return; }
       var r = el.getBoundingClientRect();
       var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
       var best = null, bd = 1e9;
       chartPts.forEach(function (p) { var d = Math.abs(p.x - cx); if (d < bd) { bd = d; best = p; } });
-      if (!best || bd > 40) { tip.style.opacity = 0; var c0 = el.querySelector("#cross"); if (c0) c0.setAttribute("opacity", 0); return; }
+      if (!best || bd > 40) { hideTip(); return; }
       var c = el.querySelector("#cross");
       if (c) { c.setAttribute("x1", best.x); c.setAttribute("x2", best.x); c.setAttribute("opacity", 1); }
       var dx = dayDiff(start, best.date);
@@ -1916,7 +1927,7 @@ button{user-select:none;-webkit-user-select:none}
     el.addEventListener("mousemove", move);
     el.addEventListener("touchstart", move, { passive: true });
     el.addEventListener("touchmove", move, { passive: true });
-    el.addEventListener("mouseleave", function () { tip.style.opacity = 0; var c = el.querySelector("#cross"); if (c) c.setAttribute("opacity", 0); });
+    el.addEventListener("mouseleave", hideTip);
   }
 
   /* ---------- weight form: a kilo wheel and a 100 g wheel ---------- */
