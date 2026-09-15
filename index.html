@@ -1089,10 +1089,10 @@ button{user-select:none;-webkit-user-select:none}
      A row may hand its colour in ready-made where its own movement is a poor
      proxy for the judgement: the Projected rows read the logged day against
      the usual day, because no single meal shifts an average far enough for
-     its drift to mean anything. The Trend rows hand in nothing -- one weight
-     moves all four of them plainly, so what the entry just did to them, read
-     against the entry before it, is the judgement. The arrow is never handed
-     in: it always reports the digits.
+     its drift to mean anything. The Trend rows read the last two days on the
+     scale, which is the log rather than the last render, so a weight entered
+     by mistake and deleted puts the card back where it was instead of marking
+     the undo as a move of its own.
 
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
@@ -1140,11 +1140,15 @@ button{user-select:none;-webkit-user-select:none}
      reading from the figure behind all of them -- every row rises when that
      figure rises -- and any one printed line moving re-stamps all of them.
      The key carries the group's own memory and owns no element of its own. */
-  function statGroup(key, v, dir, judge, rows) {
+  function statGroup(key, v, dir, judge, rows, mark) {
     var p = PREV[key], a = p ? p.a : 0, c = p ? p.c : "", hit = false, moved = false;
     if (dir === null) v = null;
     rows.forEach(function (r) { if (!PREV[r.id] || PREV[r.id].t !== r.txt) moved = true; });
-    if (moved) {
+    if (mark) {
+      // worked out from the log, so it stands whether or not a figure moved
+      a = mark.a; c = mark.c;
+      hit = moved && (a !== 0 || c !== "");
+    } else if (moved) {
       if (v === null) { a = 0; c = ""; }
       else if (p && p.v !== null) {
         var gain = dir * (v - p.v);
@@ -1254,15 +1258,19 @@ button{user-select:none;-webkit-user-select:none}
       $("trendGapLab").textContent = Math.abs(gap) < 0.05 ? "On plan" : gap > 0 ? "Behind plan" : "Ahead of plan";
       $("trendTargetLab").textContent = Math.abs(off) < 0.05 ? "On target" : off > 0 ? "Short of target" : "Past target";
       /* All four ride on the latest weight: heavier lifts every one of them,
-         lighter drops them all. Nothing is handed in here -- what the weight
-         you just entered did to these four figures, against what they read on
-         the weight before it, is the whole judgement. */
+         lighter drops them all. So the card reads the latest day on the scale
+         against the day before it in the log -- the history itself, never what
+         was last on screen. A weight put in by mistake and taken out again
+         leaves the card exactly as it found it, because the two days being
+         compared are the two days that are there. */
+      var prevW = days.length > 1 ? days[days.length - 2].w : null;
+      var step = prevW === null ? 0 : cur > prevW ? 1 : cur < prevW ? -1 : 0;
       statGroup("trendRows", cur, gdir, null, [
         { id: "trendCardVal", txt: tEnd.toFixed(1) + " kg" },
         { id: "trendPace", txt: (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk" },
         { id: "trendGap", txt: Math.abs(gap) < 0.05 ? "0.0 kg" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg" },
         { id: "trendTarget", txt: Math.abs(off) < 0.05 ? "0.0 kg" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg" }
-      ]);
+      ], { a: step, c: step === 0 ? "" : gdir * (cur - prevW) > 0 ? "good" : "bad" });
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
       stat("trendPlan", "\u2013", null, null);
