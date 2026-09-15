@@ -1086,13 +1086,14 @@ button{user-select:none;-webkit-user-select:none}
      Down is good on every row of both cards while cutting, up while gaining,
      because every one of those numbers falls when the week goes well.
 
-     A row may hand its colour in ready-made where its own movement is a poor
-     proxy for the judgement: the Projected rows read the logged day against
-     the usual day, because no single meal shifts an average far enough for
-     its drift to mean anything. The Trend rows read the last two days on the
-     scale, which is the log rather than the last render, so a weight entered
-     by mistake and deleted puts the card back where it was instead of marking
-     the undo as a move of its own.
+     Both cards hand their marks in ready-made, and both read the log rather
+     than the last render: the Projected rows take the logged day against the
+     usual day, the Trend rows the last two days on the scale. So each card
+     says what is in front of it, and an entry made by mistake and deleted
+     puts the card back where it was instead of marking the undo as a move of
+     its own. What that costs is the tap-by-tap reading -- a second helping on
+     a light day, or a second weigh-in on a day already down, does not turn
+     the card round, because neither changed what the day is against the rest.
 
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
@@ -1286,18 +1287,23 @@ button{user-select:none;-webkit-user-select:none}
     var dleft = Math.max(0, dayDiff(today, G.endDate));
     /* Every row on the Projected card is one meal seen four ways, and no
        average moves far enough on a single day for its own drift to read as
-       anything. So all four take their marks from the day being logged against
-       the mean of the other logged days, and all four share the verdict. A day
-       over the usual lifts every one of the four numbers -- more intake, a
-       shallower balance, more weight at the goal date, a slacker rate -- so
-       the arrows agree without being told; only whether that is progress
-       needs saying, and while gaining it is. */
-    var focusD = $("fDate").value || today, eatCol = null;
+       anything. So both marks are worked out from the log the way the trend
+       card works them out from the scale: the day being logged against the
+       mean of the other logged days, which is a reading of what is there and
+       not of what was last on screen. An item added by mistake and taken out
+       again therefore leaves the card as it found it. A day over the usual
+       lifts all four figures -- more intake, a shallower balance, more weight
+       at the goal date, a slacker rate -- so one arrow serves them all, and
+       only whether that is progress is left to say: while gaining, it is.
+       With nothing logged that day, or no other day to call usual, there is
+       no reading to take and the card carries no marks. */
+    var focusD = $("fDate").value || today, projMark = { a: 0, c: "" };
     if (ixf[focusD] && fdays.length > 1) {
       var dayNet = ixf[focusD].calories - trainTotal(focusD);
       var usual = (netSum - dayNet) / (fdays.length - 1);
-      var away = (dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0) * (gdir < 0 ? 1 : -1);
-      eatCol = away > 0 ? "bad" : away < 0 ? "good" : "";
+      var over = dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0;
+      var away = gdir < 0 ? over : -over;
+      projMark = { a: over, c: away > 0 ? "bad" : away < 0 ? "good" : "" };
     }
     if (G.set && avgKcal !== null && cur !== null) {
       var def = S.maintenance - avgKcal;
@@ -1306,12 +1312,12 @@ button{user-select:none;-webkit-user-select:none}
       /* All four ride on the average intake: eat more and every one of them
          rises, the deficit included -- it is printed as a balance, so a 450
          deficit reads "\u2212450" and a shallower one is the larger number. */
-      statGroup("projRows", avgKcal, gdir, eatCol, [
+      statGroup("projRows", avgKcal, gdir, null, [
         { id: "projVal", txt: proj.toFixed(1) + " kg" },
         { id: "projKcal", txt: avgKcal + " kcal" },
         { id: "projDef", txt: (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal" },
         { id: "projRate", txt: (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk" }
-      ]);
+      ], projMark);
     } else {
       statGroup("projRows", null, null, null, ["projVal", "projKcal", "projDef", "projRate"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
