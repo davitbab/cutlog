@@ -1088,9 +1088,11 @@ button{user-select:none;-webkit-user-select:none}
 
      A row may hand its colour in ready-made where its own movement is a poor
      proxy for the judgement: the Projected rows read the logged day against
-     the usual day, and the two Trend rates the last week on the scale against
-     the pace since the start, rather than either average's own drift. The
-     arrow is never handed in -- it always reports the digits.
+     the usual day, because no single meal shifts an average far enough for
+     its drift to mean anything. The Trend rows hand in nothing -- one weight
+     moves all four of them plainly, so what the entry just did to them, read
+     against the entry before it, is the judgement. The arrow is never handed
+     in: it always reports the digits.
 
      Arrows are kept across launches; the values behind them are not. A number
      is only ever compared with what it read earlier in the same session, so
@@ -1242,24 +1244,6 @@ button{user-select:none;-webkit-user-select:none}
     var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
     var pace = perDay !== null ? perDay * 7 : null;
 
-    /* The trend rows move on the scale, not the plate, so they take the same
-       kind of reading in weight: the pace across the last week of weigh-ins
-       against the pace since the start. Moving toward the goal faster than
-       usual is blue. The two figures are one calculation, so they share it. */
-    var paceCol = null;
-    if (perDay !== null && days.length > 1) {
-      var lastD = days[days.length - 1], refD = days[0];
-      for (var q = days.length - 2; q >= 0; q--) {
-        refD = days[q];
-        if (dayDiff(days[q].date, lastD.date) >= 7) break;
-      }
-      var recSpan = dayDiff(refD.date, lastD.date);
-      if (recSpan > 0) {
-        var edge = gdir * ((lastD.w - refD.w) / recSpan - perDay);
-        paceCol = edge > 1e-9 ? "good" : edge < -1e-9 ? "bad" : "";
-      }
-    }
-
     /* Trend card: carry that same pace forward to the target date, so the rate
        shown and the weight shown are one calculation rather than two. */
     if (G.set && perDay !== null) {
@@ -1269,8 +1253,11 @@ button{user-select:none;-webkit-user-select:none}
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       $("trendGapLab").textContent = Math.abs(gap) < 0.05 ? "On plan" : gap > 0 ? "Behind plan" : "Ahead of plan";
       $("trendTargetLab").textContent = Math.abs(off) < 0.05 ? "On target" : off > 0 ? "Short of target" : "Past target";
-      // all four ride on the latest weight: heavier lifts every one of them
-      statGroup("trendRows", cur, gdir, paceCol, [
+      /* All four ride on the latest weight: heavier lifts every one of them,
+         lighter drops them all. Nothing is handed in here -- what the weight
+         you just entered did to these four figures, against what they read on
+         the weight before it, is the whole judgement. */
+      statGroup("trendRows", cur, gdir, null, [
         { id: "trendCardVal", txt: tEnd.toFixed(1) + " kg" },
         { id: "trendPace", txt: (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk" },
         { id: "trendGap", txt: Math.abs(gap) < 0.05 ? "0.0 kg" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg" },
