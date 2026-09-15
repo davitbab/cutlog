@@ -37,6 +37,7 @@ try {
   --fx-good:#2563c9; --fx-good-rgb:37,99,201; --fx-bad:#c0392f; --fx-bad-rgb:192,57,47;
   --on-accent:#ffffff;
   --shadow:0 2px 6px rgba(18,22,28,.10);
+  --name-shadow:0 1px 2px rgba(18,22,28,.20);
   --r:10px; --r-lg:14px;
 
 }
@@ -53,6 +54,7 @@ try {
     --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
     --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 2px 8px rgba(0,0,0,.45);
+  --name-shadow:0 2px 4px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"] {
@@ -67,6 +69,7 @@ try {
   --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
   --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 2px 8px rgba(0,0,0,.45);
+  --name-shadow:0 2px 4px rgba(0,0,0,.6);
 }
 
 *{box-sizing:border-box}
@@ -98,7 +101,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text; user-select:te
 
 /* page name: always visible, sized like a tile's number, so the current
    screen is legible even before/while the header below it settles in */
-.pagename{font-size:21px;font-weight:600;letter-spacing:-.02em;padding:14px 0 0;color:var(--ink);text-align:center}
+.pagename{
+  font-size:21px;font-weight:600;letter-spacing:-.02em;padding:14px 0 0;color:var(--ink);
+  text-align:center;text-shadow:var(--name-shadow);
+}
 
 /* header */
 header{padding:6px 0 6px}
@@ -121,41 +127,53 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
 .progress-card{margin:8px 0 16px}
-.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:10px}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:29px}
+/* An outlined rail with the fill riding inside it, rather than a bar with a
+   handle on the end: the padding is what makes the fill read as sitting in a
+   track instead of being the track. The reading floats above on a pointer,
+   so it never has to fit inside the bar. */
 .progress-track{
-  height:22px;border-radius:999px;position:relative;overflow:visible;
+  height:28px;border-radius:999px;position:relative;overflow:visible;padding:4px;
   background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid var(--accent-dim);
 }
 .progress-fill{
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
-  background:linear-gradient(90deg, transparent 0%, var(--accent-soft) 45%, var(--accent) 100%);
+  background:var(--accent);box-shadow:0 0 10px -1px var(--accent);
 }
 /* Plays every time the weight page becomes active (see growBar()), not just
    once at boot -- the keyframe only defines "from", so it animates up to
    whatever width is already set. */
 .progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
 @keyframes barGrow{from{width:0}}
-.progress-thumb{
-  position:absolute;top:50%;right:-1px;transform:translate(50%,-50%);
-  width:27px;height:27px;border-radius:50%;
-  background:var(--accent);border:1px solid var(--surface);
-  box-shadow:0 0 8px 2px var(--accent);
-  display:flex;align-items:center;justify-content:center;
-  font-size:8.5px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--on-accent);
+.progress-now{
+  position:absolute;right:0;bottom:calc(100% + 9px);transform:translateX(50%);
+  font-size:14px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink);white-space:nowrap;
 }
-/* Before the first weigh-in there is no reading to carry, so it stays a plain
-   dot rather than an empty ring. */
-.progress-thumb:empty{width:23px;height:23px}
+.progress-now::after{
+  content:"";position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);
+  border:4px solid transparent;border-top-color:var(--accent);
+}
+.progress-now:empty{display:none}
 
 /* Time, not weight: how much of the goal window has gone. Two pixels, so it
    reads as a rule under the dates rather than a second bar to weigh up. */
 .timebar{height:2px;border-radius:999px;background:var(--line-2);margin-top:7px}
-.timebar i{display:block;height:100%;width:0;border-radius:999px;background:var(--neutral-series);transition:width .3s ease}
+.timebar i{position:relative;display:block;height:100%;width:0;border-radius:999px;background:var(--neutral-series);transition:width .3s ease}
+/* today, on the line: small enough to read as a point on the rule rather than
+   a handle to grab */
+.timebar i::after{
+  content:"";position:absolute;right:0;top:50%;transform:translate(50%,-50%);
+  width:5px;height:5px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 4px 1.5px var(--accent);
+}
 .progress-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
 .progress-stat{display:flex;flex-direction:column}
 .progress-stat.right{align-items:flex-end}
-.progress-stat .val{font-size:21px;font-weight:600;letter-spacing:-.02em}
-.progress-stat .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
+.progress-stat .val{font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2)}
+/* These two read as a pair with the start and target above the bar, which
+   carry no mark of their own, so the arrow would be the odd one out. The
+   glow still lands: its colour goes on the number itself. */
+#tLost .arw,#tGo .arw{display:none}
 .progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:3px}
 
 /* Live stats: a number that moved pulses for 3.4s -- blue when it moved the
@@ -240,7 +258,24 @@ details.card > summary{
   font-size:13px;font-weight:600;color:var(--ink);
 }
 details.card > summary .sname{display:inline-flex;align-items:center;gap:10px;min-width:0}
-details.card > summary .sym{font-style:normal;font-size:14px;line-height:1;color:var(--muted);flex:0 0 17px;text-align:center}
+details.card > summary .sym{font-style:normal;font-size:19px;line-height:1;color:var(--muted);flex:0 0 23px;text-align:center}
+/* A card inside a card: the same summary shape, one step quieter. */
+details.sub{border-top:1px solid var(--line)}
+details.sub:first-of-type{border-top:0}
+details.sub > summary{
+  list-style:none;cursor:pointer;padding:13px 0;font-size:14px;font-weight:600;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;
+}
+details.sub > summary::-webkit-details-marker{display:none}
+details.sub > summary::after{content:"\276F";font-size:10px;color:var(--muted);transition:transform .15s ease;flex:0 0 auto}
+details.sub[open] > summary::after{transform:rotate(90deg)}
+details.sub > summary .sname{display:inline-flex;align-items:center;gap:10px;min-width:0}
+details.sub > summary .sym{font-style:normal;font-size:16px;line-height:1;color:var(--muted);flex:0 0 20px;text-align:center}
+details.sub > .sub-body{padding:0 0 14px}
+/* Deleting everything is not a peer of exporting it: smaller, and the only
+   red thing on the page. */
+details.sub.danger > summary{font-size:12.5px;font-weight:600;color:var(--bad);min-height:38px;padding:9px 0}
+details.sub.danger > summary::after{color:var(--bad)}
 details.card > summary::-webkit-details-marker{display:none}
 details.card > summary::after{content:"\276F";font-size:11px;color:var(--muted);transition:transform .15s ease;flex:0 0 auto}
 details.card[open] > summary::after{transform:rotate(90deg)}
@@ -319,19 +354,13 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .namerow .minif i{flex:0 0 auto;min-width:24px}
 
 .whenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.dchip,.minif{
+.minif{
   position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;
   background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
   padding:4px 9px;min-height:32px;font-size:12.5px;color:var(--ink-2);
 }
-.dchip{cursor:pointer}
-.dchip .pen{font-style:normal;font-size:12.5px;color:var(--muted);line-height:1}
-.dchip:active{background:var(--field)}
-.dchip:focus-within,.minif:focus-within{border-color:var(--accent)}
-.dchip input{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  opacity:0;border:0;padding:0;margin:0;background:transparent;cursor:pointer;
-}
+.minif:focus-within{border-color:var(--accent)}
+.dtinyrow{display:flex;align-items:center;gap:13px}
 .minif input{
   width:52px;border:0;background:transparent;padding:0;font-size:13.5px;text-align:right;
   font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
@@ -340,15 +369,17 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 
 /* weight entry: one field, two small step keys either side, 0.1 kg per tap.
    Full card width, so its edges line up with the Save button below. */
+/* Stretch, not centre: the keys take their height from the reading between
+   them, so they grow without the card growing. */
 .wsingle{
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:stretch;gap:10px;
   background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
   padding:6px;margin-bottom:9px;
 }
 .wsingle button{
-  flex:0 0 34px;width:34px;height:34px;border-radius:9px;
+  flex:0 0 54px;width:54px;border-radius:11px;
   border:1px solid var(--line-2);background:var(--field);color:var(--ink);
-  font-family:"IBM Plex Mono",monospace;font-size:16px;font-weight:600;
+  font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;
   cursor:pointer;line-height:1;padding:0;
 }
 .wsingle button:active{background:var(--accent-soft);border-color:var(--accent)}
@@ -422,7 +453,15 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .legend button i{width:100%;height:3px;border-radius:2px;display:block}
 .legend button[aria-pressed="false"]{color:var(--muted);background:transparent;border-style:dashed}
 .legend button[aria-pressed="false"] i{opacity:.3}
-#chartHost{position:relative;overflow-x:auto}
+/* pan-y tells the browser the sideways and pinch gestures here are ours */
+#chartHost{position:relative;overflow-x:auto;touch-action:pan-y}
+#zoomReset{
+  position:absolute;top:6px;right:8px;z-index:4;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);
+  font:inherit;font-size:11px;font-weight:600;border-radius:7px;padding:5px 9px;cursor:pointer;
+  box-shadow:var(--shadow);
+}
+#zoomReset:active{background:var(--surface-2)}
 /* inline would add descender space under the svg, which overflow-x:auto
    then reports as a vertical scroll */
 #chartHost svg{display:block}
@@ -486,7 +525,7 @@ button{user-select:none;-webkit-user-select:none}
       <div class="sub"><span id="goalLine"></span>
         <button class="linkbtn" id="goalEdit" aria-label="Edit goal" title="Edit goal"
           style="font-size:15px;margin-left:3px;padding:6px 9px;text-decoration:none;line-height:1">&#9998;</button></div>
-      <div class="timebar" aria-hidden="true"><i id="timeFill"></i></div>
+      <div class="timebar" id="timeBar" aria-hidden="true"><i id="timeFill"></i></div>
       <div id="storeWrap" style="margin-top:8px" hidden><span class="pill"><span class="dot"></span><span id="storeTxt"></span></span></div>
     </header>
     <div class="progress-card" id="progressCard">
@@ -494,7 +533,7 @@ button{user-select:none;-webkit-user-select:none}
         <span id="pStart">&ndash;</span>
         <span id="pTarget">&ndash;</span>
       </div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-thumb num" id="pNow"></span></div></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"><span class="progress-now num" id="pNow"></span></div></div>
       <div class="progress-row">
         <div class="progress-stat"><span class="val num" id="tLost">&ndash;</span><span class="lab">Lost</span></div>
         <div class="progress-stat right"><span class="val num" id="tGo">&ndash;</span><span class="lab">To go</span></div>
@@ -513,9 +552,9 @@ button{user-select:none;-webkit-user-select:none}
     <div class="card">
       <div class="cardhead">
         <span class="lab" id="wFormTitle">Add weight</span>
-        <div style="display:flex;gap:6px">
-        <span class="dchip"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
-        <span class="dchip"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
+        <div class="dtinyrow">
+          <span class="dtiny"><span id="wDateTxt">Today</span><i class="pen">&#9998;</i><input type="date" id="wDate" aria-label="Date"></span>
+          <span class="dtiny"><span id="wTimeTxt">--:--</span><i class="pen">&#9998;</i><input type="time" id="wTime" aria-label="Time"></span>
         </div>
       </div>
       <div class="wsingle">
@@ -524,7 +563,7 @@ button{user-select:none;-webkit-user-select:none}
         <button type="button" data-wstep="0.1" aria-label="Increase by 0.1 kg">+</button>
       </div>
       <div class="btnrow">
-        <button class="btn" id="wSave">Save weight</button>
+        <button class="btn" id="wSave">Add</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
       <div class="tiny" id="wMsg" style="margin-top:8px"></div>
@@ -646,7 +685,7 @@ button{user-select:none;-webkit-user-select:none}
       <button type="button" data-range="week" aria-pressed="false">Week</button>
     </div>
     <div class="chartcard">
-      <div id="chartHost"><div id="tip"></div></div>
+      <div id="chartHost"><div id="tip"></div><button id="zoomReset" hidden>Reset zoom</button></div>
       <div class="legend" id="legend"></div>
     </div>
   </section>
@@ -683,8 +722,11 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </details>
     <details class="card">
-      <summary><span class="sname"><i class="sym">&#8645;</i>Sync via GitHub</span></summary>
+      <summary><span class="sname"><i class="sym">&#9636;</i>Data</span></summary>
       <div class="details-body">
+      <details class="sub">
+        <summary><span class="sname"><i class="sym">&#8645;</i>Sync via GitHub</span></summary>
+        <div class="sub-body">
       <p class="tiny mb">One <b class="num">log.json</b> in a repo you own, shared by every device. Use a <b>private</b> repo and a fine-grained token for it with <b>Contents: read and write</b>. The token stays on this device and is never exported.</p>
       <div class="grid2 mb">
         <div><label class="f" for="syOwner">GitHub user</label><input type="text" id="syOwner" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="your-username"></div>
@@ -704,29 +746,31 @@ button{user-select:none;-webkit-user-select:none}
       <div class="tiny" id="syMsg" style="margin-top:8px"></div>
       <div class="tiny" id="syState" style="margin-top:4px;color:var(--muted)"></div>
       <div id="syOffWrap" hidden><div style="height:10px"></div><button class="linkbtn" id="syOff">Disconnect and forget the token</button></div>
-      </div>
-    </details>
-    <details class="card">
-      <summary><span class="sname"><i class="sym">&#8679;</i>Export</span></summary>
-      <div class="details-body">
+        </div>
+      </details>
+      <details class="sub">
+        <summary><span class="sname"><i class="sym">&#8679;</i>Export</span></summary>
+        <div class="sub-body">
       <p class="tiny mb">Everything, in one file. On iPhone pick <b>Save to Files</b>.</p>
       <button class="btn" id="exFile">Export to a file</button>
       <div class="tiny" id="exMsg" style="margin-top:8px"></div>
-      </div>
-    </details>
-    <details class="card">
-      <summary><span class="sname"><i class="sym">&#8681;</i>Import</span></summary>
-      <div class="details-body">
+        </div>
+      </details>
+      <details class="sub">
+        <summary><span class="sname"><i class="sym">&#8681;</i>Import</span></summary>
+        <div class="sub-body">
       <p class="tiny mb">Replaces everything here. With sync on, the next sync merges it into your repo.</p>
       <input type="file" id="imFile" accept=".json,application/json,text/plain" class="mb">
       <div class="tiny" id="imMsg"></div>
-      </div>
-    </details>
-    <details class="card">
-      <summary><span class="sname"><i class="sym">&#9003;</i>Reset</span></summary>
-      <div class="details-body">
+        </div>
+      </details>
+      <details class="sub danger">
+        <summary><span class="sname">Reset</span></summary>
+        <div class="sub-body">
       <p class="tiny mb">Deletes everything here, and from your repo if sync is on. Export first &mdash; this cannot be undone.</p>
       <button class="btn sec" id="wipe">Delete all data</button>
+        </div>
+      </details>
       </div>
     </details>
   </section>
@@ -1111,6 +1155,7 @@ button{user-select:none;-webkit-user-select:none}
     var goneD = dayDiff(G.startDate, today), spanD = dayDiff(G.startDate, G.endDate);
     $("timeFill").style.width =
       (G.set && spanD > 0 ? Math.max(0, Math.min(100, (goneD / spanD) * 100)) : 0).toFixed(1) + "%";
+    $("timeBar").hidden = !G.set;            // no window to be part of the way through
     $("projLab").textContent = "Projected" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
     $("trendCardLab").textContent = "Trend" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
 
@@ -1134,8 +1179,8 @@ button{user-select:none;-webkit-user-select:none}
     // good direction: down while cutting, up while gaining
     var gdir = G.target < G.start ? -1 : 1;
     var lost = cur !== null ? G.start - cur : null, togo = (cur !== null ? cur : G.start) - G.target;
-    stat("tLost", G.set && lost !== null ? lost.toFixed(1) + "<small>kg</small>" : "\u2013", lost, G.set ? -gdir : null);
-    stat("tGo", G.set ? togo.toFixed(1) + "<small>kg</small>" : "\u2013", togo, G.set ? gdir : null);
+    stat("tLost", G.set && lost !== null ? lost.toFixed(1) + " kg" : "\u2013", lost, G.set ? -gdir : null);
+    stat("tGo", G.set ? togo.toFixed(1) + " kg" : "\u2013", togo, G.set ? gdir : null);
     // fill share of the bar that's behind us: lost / (lost + to go)
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
@@ -1569,9 +1614,72 @@ button{user-select:none;-webkit-user-select:none}
     var b = ev.target.closest("[data-range]"); if (!b) return;
     RANGE = b.dataset.range;
     sset("cut-range", RANGE);
+    zoomOff();
     renderRange();
     renderChart(dayAvgs());
   });
+
+  /* ---------- chart zoom ----------
+     Only the All window zooms; the other two already are a window. k is how
+     far in we are, cx where the middle of the view sits along the whole span.
+     The gestures listen on the host, not on the drawing: every redraw
+     replaces the drawing, and a listener on it would die mid-pinch. */
+  var ZOOM = { k: 1, cx: 0.5 }, CHART = { W: 320, mL: 34, mR: 10, on: false }, zoomRaf = 0;
+  function zoomOff() { ZOOM.k = 1; ZOOM.cx = 0.5; }
+  function zoomDraw() {
+    if (zoomRaf) return;                        // one redraw a frame, not one a touch
+    zoomRaf = requestAnimationFrame(function () { zoomRaf = 0; renderChart(dayAvgs()); });
+  }
+  (function () {
+    var host = $("chartHost"), pz = null, tapT = 0;
+    function gap(ev) {
+      var dx = ev.touches[0].clientX - ev.touches[1].clientX;
+      var dy = ev.touches[0].clientY - ev.touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function mid(ev) { return (ev.touches[0].clientX + ev.touches[1].clientX) / 2; }
+    /* where along the plotted span a screen x falls, 0 to 1 */
+    function frac(x) {
+      var r = host.getBoundingClientRect(), plot = Math.max(1, CHART.W - CHART.mL - CHART.mR);
+      return Math.max(0, Math.min(1, (x - r.left - CHART.mL) / plot));
+    }
+    /* Rescale about a point and keep that point under the fingers. */
+    function to(k, m, from) {
+      var v0 = 1 / from.k, v1 = 1 / k;
+      var anchor = from.cx - v0 / 2 + from.m * v0;
+      ZOOM.k = k;
+      ZOOM.cx = Math.max(v1 / 2, Math.min(1 - v1 / 2, anchor - m * v1 + v1 / 2));
+      zoomDraw();
+    }
+    host.addEventListener("touchstart", function (ev) {
+      if (ev.touches.length === 2 && CHART.on) {
+        pz = { d: gap(ev), m: frac(mid(ev)), k: ZOOM.k, cx: ZOOM.cx };
+        return;
+      }
+      if (ev.touches.length === 1) {
+        // a second tap in the same place is the way back to the whole span
+        var now = Date.now();
+        if (now - tapT < 320 && ZOOM.k > 1.001) { zoomOff(); zoomDraw(); }
+        tapT = now;
+      }
+    }, { passive: true });
+    host.addEventListener("touchmove", function (ev) {
+      if (!pz || ev.touches.length !== 2) return;
+      ev.preventDefault();                      // a zoom, not a scroll
+      // fingers spreading scales up; fingers sliding together pans
+      to(Math.max(1, Math.min(30, pz.k * (gap(ev) / Math.max(1, pz.d)))), frac(mid(ev)), pz);
+    }, { passive: false });
+    host.addEventListener("touchend", function () { pz = null; });
+    host.addEventListener("touchcancel", function () { pz = null; });
+    host.addEventListener("wheel", function (ev) {
+      if (!CHART.on) return;
+      ev.preventDefault();
+      var m = frac(ev.clientX);
+      to(Math.max(1, Math.min(30, ZOOM.k * (ev.deltaY < 0 ? 1.18 : 1 / 1.18))), m,
+         { k: ZOOM.k, cx: ZOOM.cx, m: m });
+    }, { passive: false });
+    $("zoomReset").addEventListener("click", function () { zoomOff(); zoomDraw(); });
+  })();
 
   var chartPts = [];
   function renderChart(allDays) {
@@ -1618,6 +1726,22 @@ button{user-select:none;-webkit-user-select:none}
     }
     var span = Math.max(1, dayDiff(start, end));
 
+    /* Zoom crops the axis further. What the fit learns from is untouched, so
+       the trend line stays the trend over everything, drawn through a window. */
+    CHART.W = W; CHART.mL = mL; CHART.mR = mR;
+    CHART.on = !winFrom && span > 6;            // long enough to be worth going into
+    if (!CHART.on) zoomOff();
+    else if (ZOOM.k > 1.001) {
+      var vis = Math.max(2, span / ZOOM.k);
+      var a = Math.max(0, Math.min(span - vis, ZOOM.cx * span - vis / 2));
+      var t0 = parseD(start).getTime();
+      start = iso(new Date(t0 + Math.round(a) * MS));
+      end = iso(new Date(t0 + Math.round(a + vis) * MS));
+      span = Math.max(1, dayDiff(start, end));
+      days = days.filter(function (d) { return d.date >= start && d.date <= end; });
+    }
+    $("zoomReset").hidden = !(CHART.on && ZOOM.k > 1.001);
+
     // fit over every logged day, not just the visible window
     var regAll = regression(allDays.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
     var reg = regAll;
@@ -1646,9 +1770,12 @@ button{user-select:none;-webkit-user-select:none}
 
     // y domain across every series drawn
     var vals = days.map(function (d) { return d.w; });
+    if (!vals.length) vals = allDays.map(function (d) { return d.w; });
     // goal posts widen the axis only in the All window; the ideal and trend
     // lines are projections and get clipped rather than widening anything
-    if (G.set && !winFrom) vals = vals.concat([G.target, G.start]);
+    // zoomed in, the goal posts would hold the axis open and flatten the very
+    // line you went in to look at; the gridlines stay counted off the target
+    if (G.set && !winFrom && ZOOM.k <= 1.001) vals = vals.concat([G.target, G.start]);
     /* Gridlines land on whole kilos counted off the target, so in the All
        window the bottom line is the target and each line above it is one kilo
        more, up to the start weight. A reading outside that band pushes the
@@ -1817,7 +1944,7 @@ button{user-select:none;-webkit-user-select:none}
   function resetWeightForm() {
     editEntry = null;
     $("wFormTitle").textContent = "Add weight";
-    setBtnLabel("wSave", "Save weight");
+    setBtnLabel("wSave", "Add");
     $("wCancel").style.display = "none";
     if ($("wMsg")) $("wMsg").textContent = "";
     var now = new Date();
@@ -2596,14 +2723,14 @@ button{user-select:none;-webkit-user-select:none}
       setTimeout(finish, 340);
     }
 
-    pages.addEventListener("touchstart", function (e) {
+    host.addEventListener("touchstart", function (e) {
       if (pages.classList.contains("settling")) { axis = -1; return; }
       if (e.touches.length !== 1 || skip(e.target)) { axis = -1; return; }
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
       dx = 0; axis = 0;
     }, { passive: true });
 
-    pages.addEventListener("touchmove", function (e) {
+    host.addEventListener("touchmove", function (e) {
       if (axis === -1 || e.touches.length !== 1) return;
       var t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
       if (axis === 0) {
@@ -2619,7 +2746,7 @@ button{user-select:none;-webkit-user-select:none}
       place();
     }, { passive: false });
 
-    pages.addEventListener("touchend", function () {
+    host.addEventListener("touchend", function () {
       if (axis !== 1) { axis = 0; return; }
       axis = 0;
       // Past a third of the width, or a firm flick over an eighth of it.
@@ -2628,7 +2755,7 @@ button{user-select:none;-webkit-user-select:none}
       settle(moved > W * 0.33 || flick);
     }, { passive: true });
 
-    pages.addEventListener("touchcancel", function () {
+    host.addEventListener("touchcancel", function () {
       if (axis === 1) settle(false);
       axis = 0;
     }, { passive: true });
