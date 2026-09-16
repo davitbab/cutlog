@@ -136,7 +136,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
 .progress-card{margin:2px 0 16px}
-.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:20px}
+.progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:10px}
 /* the unit is not the number: same on all four figures around the bar */
 .progress-endpoints small,.progress-stat .val small{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:3px}
 /* An outlined rail with the fill riding inside it, rather than a bar with a
@@ -145,26 +145,26 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
    so it never has to fit inside the bar. */
 .progress-track{
   height:28px;border-radius:999px;position:relative;overflow:visible;padding:4px;
-  background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid var(--accent-dim);
+  background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid #045a91;
   box-shadow:var(--groove);
 }
 .progress-fill{
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
-  background:var(--accent);box-shadow:var(--raised), 0 0 9px -2px var(--accent);
+  background:#008df8;box-shadow:var(--raised), 0 0 9px -2px #008df8;
 }
 /* Plays every time the weight page becomes active (see growBar()), not just
    once at boot -- the keyframe only defines "from", so it animates up to
    whatever width is already set. */
 .progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
 @keyframes barGrow{from{width:0}}
-/* The reading sits right where the fill ends -- carved into it, not floating
-   above on a pointer. Same color as the fill itself; the shadow pair (dark
-   up-left, light down-right) is what makes it read as engraved rather than
-   printed on top. */
+/* The reading sits right where the fill ends, tucked fully inside it rather
+   than straddling the edge. Same color as the fill itself; the shadow pair
+   (dark up-left, light down-right) is what makes it read as engraved rather
+   than printed on top. */
 .progress-now{
-  position:absolute;right:0;top:50%;transform:translate(50%,-50%);
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
   font-size:12px;font-weight:700;letter-spacing:-.01em;line-height:1;white-space:nowrap;
-  color:var(--accent);
+  color:#008df8;
   text-shadow:-1px -1px 1px rgba(0,0,0,.5), 1px 1px 1px rgba(255,255,255,.3);
 }
 .progress-now:empty{display:none}
