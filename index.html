@@ -113,7 +113,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text; user-select:te
 }
 
 /* header */
-header{padding:6px 0 6px}
+header{padding:6px 0 2px}
 .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:600;text-wrap:balance}
 .sub{color:var(--ink-2);font-size:13.5px}
@@ -135,7 +135,7 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 
 /* progress: start/target weight sit above the bar's corners, lost/to-go
    sit below it at the same size the old tiles used */
-.progress-card{margin:8px 0 16px}
+.progress-card{margin:2px 0 16px}
 .progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:20px}
 /* the unit is not the number: same on all four figures around the bar */
 .progress-endpoints small,.progress-stat .val small{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:3px}
@@ -157,13 +157,15 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
    whatever width is already set. */
 .progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
 @keyframes barGrow{from{width:0}}
+/* The reading sits right where the fill ends -- carved into it, not floating
+   above on a pointer. Same color as the fill itself; the shadow pair (dark
+   up-left, light down-right) is what makes it read as engraved rather than
+   printed on top. */
 .progress-now{
-  position:absolute;right:0;bottom:calc(100% + 4px);transform:translateX(50%);
-  font-size:13px;font-weight:600;letter-spacing:-.01em;line-height:1;color:var(--ink-2);white-space:nowrap;
-}
-.progress-now::after{
-  content:"";position:absolute;left:50%;top:calc(100% + 1px);transform:translateX(-50%);
-  border:3.5px solid transparent;border-top-color:var(--accent);
+  position:absolute;right:0;top:50%;transform:translate(50%,-50%);
+  font-size:12px;font-weight:700;letter-spacing:-.01em;line-height:1;white-space:nowrap;
+  color:var(--accent);
+  text-shadow:-1px -1px 1px rgba(0,0,0,.5), 1px 1px 1px rgba(255,255,255,.3);
 }
 .progress-now:empty{display:none}
 
