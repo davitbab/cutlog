@@ -40,6 +40,22 @@ try {
   --name-shadow:0 1px 2px rgba(18,22,28,.20);
   --groove:inset 0 2px 4px rgba(18,22,28,.20), inset 0 -1px 0 rgba(255,255,255,.55);
   --raised:0 1px 2px rgba(18,22,28,.30), inset 0 1px 0 rgba(255,255,255,.28);
+  /* glass: the rail's own body, the hairline round it, the lit foot, the
+     thinner line opposite, and the dimmer wall a pixel inside them both */
+  --glass-body:rgba(255,255,255,.20); --glass-rim:rgba(18,22,28,.10);
+  --glass-lip:rgba(255,255,255,.78); --glass-lip-2:rgba(255,255,255,.38);
+  --glass-wall:rgba(18,22,28,.045);
+  --glass-pane:linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 20%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 12%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 17%, transparent) 100%);
+  /* The figures are cut into the pane, not through it. On glass this clear a
+     hole would show the same nothing as its surroundings, so the cut is
+     frosted the way sandblasted glass is -- a dimmed wash of the glyph, the
+     wall above it in shadow, the wall below catching the light. */
+  --glass-cut:rgba(6,45,40,.52); --glass-cut-shade:rgba(6,45,40,.42);
+  --glass-cut-lip:rgba(255,255,255,1);
+  --glass-btn-ink:#06403a;
   --r:10px; --r-lg:14px;
 
 }
@@ -59,6 +75,16 @@ try {
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
   --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
   --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
+  --glass-body:rgba(255,255,255,.025); --glass-rim:rgba(255,255,255,.15);
+  --glass-lip:rgba(255,255,255,.46); --glass-lip-2:rgba(255,255,255,.19);
+  --glass-wall:rgba(255,255,255,.05);
+  --glass-pane:linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 17%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 100%);
+  --glass-cut:rgba(255,255,255,.40); --glass-cut-shade:rgba(0,0,0,.75);
+  --glass-cut-lip:rgba(255,255,255,.75);
+  --glass-btn-ink:#eafffb;
   }
 }
 :root[data-theme="dark"] {
@@ -76,6 +102,16 @@ try {
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
   --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
   --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
+  --glass-body:rgba(255,255,255,.025); --glass-rim:rgba(255,255,255,.15);
+  --glass-lip:rgba(255,255,255,.46); --glass-lip-2:rgba(255,255,255,.19);
+  --glass-wall:rgba(255,255,255,.05);
+  --glass-pane:linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 17%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 100%);
+  --glass-cut:rgba(255,255,255,.40); --glass-cut-shade:rgba(0,0,0,.75);
+  --glass-cut-lip:rgba(255,255,255,.75);
+  --glass-btn-ink:#eafffb;
 }
 
 *{box-sizing:border-box}
@@ -141,37 +177,70 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 .progress-endpoints small,.progress-stat .val small{font-size:11.5px;font-weight:500;color:var(--muted);margin-left:3px}
 /* An outlined rail with the fill riding inside it, rather than a bar with a
    handle on the end: the padding is what makes the fill read as sitting in a
-   track instead of being the track. The reading floats above on a pointer,
-   so it never has to fit inside the bar. */
+   track instead of being the track, and the reading rides along inside the
+   fill at its leading end.
+
+   Liquid glass, and the body of it is almost nothing -- clear enough to read
+   the page through, with the whole shape carried on its edges. Light from
+   above and in front makes the foot of a clear pill its brightest line, the
+   top edge catches a thinner one, and a dimmer line sits just inside both:
+   that doubled edge is the thickness of the glass, and it is what keeps the
+   shape from reading as a plain stroked outline.
+
+   Flat is the point. No bloom around it and none inside it: a pane of glass
+   lying on a surface does not light the surface up, it just sits there being
+   slightly brighter at its edges than the thing behind it. Everything here is
+   one pixel wide for that reason. */
 .progress-track{
   height:28px;border-radius:999px;position:relative;overflow:visible;padding:4px;
-  background:color-mix(in srgb, var(--surface-2) 45%, transparent);border:1px solid #2b1d00;
-  box-shadow:var(--groove), 0 0 6px 0 rgba(212,150,20,.4);
+  background:var(--glass-body);border:1px solid var(--glass-rim);
+  box-shadow:
+    inset 0 -1px 0 var(--glass-lip-2),
+    inset 0 1px 0 var(--glass-wall);
+  -webkit-backdrop-filter:blur(14px) saturate(115%);
+  backdrop-filter:blur(14px) saturate(115%);
 }
+/* The pane is the same clear glass, holding just enough accent to be told
+   apart from the empty rail beside it. Its shape comes off three lit edges --
+   the foot brightest, the top thinner, and the leading end, which is what
+   says where the pane stops now there is barely any body to see -- over a
+   faint bloom that is the light travelling through it. The order matters: the
+   lit edges are listed before the rim so they win the pixel they share,
+   leaving the rim to draw the parts no light reaches, and the inset ring does
+   the job of a border without adding to the pane's height. */
 .progress-fill{
   height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
-  background:linear-gradient(135deg,
-    #241800 0%, #6b4300 8%, #c8890f 16%, #3a2600 26%,
-    #ffdf7e 38%, #fff8dc 46%, #ffdf7e 54%,
-    #4d3300 64%, #b8860b 74%, #241800 84%, #8a5a00 92%, #241800 100%);
+  background:var(--glass-pane);
   box-shadow:
-    inset 0 1px 0 rgba(255,248,220,.8), inset 0 -5px 7px -3px rgba(30,20,0,.65),
-    0 0 4px 0 #ffe9a8, 0 0 10px 2px rgba(212,150,20,.55), 0 0 18px 4px rgba(139,90,0,.35);
+    inset 0 -1px 0 var(--glass-lip),
+    inset -1px 0 0 var(--glass-lip-2),
+    inset 0 1px 0 var(--glass-lip-2),
+    inset 0 0 0 1px var(--glass-rim),
+    inset 0 0 0 2px var(--glass-wall);
 }
 /* Plays every time the weight page becomes active (see growBar()), not just
    once at boot -- the keyframe only defines "from", so it animates up to
    whatever width is already set. */
 .progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
 @keyframes barGrow{from{width:0}}
-/* The reading sits right where the fill ends, tucked fully inside it rather
-   than straddling the edge. Same color as the fill itself; the shadow pair
-   (dark up-left, light down-right) is what makes it read as engraved rather
-   than printed on top. */
+/* The reading is cut into the pane rather than printed on it: a frosted
+   glyph with the wall above it in shadow and the wall below catching the
+   light, which is the whole of what tells an eye "engraved" from "drawn on
+   top". Light comes from above, so that pair is not interchangeable. */
 .progress-now{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  font-size:12px;font-weight:400;letter-spacing:-.01em;line-height:1;white-space:nowrap;
-  color:#ffffff;
-  text-shadow:0 0 3px #fff8dc, 0 0 6px #c8890f;
+  position:absolute;right:10px;top:0;bottom:0;display:flex;align-items:center;
+  /* Centring the line box is not centring the figures: digits have no
+     descender, so the box keeps room under them that the ink never uses, and
+     the lit lower wall of the cut adds weight below on top of that. Two
+     pixels of padding under the flex line lifts the ink by one, which is what
+     it takes to sit on the middle of the rail. */
+  padding-bottom:2px;
+  /* Light: the cut is a shallow scratch in the glass, not a stamped figure,
+     and the lit lower wall does enough of the work that the stroke does not
+     have to. 300 is as thin as the fallback monospace on iOS actually goes. */
+  font-size:12px;font-weight:300;letter-spacing:.01em;line-height:1;white-space:nowrap;
+  color:var(--glass-cut);
+  text-shadow:0 -1px 0 var(--glass-cut-shade), 0 1px 0 var(--glass-cut-lip);
 }
 .progress-now:empty{display:none}
 
@@ -193,6 +262,9 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
    carry no mark of their own, so the arrow would be the odd one out. The
    glow still lands: its colour goes on the number itself. */
 #tLost .arw,#tGo .arw{display:none}
+/* Both kv cards drop the arrow and keep the colour: on a row whose label
+   already names the direction, the mark that matters is the verdict. */
+table.fx.kv .arw{display:none}
 .progress-stat .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
 /* Live stats: a number that moved pulses for 3.4s -- blue when it moved the
@@ -399,13 +471,22 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
   background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
   padding:6px;margin-bottom:9px;
 }
+/* The step keys are the same glass; the rim is an inset ring rather than a
+   border so nothing has to change size to get it. */
 .wsingle button{
   flex:0 0 54px;width:54px;border-radius:11px;
-  border:1px solid var(--line-2);background:var(--field);color:var(--ink);
+  border:1px solid transparent;background:var(--glass-pane);color:var(--glass-btn-ink);
   font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;
   cursor:pointer;line-height:1;padding:0;
+  box-shadow:
+    inset 0 -1px 0 var(--glass-lip),
+    inset 0 1px 0 var(--glass-lip-2),
+    inset 0 0 0 1px var(--glass-rim),
+    inset 0 0 0 2px var(--glass-wall);
+  -webkit-backdrop-filter:blur(14px) saturate(115%);
+  backdrop-filter:blur(14px) saturate(115%);
 }
-.wsingle button:active{background:var(--accent-soft);border-color:var(--accent)}
+.wsingle button:active{filter:brightness(1.35)}
 .wsingle .rd{
   display:flex;align-items:baseline;justify-content:center;gap:4px;
   touch-action:none;cursor:ns-resize;flex:1 1 auto;min-width:0;
@@ -424,6 +505,22 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
   transition:transform .07s ease, filter .12s ease;
 }
 .btn:active{transform:scale(.98);filter:brightness(.93)}
+/* The same glass as the bar, on the keys you actually press. With no solid
+   fill left behind it the label has to carry the contrast by itself, so it
+   takes an ink of its own rather than the one meant for a filled button.
+   Pressing brightens the material instead of darkening it -- glass catches
+   more light when you push on it, it does not go dim. */
+.btn.glass{
+  background:var(--glass-pane);color:var(--glass-btn-ink);
+  box-shadow:
+    inset 0 -1px 0 var(--glass-lip),
+    inset 0 1px 0 var(--glass-lip-2),
+    inset 0 0 0 1px var(--glass-rim),
+    inset 0 0 0 2px var(--glass-wall);
+  -webkit-backdrop-filter:blur(14px) saturate(115%);
+  backdrop-filter:blur(14px) saturate(115%);
+}
+.btn.glass:active{filter:brightness(1.35)}
 .btn.ok{background:var(--good);color:var(--on-accent)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
@@ -561,7 +658,7 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </div>
     <div class="card" id="trendCard">
-      <span class="lab" id="trendCardLab">Trend</span>
+      <span class="lab" id="trendCardLab">Trend from weigh-ins</span>
       <table class="fx kv">
         <tr><td>Projected finish</td><td class="num" id="trendCardVal">&ndash;</td></tr>
         <tr><td>Weekly pace</td><td class="num" id="trendPace">&ndash;</td></tr>
@@ -584,7 +681,7 @@ button{user-select:none;-webkit-user-select:none}
         <button type="button" data-wstep="0.1" aria-label="Increase by 0.1 kg">+</button>
       </div>
       <div class="btnrow">
-        <button class="btn" id="wSave">Add</button>
+        <button class="btn glass" id="wSave">Add</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
       <div class="tiny" id="wMsg" style="margin-top:8px"></div>
@@ -597,12 +694,12 @@ button{user-select:none;-webkit-user-select:none}
   <section id="p-food" hidden>
     <div class="pagename num">Calories</div>
     <div class="card" id="projCard">
-      <span class="lab" id="projLab">Projected</span>
+      <span class="lab" id="projLab">Projected from calories</span>
       <table class="fx kv">
         <tr><td>Weight at goal date</td><td class="num" id="projVal">&ndash;</td></tr>
+        <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
         <tr><td>Average intake</td><td class="num" id="projKcal">&ndash;</td></tr>
         <tr><td>Daily deficit</td><td class="num" id="projDef">&ndash;</td></tr>
-        <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
         <tr><td>Maintenance</td><td class="num"><input type="text" id="maint" class="kv-edit" inputmode="numeric" autocomplete="off" aria-label="Maintenance calories"> kcal</td></tr>
       </table>
     </div>
@@ -635,7 +732,7 @@ button{user-select:none;-webkit-user-select:none}
         <span class="minif"><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="250" aria-label="Grams, optional"><i>g</i></span>
       </div>
       <div class="btnrow">
-        <button class="btn" id="fSave">Add food</button>
+        <button class="btn glass" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
       <div class="tiny formstatus" id="fStatus"></div>
@@ -674,7 +771,7 @@ button{user-select:none;-webkit-user-select:none}
         <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
       <div class="btnrow">
-        <button class="btn" id="tSave">Add training</button>
+        <button class="btn glass" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
       <div class="tiny formstatus" id="tStatus"></div>
@@ -1221,8 +1318,10 @@ button{user-select:none;-webkit-user-select:none}
     $("timeFill").style.width =
       (G.set && spanD > 0 ? Math.max(0, Math.min(100, (goneD / spanD) * 100)) : 0).toFixed(1) + "%";
     $("timeBar").hidden = !G.set;            // no window to be part of the way through
-    $("projLab").textContent = "Projected" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
-    $("trendCardLab").textContent = "Trend" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
+    // the two cards answer the same question from different evidence, and the
+    // label is the only place that says which
+    $("projLab").textContent = "Projected from calories" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
+    $("trendCardLab").textContent = "Trend from weigh-ins" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
 
     // the pill appears only when saving is blocked
     $("storeWrap").hidden = persistent;
@@ -1326,12 +1425,12 @@ button{user-select:none;-webkit-user-select:none}
          deficit reads "\u2212450" and a shallower one is the larger number. */
       statGroup("projRows", avgKcal, gdir, null, [
         { id: "projVal", txt: proj.toFixed(1) + " kg" },
+        { id: "projRate", txt: (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk" },
         { id: "projKcal", txt: avgKcal + " kcal" },
-        { id: "projDef", txt: (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal" },
-        { id: "projRate", txt: (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk" }
+        { id: "projDef", txt: (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal" }
       ], projMark);
     } else {
-      statGroup("projRows", null, null, null, ["projVal", "projKcal", "projDef", "projRate"].map(function (id) { return { id: id, txt: "\u2013" }; }));
+      statGroup("projRows", null, null, null, ["projVal", "projRate", "projKcal", "projDef"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
     $("maint").value = S.maintenance;
 
