@@ -560,7 +560,6 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .nest{padding-left:10px;border-left:2px solid var(--glass-rim);margin:2px 0 6px}
 .row{display:flex;align-items:center;gap:4px;background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r);padding:5px 7px;box-shadow:var(--glass-frame)}
 .row.editing{border-color:var(--accent);background:var(--accent-soft)}
-.row .sp{flex:1}
 /* One line per entry. The name is the only part that gives way; everything
    after it is fixed, and the macro figures wear the chart's colours so the
    letters are nearly redundant -- which is what lets the spacing come in
@@ -571,7 +570,13 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
    tabular figures so a column of weights still lines up without reaching for
    the mono face. The small data beside it stays mono. */
 .row .line .p1{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;flex:0 0 auto}
-.row .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:0 1 auto}
+.row .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+/* Tapping the row opens the name out over its own line. A name too long for
+   the row is the one thing here you cannot get at any other way, and the
+   figures are worth more than the tail of "chicken breast with..." at the
+   width this has to work in. */
+.row.full .line{flex-wrap:wrap;row-gap:2px}
+.row.full .line .nm{flex:1 1 100%;white-space:normal;overflow:visible;text-overflow:clip}
 .row .line .u{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:10px;flex:0 0 auto}
 .row .line .pipe{flex:0 0 auto;opacity:.4}
 .row .line .g,.row .line .mac{flex:0 0 auto;white-space:nowrap}
@@ -1573,7 +1578,7 @@ button{user-select:none;-webkit-user-select:none}
           (ask ? '<span class="p1">Delete this reading?</span>'
                : '<span class="p1">' + e.weight.toFixed(1) + '</span><i class="u">kg</i>' +
                  '<i class="pipe">|</i>' + esc(dayLabel(e.date)) + ' ' + esc(e.time)) +
-        '</div><div class="sp"></div>' +
+        '</div>' +
         acts(e.id, "edit", "del", ask, "delno", "delyes") + '</div>');
     };
     var sp = byMonth(S.entries, dateOfRec);
@@ -1607,7 +1612,7 @@ button{user-select:none;-webkit-user-select:none}
                  '<i class="mp">' + f.protein + ' P</i>' +
                  '<i class="dot">\u00b7</i><i class="mc">' + f.carbs + ' C</i>' +
                  '<i class="dot">\u00b7</i><i class="mf">' + f.fat + ' F</i></span>') +
-      '</div><div class="sp"></div>' +
+      '</div>' +
       acts(f.id, "fedit", "fdel", ask, "fdelno", "fdelyes") + '</div>');
   }
 
@@ -1723,7 +1728,7 @@ button{user-select:none;-webkit-user-select:none}
         '<span class="p1 nm">' + esc(w.name) + '</span><i class="pipe">|</i>' +
         (ask ? 'Delete this session?'
              : '<span class="p1">\u2212' + w.calories + '</span><i class="u">kCal</i>') +
-      '</div><div class="sp"></div>' +
+      '</div>' +
       acts(w.id, "wedit", "wdel", ask, "wdelno", "wdelyes") + '</div>');
   }
   /* Training/Net now live inside the Totals card, so they read the Food
@@ -3003,8 +3008,15 @@ button{user-select:none;-webkit-user-select:none}
       h.addEventListener("touchmove", move, { passive: false });
       h.addEventListener("touchend", end, { passive: true });
       h.addEventListener("touchcancel", end, { passive: true });
-      // a tap anywhere in the list puts an opened row back
-      h.addEventListener("click", function (e) { if (!e.target.closest(".swipe-act")) shut(); });
+      h.addEventListener("click", function (e) {
+        if (e.target.closest(".swipe-act")) return;
+        // a tap anywhere in the list puts an opened row back, and does no more
+        if (openSw && openSw.isConnected) { shut(); return; }
+        openSw = null;
+        if (e.target.closest("button")) return;      // the icons have their own jobs
+        var hit = e.target.closest(".row");
+        if (hit) hit.classList.toggle("full");
+      });
     });
   })();
 
