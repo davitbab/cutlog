@@ -38,8 +38,6 @@ try {
   --on-accent:#ffffff;
   --shadow:0 2px 6px rgba(18,22,28,.10);
   --name-shadow:0 1px 2px rgba(18,22,28,.20);
-  --groove:inset 0 2px 4px rgba(18,22,28,.20), inset 0 -1px 0 rgba(255,255,255,.55);
-  --raised:0 1px 2px rgba(18,22,28,.30), inset 0 1px 0 rgba(255,255,255,.28);
   /* glass: the rail's own body, the hairline round it, the lit foot, the
      thinner line opposite, and the dimmer wall a pixel inside them both */
   --glass-body:rgba(255,255,255,.20); --glass-rim:rgba(18,22,28,.10);
@@ -49,6 +47,7 @@ try {
     color-mix(in srgb, var(--accent) 20%, transparent) 0%,
     color-mix(in srgb, var(--accent) 12%, transparent) 50%,
     color-mix(in srgb, var(--accent) 17%, transparent) 100%);
+  --glass-pane-mid:color-mix(in srgb, var(--accent) 16%, transparent);
   /* The figures are cut into the pane, not through it. On glass this clear a
      hole would show the same nothing as its surroundings, so the cut is
      frosted the way sandblasted glass is -- a dimmed wash of the glyph, the
@@ -56,6 +55,18 @@ try {
   --glass-cut:rgba(6,45,40,.52); --glass-cut-shade:rgba(6,45,40,.42);
   --glass-cut-lip:rgba(255,255,255,1);
   --glass-btn-ink:#06403a; --glass-edge:rgba(18,22,28,.34);
+  --glass-surface:rgba(255,255,255,.62); --glass-tint-blue:rgba(90,140,255,.03);
+  /* A frame holds content: clear glass, a hairline round it, one lit edge
+     along the foot. A key is pressed: the same pane with the accent behind
+     it, both edges lit so it reads as raised enough to push. Every surface
+     in the app is one of these two. */
+  --glass-frame:inset 0 -1px 0 var(--glass-lip-2), inset 0 1px 0 var(--glass-wall);
+  --glass-keyed:inset 0 -1px 0 var(--glass-lip), inset 0 1px 0 var(--glass-lip-2),
+    inset 0 0 0 1px var(--glass-rim), inset 0 0 0 2px var(--glass-wall);
+  --glass-key:linear-gradient(var(--glass-tint-blue), var(--glass-tint-blue)), var(--glass-pane);
+  --glass-key-flat:linear-gradient(var(--glass-tint-blue), var(--glass-tint-blue)),
+    linear-gradient(var(--glass-pane-mid), var(--glass-pane-mid));
+  --glass-blur:blur(14px) saturate(115%);
   --r:10px; --r-lg:14px;
 
 }
@@ -73,8 +84,6 @@ try {
     --on-accent:#08201e; --field:#3a3a3c;
     --shadow:0 2px 8px rgba(0,0,0,.45);
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
-  --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
-  --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
   --glass-body:rgba(255,255,255,.025); --glass-rim:rgba(255,255,255,.15);
   --glass-lip:rgba(255,255,255,.46); --glass-lip-2:rgba(255,255,255,.19);
   --glass-wall:rgba(255,255,255,.05);
@@ -82,9 +91,11 @@ try {
     color-mix(in srgb, var(--accent) 17%, transparent) 0%,
     color-mix(in srgb, var(--accent) 8%, transparent) 50%,
     color-mix(in srgb, var(--accent) 14%, transparent) 100%);
+  --glass-pane-mid:color-mix(in srgb, var(--accent) 13%, transparent);
   --glass-cut:rgba(255,255,255,.40); --glass-cut-shade:rgba(0,0,0,.75);
   --glass-cut-lip:rgba(255,255,255,.75);
   --glass-btn-ink:#eafffb; --glass-edge:rgba(255,255,255,.46);
+  --glass-surface:rgba(255,255,255,.055); --glass-tint-blue:rgba(130,170,255,.03);
   }
 }
 :root[data-theme="dark"] {
@@ -100,8 +111,6 @@ try {
   --on-accent:#08201e; --field:#3a3a3c;
   --shadow:0 2px 8px rgba(0,0,0,.45);
   --name-shadow:0 2px 4px rgba(0,0,0,.6);
-  --groove:inset 0 2px 5px rgba(0,0,0,.6), inset 0 -1px 0 rgba(255,255,255,.05);
-  --raised:0 1px 3px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.20);
   --glass-body:rgba(255,255,255,.025); --glass-rim:rgba(255,255,255,.15);
   --glass-lip:rgba(255,255,255,.46); --glass-lip-2:rgba(255,255,255,.19);
   --glass-wall:rgba(255,255,255,.05);
@@ -109,9 +118,11 @@ try {
     color-mix(in srgb, var(--accent) 17%, transparent) 0%,
     color-mix(in srgb, var(--accent) 8%, transparent) 50%,
     color-mix(in srgb, var(--accent) 14%, transparent) 100%);
+  --glass-pane-mid:color-mix(in srgb, var(--accent) 13%, transparent);
   --glass-cut:rgba(255,255,255,.40); --glass-cut-shade:rgba(0,0,0,.75);
   --glass-cut-lip:rgba(255,255,255,.75);
   --glass-btn-ink:#eafffb; --glass-edge:rgba(255,255,255,.46);
+  --glass-surface:rgba(255,255,255,.055); --glass-tint-blue:rgba(130,170,255,.03);
 }
 
 *{box-sizing:border-box}
@@ -141,7 +152,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text; user-select:te
   padding-right:max(16px, env(safe-area-inset-right));
 }
 
-/* page name: always visible, sized like a tile's number, so the current
+/* page name: always visible, and the largest thing on the row, so the current
    screen is legible even before/while the header below it settles in */
 .pagename{
   font-size:21px;font-weight:600;letter-spacing:-.02em;padding:14px 0 0;color:var(--ink);
@@ -162,15 +173,8 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
   border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn)}
 .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
 
-/* tiles (still used for the Calories page's small stats, if any remain) */
-.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:16px 0}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 11px;box-shadow:var(--shadow)}
-.tile .lab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.tile .val{font-size:21px;font-weight:600;letter-spacing:-.02em;margin-top:3px}
-.tile .val small{font-size:11px;color:var(--muted);font-weight:500;margin-left:2px}
-
 /* progress: start/target weight sit above the bar's corners, lost/to-go
-   sit below it at the same size the old tiles used */
+   sit below it, the four figures around the bar all one size */
 .progress-card{margin:2px 0 16px}
 .progress-endpoints{display:flex;justify-content:space-between;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--ink-2);margin-bottom:10px}
 /* the unit is not the number: same on all four figures around the bar */
@@ -207,10 +211,12 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
    faint bloom that is the light travelling through it. The order matters: the
    lit edges are listed before the rim so they win the pixel they share,
    leaving the rim to draw the parts no light reaches, and the inset ring does
-   the job of a border without adding to the pane's height. */
+   the job of a border without adding to the pane's height. It carries the
+   same touch of blue as the keys, so the bar and the buttons are cut from
+   one material rather than two that nearly match. */
 .progress-fill{
-  height:100%;width:0;border-radius:999px;position:relative;transition:width .3s ease;
-  background:var(--glass-pane);
+  height:100%;width:var(--bar-w,0);border-radius:999px;position:relative;transition:width .3s ease;
+  background:var(--glass-key);
   box-shadow:
     inset 0 -1px 0 var(--glass-lip),
     inset -1px 0 0 var(--glass-lip-2),
@@ -221,8 +227,8 @@ h1{margin:4px 0 2px;font-size:27px;line-height:1.15;letter-spacing:-.02em;font-w
 /* Plays every time the weight page becomes active (see growBar()), not just
    once at boot -- the keyframe only defines "from", so it animates up to
    whatever width is already set. */
-.progress-fill.boot{animation:barGrow .9s cubic-bezier(.22,.61,.36,1)}
-@keyframes barGrow{from{width:0}}
+.progress-fill.boot{animation:barGrow 1.5s cubic-bezier(.22,.61,.36,1)}
+@keyframes barGrow{from{width:0} to{width:var(--bar-w,0)}}
 /* The reading is cut into the pane rather than printed on it: a frosted
    glyph with the wall above it in shadow and the wall below catching the
    light, which is the whole of what tells an eye "engraved" from "drawn on
@@ -298,55 +304,36 @@ table.fx.kv .arw{display:none}
 }
 @media (prefers-reduced-motion:reduce){.pulse{animation:none}}
 
-/* hero / projection */
-.hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--r-lg);padding:14px 15px;box-shadow:var(--shadow);margin-bottom:14px}
-.hero .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.hero .big{font-size:30px;font-weight:600;letter-spacing:-.025em;margin-top:4px}
-.hero .note{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.5}
-.hero .note b{color:var(--ink);font-weight:600}
-.mrow{display:flex;align-items:center;gap:8px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2);flex-wrap:wrap}
-
-/* Projected and Trend sit side by side and stay short: two glanceable cards,
-   not two essays. .solo is the calories page, where Projected is alone. */
-.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-bottom:13px;align-items:stretch}
-.duo.solo{grid-template-columns:1fr}
-.duo .hero{margin-bottom:0;padding:11px 12px;border-radius:var(--r);display:flex;flex-direction:column}
-.duo .hero .big{font-size:23px;margin-top:2px}
-.duo .hero .note{font-size:11.5px;margin-top:4px;line-height:1.45}
-.duo .hero .mrow{margin-top:auto;padding-top:9px;gap:6px;font-size:11.5px}
-.duo .hero .mrow input{width:66px!important;font-size:12px!important;padding:4px 6px!important}
-.duo .hero.tr{border-left-color:var(--trend)}
-
 /* tabs: a fixed bar at the bottom of the screen, always reachable by thumb */
 .tabs{
   flex:0 0 auto;
-  display:flex;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;background:var(--glass-surface);border-top:1px solid var(--glass-rim);
   padding-bottom:env(safe-area-inset-bottom);
-  box-shadow:0 -1px 12px rgba(18,22,28,.07);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
 }
 .tabs button{
   flex:1;border:0;border-top:2px solid transparent;background:transparent;color:var(--muted);
   font:inherit;font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:0 2px;
   cursor:pointer;min-height:46px;
 }
-.tabs button[aria-selected="true"]{color:var(--accent-ink);border-top-color:var(--accent);background:var(--accent-soft)}
-.tabs button:active{background:var(--surface-2)}
+.tabs button[aria-selected="true"]{color:var(--accent-ink);border-top-color:var(--accent);background:var(--glass-key)}
+.tabs button:active{background:var(--glass-body)}
 
 /* sub-tabs inside a page: Food and Training are two halves of one day */
-.subtabs{display:flex;gap:3px;background:var(--surface-2);border-radius:var(--r);padding:3px;margin-bottom:14px}
+.subtabs{display:flex;gap:3px;background:var(--glass-body);border:1px solid var(--glass-rim);border-radius:var(--r);padding:3px;margin-bottom:14px;box-shadow:var(--glass-frame)}
 .subtabs button{
   flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;font-weight:500;
   padding:9px 0;border-radius:8px;cursor:pointer;min-height:40px;
 }
-.subtabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.subtabs button[aria-selected="true"]{background:var(--glass-key);color:var(--glass-btn-ink);font-weight:600;box-shadow:var(--glass-keyed)}
 
 /* segmented control, used by the appearance switch */
-.seg{display:flex;gap:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);padding:3px}
+.seg{display:flex;gap:3px;background:var(--glass-body);border:1px solid var(--glass-rim);border-radius:var(--r);padding:3px;box-shadow:var(--glass-frame)}
 .seg button{
   flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;font-weight:500;
   padding:9px 0;border-radius:8px;cursor:pointer;min-height:40px;
 }
-.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.seg button[aria-pressed="true"]{background:var(--glass-key);color:var(--glass-btn-ink);font-weight:600;box-shadow:var(--glass-keyed)}
 .seg button:active,.subtabs button:active,.legend button:active{filter:brightness(.95)}
 
 /* card + form */
@@ -361,7 +348,7 @@ details.card > summary{
 details.card > summary .sname{display:inline-flex;align-items:center;gap:10px;min-width:0}
 details.card > summary .sym{font-style:normal;font-size:19px;line-height:1;color:var(--muted);flex:0 0 23px;text-align:center}
 /* A card inside a card: the same summary shape, one step quieter. */
-details.sub{border-top:1px solid var(--line)}
+details.sub{border-top:1px solid var(--glass-rim)}
 details.sub:first-of-type{border-top:0}
 details.sub > summary{
   list-style:none;cursor:pointer;padding:13px 0;font-size:14px;font-weight:600;
@@ -380,15 +367,20 @@ details.sub.danger > summary::after{color:var(--bad)}
 details.card > summary::-webkit-details-marker{display:none}
 details.card > summary::after{content:"\276F";font-size:11px;color:var(--muted);transition:transform .15s ease;flex:0 0 auto}
 details.card[open] > summary::after{transform:rotate(90deg)}
-details.card > summary:active{background:var(--field)}
+details.card > summary:active{background:var(--glass-body)}
 details.card > .details-body{padding:0 15px 15px}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px;box-shadow:var(--shadow);margin-bottom:16px}
+.card{
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r-lg);
+  padding:15px;box-shadow:var(--glass-frame);margin-bottom:16px;
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+}
 .card .lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;display:block;margin-bottom:11px}
 label.f{display:block;font-size:11.5px;color:var(--muted);margin-bottom:4px;font-weight:500}
 input[type=text],input[type=number],input[type=date],input[type=time],input[type=password],select,textarea{
-  width:100%;min-width:0;max-width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--field);
-  border:1px solid var(--line-2);border-radius:9px;padding:9px 10px;
+  width:100%;min-width:0;max-width:100%;font:inherit;font-size:15px;color:var(--ink);
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:9px;padding:9px 10px;
+  box-shadow:var(--glass-frame);
 }
 /* Native date/time fields carry an intrinsic min-width; a 1fr column will not
    shrink below it, which is how a field escapes its card. */
@@ -405,17 +397,18 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .ac{position:relative}
 .sug{
   position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:6;
-  background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
-  box-shadow:var(--shadow);max-height:164px;overflow:hidden;overflow-y:auto;
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:9px;
+  box-shadow:var(--glass-frame);max-height:164px;overflow:hidden;overflow-y:auto;
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
   -webkit-overflow-scrolling:touch;
 }
 .sug .s{
   display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
-  background:none;border:0;border-radius:0;border-bottom:1px solid var(--line);
+  background:none;border:0;border-radius:0;border-bottom:1px solid var(--glass-rim);
   padding:10px 11px;font:inherit;font-size:14px;color:var(--ink);
 }
 .sug .s:last-child{border-bottom:0}
-.sug .s.on,.sug .s:active{background:var(--surface-2)}
+.sug .s.on,.sug .s:active{background:var(--glass-body)}
 .sug .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sug .kc{flex:0 0 auto;font-size:11.5px;color:var(--muted)}
 
@@ -457,13 +450,14 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .whenrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .minif{
   position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:8px;
+  box-shadow:var(--glass-frame);
   padding:4px 9px;min-height:32px;font-size:12.5px;color:var(--ink-2);
 }
 .minif:focus-within{border-color:var(--accent)}
 .dtinyrow{display:flex;align-items:center;gap:13px}
 .minif input{
-  width:52px;border:0;background:transparent;padding:0;font-size:13.5px;text-align:right;
+  width:52px;border:0;box-shadow:none;background:transparent;padding:0;font-size:13.5px;text-align:right;
   font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
 }
 .minif i{font-style:normal;font-size:11px;color:var(--muted)}
@@ -474,63 +468,71 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
    them, so they grow without the card growing. */
 .wsingle{
   display:flex;align-items:stretch;gap:10px;
-  background:var(--surface-2);border:1px solid var(--line);border-radius:14px;
+  background:var(--glass-body);border:1px solid var(--glass-rim);border-radius:14px;
+  box-shadow:var(--glass-frame);
   padding:6px;margin-bottom:9px;
 }
 /* The step keys are the same glass; the rim is an inset ring rather than a
    border so nothing has to change size to get it. */
 .wsingle button{
   flex:0 0 54px;width:54px;border-radius:11px;
-  border:1px solid transparent;background:var(--glass-pane);color:var(--glass-btn-ink);
+  border:1px solid transparent;background:var(--glass-key);color:var(--glass-btn-ink);
   font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;
   cursor:pointer;line-height:1;padding:0;
-  box-shadow:
-    inset 0 -1px 0 var(--glass-lip),
-    inset 0 1px 0 var(--glass-lip-2),
-    inset 0 0 0 1px var(--glass-rim),
-    inset 0 0 0 2px var(--glass-wall);
-  -webkit-backdrop-filter:blur(14px) saturate(115%);
-  backdrop-filter:blur(14px) saturate(115%);
+  box-shadow:var(--glass-keyed);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
 }
 .wsingle button:active{filter:brightness(1.35)}
 .wsingle .rd{
   display:flex;align-items:baseline;justify-content:center;gap:4px;
   touch-action:none;cursor:ns-resize;flex:1 1 auto;min-width:0;
 }
+/* The digits are the buttons, in glyph form: the same fill exactly, read
+   from the same property, with nothing lit inside them -- a button has no
+   shine in its middle and neither do these. All the glass work is on the
+   outline, which takes the line the glass draws against the page. The glyphs
+   themselves are transparent and the fill shows through, which is what
+   background-clip:text is for; the caret needs a colour of its own or it
+   goes with them. */
 .wsingle .rd input{
   width:100%;text-align:center;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-  font-size:30px;font-weight:600;letter-spacing:-.02em;border:0;background:transparent;padding:0;
+  font-size:30px;font-weight:600;letter-spacing:-.02em;border:0;box-shadow:none;background:transparent;padding:0;
+  color:transparent;caret-color:var(--accent);
+  background-image:var(--glass-key-flat);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-stroke:.9px var(--glass-edge);
 }
 .wsingle .rd .u{font-size:13px;color:var(--muted);font-weight:500;flex:0 0 auto}
 
 /* buttons */
 /* Press feedback, plus the .ok state a save flashes. */
+/* Every button is a key. With no solid fill behind it the label carries the
+   contrast by itself, so it takes an ink of its own rather than the one meant
+   for a filled button. Pressing brightens the material instead of darkening
+   it -- glass catches more light when you push on it, it does not go dim. */
 .btn{
   width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-size:14.5px;font-weight:600;
-  cursor:pointer;background:var(--accent);color:var(--on-accent);min-height:44px;
+  cursor:pointer;background:var(--glass-key);color:var(--glass-btn-ink);min-height:44px;
+  box-shadow:var(--glass-keyed);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
   transition:transform .07s ease, filter .12s ease;
 }
-.btn:active{transform:scale(.98);filter:brightness(.93)}
-/* The same glass as the bar, on the keys you actually press. With no solid
-   fill left behind it the label has to carry the contrast by itself, so it
-   takes an ink of its own rather than the one meant for a filled button.
-   Pressing brightens the material instead of darkening it -- glass catches
-   more light when you push on it, it does not go dim. */
-.btn.glass{
-  background:var(--glass-pane);color:var(--glass-btn-ink);
-  box-shadow:
-    inset 0 -1px 0 var(--glass-lip),
-    inset 0 1px 0 var(--glass-lip-2),
-    inset 0 0 0 1px var(--glass-rim),
-    inset 0 0 0 2px var(--glass-wall);
-  -webkit-backdrop-filter:blur(14px) saturate(115%);
-  backdrop-filter:blur(14px) saturate(115%);
+.btn:active{transform:scale(.98);filter:brightness(1.35)}
+/* A save confirms in the blue the numbers use, and glows the way they do
+   rather than filling in: one flat colour would be the only solid thing left
+   in the app. Same keyframes as the figures, so it is literally the same
+   glow -- two beats fit inside the 1500ms the label is swapped for. */
+.btn.ok{
+  background:linear-gradient(rgba(var(--fx-good-rgb),.14), rgba(var(--fx-good-rgb),.14)), var(--glass-pane);
+  color:var(--fx-good); --fx-rgb:var(--fx-good-rgb);
+  animation:statPulse .75s ease-in-out 2;
 }
-.btn.glass:active{filter:brightness(1.35)}
-.btn.ok{background:var(--good);color:var(--on-accent)}
 .btn:disabled{opacity:.45;cursor:default}
-.btn.sec{background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2)}
-.btn.sec:active{background:var(--field)}
+/* A second action next to a first one: the frame, with no accent behind it.
+   Pressing lights its edges rather than changing its brightness, which is the
+   only move that reads the same way on a white page and a black one. */
+.btn.sec{background:var(--glass-surface);color:var(--ink);border:1px solid var(--glass-rim);box-shadow:var(--glass-frame)}
+.btn.sec:active{filter:none;box-shadow:var(--glass-keyed)}
 /* Only shows when there is something to say; empty, it takes no room. */
 .formstatus{margin-top:8px}
 .formstatus:empty{margin-top:0}
@@ -549,33 +551,72 @@ button.dayhead{
   display:flex;align-items:center;gap:7px;text-align:left;cursor:pointer;
   padding:7px 4px;border-radius:8px;min-height:38px;
 }
-button.dayhead:active{background:var(--surface-2)}
+button.dayhead:active{background:var(--glass-body)}
 button.dayhead .ch{font-size:9px;color:var(--line-2);width:9px;flex:0 0 9px}
 button.dayhead[aria-expanded="true"] .ch{color:var(--accent)}
 button.dayhead .sp{flex:1}
 button.dayhead .avg{white-space:nowrap}
 button.dayhead.mo{font-weight:600;color:var(--ink-2)}
-.nest{padding-left:10px;border-left:2px solid var(--line);margin:2px 0 6px}
-.row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;margin-bottom:6px}
+.nest{padding-left:10px;border-left:2px solid var(--glass-rim);margin:2px 0 6px}
+.row{display:flex;align-items:center;gap:4px;background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r);padding:5px 7px;box-shadow:var(--glass-frame)}
 .row.editing{border-color:var(--accent);background:var(--accent-soft)}
-.row .w{font-size:15.5px;font-weight:600}
-.row .meta{font-size:11.5px;color:var(--muted);margin-top:1px}
 .row .sp{flex:1}
-.iconbtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px;border-radius:7px;font-size:12px;font-weight:600;min-width:34px;min-height:34px}
-.iconbtn:hover{color:var(--ink);background:var(--surface-2)}
-.iconbtn:active{color:var(--ink);background:var(--line)}
+/* One line per entry. The name is the only part that gives way; everything
+   after it is fixed, and the macro figures wear the chart's colours so the
+   letters are nearly redundant -- which is what lets the spacing come in
+   this tight without the numbers running together. */
+.row .line{display:flex;align-items:baseline;gap:4px;min-width:0;flex:1 1 auto;font-size:10.5px;color:var(--muted)}
+/* One headline treatment for all three logs: the food name, the session
+   name, the weight, the calorie figure. Same font, size and ink, with
+   tabular figures so a column of weights still lines up without reaching for
+   the mono face. The small data beside it stays mono. */
+.row .line .p1{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.row .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:0 1 auto}
+.row .line .u{font-family:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;font-size:10px;flex:0 0 auto}
+.row .line .pipe{flex:0 0 auto;opacity:.4}
+.row .line .g,.row .line .mac{flex:0 0 auto;white-space:nowrap}
+.row .line .mac{font-size:10px}
+/* The dots are back: with the figures this tight the colours alone were
+   not enough to keep them apart. */
+.row .line .mac{display:flex;gap:4px}
+.row .line .mac .dot{opacity:.4}
+.row .line i{font-style:normal}
+.mp{color:var(--macro-p)}.mc{color:var(--macro-c)}.mf{color:var(--macro-f)}
+/* Swipe a row to the left and Remove comes in from outside the frame. The
+   action rides in the same track as the row rather than sitting behind it,
+   so nothing red ever shows through the row's own glass. */
+.swipe{overflow:hidden;border-radius:var(--r);margin-bottom:6px}
+.swtrack{display:flex;align-items:stretch;transition:transform .22s cubic-bezier(.22,.61,.36,1);touch-action:pan-y}
+.swipe.drag .swtrack{transition:none}
+.swipe.open .swtrack{transform:translate3d(-104px,0,0)}
+.swtrack > .row{flex:0 0 100%;min-width:0}
+.swipe-act{
+  flex:0 0 96px;margin-left:8px;border:0;border-radius:var(--r);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  background:var(--bad);color:#fff;font:inherit;font-size:11px;font-weight:600;letter-spacing:.03em;
+}
+.swipe-act:active{filter:brightness(1.12)}
+.swipe-act .bin{width:15px;height:15px}
+.bin{width:15px;height:15px;display:block;fill:currentColor}
+.iconbtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:7px 3px;margin:-6px 0;border-radius:7px;font-size:14px;font-weight:600;min-width:26px;display:inline-flex;align-items:center;justify-content:center}
+.iconbtn:hover{color:var(--ink);background:var(--glass-body)}
+.iconbtn:active{color:var(--ink);background:var(--glass-surface)}
 .iconbtn.del:hover{color:var(--bad)}
-.tag{font-size:10px;padding:1px 5px;border-radius:5px;background:var(--accent-soft);color:var(--accent-ink);font-weight:600;letter-spacing:.03em}
 .empty{text-align:center;color:var(--muted);font-size:13.5px;padding:26px 10px}
 
 /* chart */
-.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:13px 11px 8px;box-shadow:var(--shadow);margin-bottom:12px}
+.chartcard{
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r-lg);
+  padding:13px 11px 8px;box-shadow:var(--glass-frame);margin-bottom:12px;
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+}
 /* The legend doubles as the series switchboard. */
 .legend{display:flex;gap:5px;padding:10px 0 2px;font-size:11px;color:var(--ink-2)}
 .legend button{
   flex:1 1 0;min-width:0;
   display:flex;flex-direction:column;align-items:center;gap:5px;font:inherit;font-size:11px;color:var(--ink-2);
-  background:var(--surface);border:1px solid var(--line-2);border-radius:8px;
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:8px;
+  box-shadow:var(--glass-frame);
   padding:6px 4px;cursor:pointer;min-height:36px;
 }
 .legend button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
@@ -590,8 +631,9 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
   /* anchored, or its static position lands under the svg and the host reports
      a phantom scroll the height of the tooltip */
   position:absolute;top:0;left:0;pointer-events:none;opacity:0;transition:opacity .09s;
-  background:var(--surface);border:1px solid var(--line-2);border-radius:8px;
-  padding:6px 8px;font-size:11.5px;box-shadow:var(--shadow);white-space:nowrap;z-index:5;color:var(--ink);
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:8px;
+  padding:6px 8px;font-size:11.5px;box-shadow:var(--glass-frame);white-space:nowrap;z-index:5;color:var(--ink);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
 }
 #tip .tr{display:flex;gap:7px;justify-content:space-between}
 #tip .tk{color:var(--muted)}
@@ -603,7 +645,7 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .linkbtn{background:none;border:0;color:inherit;text-decoration:underline;font:inherit;font-weight:600;cursor:pointer;padding:0}
 .tiny{font-size:11.5px;color:var(--muted);line-height:1.5}
 table.fx{width:100%;border-collapse:collapse;font-size:12.5px}
-table.fx th,table.fx td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--line)}
+table.fx th,table.fx td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--glass-rim)}
 table.fx th:first-child,table.fx td:first-child{text-align:left}
 table.fx th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}
 /* label-left / value-right rows, for cards where a single row of many
@@ -616,8 +658,9 @@ table.fx.kv tr:last-child td{border-bottom:0}
    its read-only neighbors, just boxed enough to signal you can tap it */
 table.fx.kv input.kv-edit{
   width:52px;text-align:right;font:inherit;font-family:"IBM Plex Mono",monospace;
-  font-size:15px;font-weight:600;color:var(--ink);background:var(--field);
-  border:1px solid var(--line-2);border-radius:6px;padding:2px 5px;
+  font-size:15px;font-weight:600;color:var(--ink);
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:6px;padding:2px 5px;
+  box-shadow:var(--glass-frame);
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
@@ -687,7 +730,7 @@ button{user-select:none;-webkit-user-select:none}
         <button type="button" data-wstep="0.1" aria-label="Increase by 0.1 kg">+</button>
       </div>
       <div class="btnrow">
-        <button class="btn glass" id="wSave">Add</button>
+        <button class="btn" id="wSave">Add</button>
         <button class="btn sec" id="wCancel" style="display:none;flex:0 0 96px">Cancel</button>
       </div>
       <div class="tiny" id="wMsg" style="margin-top:8px"></div>
@@ -738,7 +781,7 @@ button{user-select:none;-webkit-user-select:none}
         <span class="minif"><input type="text" id="fGrams" inputmode="decimal" autocomplete="off" placeholder="250" aria-label="Grams, optional"><i>g</i></span>
       </div>
       <div class="btnrow">
-        <button class="btn glass" id="fSave">Add food</button>
+        <button class="btn" id="fSave">Add food</button>
         <button class="btn sec" id="fCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
       <div class="tiny formstatus" id="fStatus"></div>
@@ -777,7 +820,7 @@ button{user-select:none;-webkit-user-select:none}
         <span class="minif"><input type="text" id="tKcal" inputmode="decimal" autocomplete="off" placeholder="450" aria-label="Calories burned"><i>kcal</i></span>
       </div>
       <div class="btnrow">
-        <button class="btn glass" id="tSave">Add training</button>
+        <button class="btn" id="tSave">Add training</button>
         <button class="btn sec" id="tCancel" style="display:none;flex:0 0 92px">Cancel</button>
       </div>
       <div class="tiny formstatus" id="tStatus"></div>
@@ -1355,7 +1398,7 @@ button{user-select:none;-webkit-user-select:none}
     var totalSpan = G.start - G.target;
     var lostVal = cur !== null ? (G.start - cur) : 0;
     var fillPct = totalSpan !== 0 ? Math.max(0, Math.min(100, (lostVal / totalSpan) * 100)) : 0;
-    $("progressFill").style.width = fillPct.toFixed(1) + "%";
+    $("progressFill").style.setProperty("--bar-w", fillPct.toFixed(1) + "%");
     // the share of the way there, which is what the bar is drawing anyway --
     // the weight itself is already on the card below, at ten times the size
     $("pNow").textContent = G.set && cur !== null ? Math.round(fillPct) + "%" : "";
@@ -1524,16 +1567,14 @@ button{user-select:none;-webkit-user-select:none}
     var desc = function (a, b) { return a.date === b.date ? b.time.localeCompare(a.time) : b.date.localeCompare(a.date); };
     var wRow = function (e) {
       var ask = pendingDel === e.id;
-      return '<div class="row' + (editEntry === e.id ? ' editing' : '') + '">' +
-        '<div><div class="w num">' + e.weight.toFixed(1) + ' kg</div>' +
-        '<div class="meta">' + (ask ? 'Delete this reading?' : esc(dayLabel(e.date)) + ' \u00b7 ' + esc(e.time)) + '</div></div>' +
-        '<div class="sp"></div>' +
-        (ask
-          ? '<button class="iconbtn" data-delno="1">Keep</button>' +
-            '<button class="iconbtn" data-delyes="' + e.id + '" style="color:var(--bad)">Delete</button>'
-          : '<button class="iconbtn" data-edit="' + e.id + '" aria-label="Edit">Edit</button>' +
-            '<button class="iconbtn del" data-del="' + e.id + '" aria-label="Delete">\u2715</button>') +
-        '</div>';
+      return swipe(e.id, "delyes",
+        '<div class="row' + (editEntry === e.id ? ' editing' : '') + '">' +
+        '<div class="line num">' +
+          (ask ? '<span class="p1">Delete this reading?</span>'
+               : '<span class="p1">' + e.weight.toFixed(1) + '</span><i class="u">kg</i>' +
+                 '<i class="pipe">|</i>' + esc(dayLabel(e.date)) + ' ' + esc(e.time)) +
+        '</div><div class="sp"></div>' +
+        acts(e.id, "edit", "del", ask, "delno", "delyes") + '</div>');
     };
     var sp = byMonth(S.entries, dateOfRec);
     var curKey = monthOf(iso(new Date()));
@@ -1552,19 +1593,22 @@ button{user-select:none;-webkit-user-select:none}
     }).join("");
   }
 
-  var SRC = { claude: "Claude", off: "Food Facts", table: "Built-in", manual: "Yours" };
-
   function foodRow(f) {
-    return '<div class="row' + (editFood === f.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(f.name) +
-      ' <span style="color:var(--muted);font-weight:400" class="num">\u00b7 ' + f.grams + ' g</span></div>' +
-      '<div class="meta num">' + f.calories + ' kcal \u00b7 ' + f.protein + ' P \u00b7 ' + f.carbs + ' C \u00b7 ' + f.fat + ' F</div></div>' +
-      (SRC[f.src] && pendingFDel !== f.id ? '<span class="tag">' + SRC[f.src] + '</span>' : '') +
-      '<div class="sp"></div>' +
-      (pendingFDel === f.id
-        ? '<button class="iconbtn" data-fdelno="1">Keep</button>' +
-          '<button class="iconbtn" data-fdelyes="' + f.id + '" style="color:var(--bad)">Delete</button>'
-        : '<button class="iconbtn" data-fedit="' + f.id + '">Edit</button>' +
-          '<button class="iconbtn del" data-fdel="' + f.id + '">\u2715</button>') + '</div>';
+    var ask = pendingFDel === f.id;
+    return swipe(f.id, "fdelyes",
+      '<div class="row' + (editFood === f.id ? ' editing' : '') + '">' +
+      '<div class="line">' +
+        '<span class="p1 nm">' + esc(f.name) + '</span>' +
+        (ask ? '<i class="pipe">|</i>Delete this item?'
+             : '<span class="g num">' + f.grams + 'g</span>' +
+               '<i class="pipe">|</i>' +
+               '<span class="p1">' + f.calories + '</span><i class="u">kCal</i>' +
+               '<i class="pipe">|</i><span class="mac num">' +
+                 '<i class="mp">' + f.protein + ' P</i>' +
+                 '<i class="dot">\u00b7</i><i class="mc">' + f.carbs + ' C</i>' +
+                 '<i class="dot">\u00b7</i><i class="mf">' + f.fat + ' F</i></span>') +
+      '</div><div class="sp"></div>' +
+      acts(f.id, "fedit", "fdel", ask, "fdelno", "fdelyes") + '</div>');
   }
 
   function renderFood() {
@@ -1672,14 +1716,15 @@ button{user-select:none;-webkit-user-select:none}
     tStatus("");
   }
   function trainRow(w) {
-    return '<div class="row' + (editWork === w.id ? ' editing' : '') + '"><div><div class="w" style="font-size:14px">' + esc(w.name) + '</div>' +
-      '<div class="meta num">\u2212' + w.calories + ' kcal</div></div>' +
-      '<div class="sp"></div>' +
-      (pendingWDel === w.id
-        ? '<button class="iconbtn" data-wdelno="1">Keep</button>' +
-          '<button class="iconbtn" data-wdelyes="' + w.id + '" style="color:var(--bad)">Delete</button>'
-        : '<button class="iconbtn" data-wedit="' + w.id + '">Edit</button>' +
-          '<button class="iconbtn del" data-wdel="' + w.id + '">\u2715</button>') + '</div>';
+    var ask = pendingWDel === w.id;
+    return swipe(w.id, "wdelyes",
+      '<div class="row' + (editWork === w.id ? ' editing' : '') + '">' +
+      '<div class="line">' +
+        '<span class="p1 nm">' + esc(w.name) + '</span><i class="pipe">|</i>' +
+        (ask ? 'Delete this session?'
+             : '<span class="p1">\u2212' + w.calories + '</span><i class="u">kCal</i>') +
+      '</div><div class="sp"></div>' +
+      acts(w.id, "wedit", "wdel", ask, "wdelno", "wdelyes") + '</div>');
   }
   /* Training/Net now live inside the Totals card, so they read the Food
      form's date -- the only place they're shown. */
@@ -2479,6 +2524,27 @@ button{user-select:none;-webkit-user-select:none}
     if (!used) delete S.cache[k];
   }
 
+  /* A pencil and a bin, the same pair on every row. The bin is drawn rather
+     than typed: there is no monochrome wastebasket in the character set, only
+     an emoji one, which would arrive in colour and at the wrong weight. */
+  var BIN = '<svg class="bin" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M9 3h6l1 1h4v2H4V4h4l1-1z"/>' +
+    '<path d="M6 8h12l-1 12.2A2 2 0 0 1 15 22H9a2 2 0 0 1-2-1.8L6 8z"/></svg>';
+  function acts(id, edit, del, ask, no, yes) {
+    return ask
+      ? '<button class="iconbtn" data-' + no + '="1">Keep</button>' +
+        '<button class="iconbtn" data-' + yes + '="' + id + '" style="color:var(--bad)">Delete</button>'
+      : '<button class="iconbtn" data-' + edit + '="' + id + '" aria-label="Edit">\u270e</button>' +
+        '<button class="iconbtn del" data-' + del + '="' + id + '" aria-label="Delete">' + BIN + '</button>';
+  }
+  /* The row and its Remove ride in one track, so the action comes in from
+     outside the frame instead of lying behind the glass. */
+  function swipe(id, yes, inner) {
+    return '<div class="swipe"><div class="swtrack">' + inner +
+      '<button class="swipe-act" data-' + yes + '="' + id + '" aria-label="Remove">' +
+      BIN + 'Remove</button></div></div>';
+  }
+
   /* Every word typed so far has to start a word in the name, so "chick b"
      finds "chicken breast" and "beef" does not. Matching the opening word
      ranks above matching a later one, and your own figures win ties. */
@@ -2876,7 +2942,7 @@ button{user-select:none;-webkit-user-select:none}
     fill.classList.remove("boot");
     void fill.offsetWidth;
     fill.classList.add("boot");
-    barT = setTimeout(function () { fill.classList.remove("boot"); }, 1000);
+    barT = setTimeout(function () { fill.classList.remove("boot"); }, 1700);
   }
   /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
@@ -2892,6 +2958,55 @@ button{user-select:none;-webkit-user-select:none}
   document.querySelector(".tabs").addEventListener("click", function (e) {
     var b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab);
   });
+
+  /* Swipe a row left to uncover Remove. The gesture lives on the lists, not
+     on the page: a leftward drag that starts on a row belongs to the row, and
+     stopping it here is exactly what keeps the page swipe from taking it.
+     Anything else -- a vertical scroll, a drag to the right -- is left alone
+     and reaches the page handler untouched. */
+  (function () {
+    var PULL = 104, openSw = null, sw = null, row = null, x0 = 0, y0 = 0, at = 0, on = false;
+    function shut() { if (openSw) { openSw.classList.remove("open"); openSw = null; } }
+    function start(e) {
+      sw = null;
+      if (e.touches.length !== 1 || e.target.closest("button")) return;
+      var s = e.target.closest(".swipe");
+      if (!s) { shut(); return; }
+      if (openSw && openSw !== s) shut();
+      sw = s; row = s.querySelector(".swtrack");
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; at = 0; on = false;
+    }
+    function move(e) {
+      if (!sw || e.touches.length !== 1) return;
+      var dx = e.touches[0].clientX - x0, dy = e.touches[0].clientY - y0;
+      if (!on) {
+        if (Math.abs(dy) > Math.abs(dx)) { sw = null; return; }   // that is a scroll
+        if (dx > -8) return;                                      // not leftward yet
+        on = true; sw.classList.add("drag");
+      }
+      e.stopPropagation();
+      if (e.cancelable) e.preventDefault();
+      at = Math.max(-PULL - 18, Math.min(0, dx - (openSw === sw ? -PULL : 0)));
+      row.style.transform = "translate3d(" + at + "px,0,0)";
+    }
+    function end() {
+      if (!sw) return;
+      sw.classList.remove("drag");
+      row.style.transform = "";
+      if (on && at <= -PULL * 0.42) { sw.classList.add("open"); openSw = sw; }
+      else if (sw === openSw) shut();
+      sw = null; on = false;
+    }
+    ["histList", "foodList", "trainList"].forEach(function (id) {
+      var h = $(id);
+      h.addEventListener("touchstart", start, { passive: true });
+      h.addEventListener("touchmove", move, { passive: false });
+      h.addEventListener("touchend", end, { passive: true });
+      h.addEventListener("touchcancel", end, { passive: true });
+      // a tap anywhere in the list puts an opened row back
+      h.addEventListener("click", function (e) { if (!e.target.closest(".swipe-act")) shut(); });
+    });
+  })();
 
   /* Drag left/right to change page: both pages follow the finger, and letting
      go past a third of the width (or with a firm flick) completes the move.
