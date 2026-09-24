@@ -397,8 +397,8 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
 .ac{position:relative}
 .sug{
   position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:6;
-  background:color-mix(in srgb, var(--surface) 96%, transparent);border:1px solid var(--glass-rim);border-radius:9px;
-  box-shadow:var(--glass-frame), 0 6px 18px -4px rgba(0,0,0,.45);max-height:164px;overflow:hidden;overflow-y:auto;
+  background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:9px;
+  box-shadow:var(--glass-frame);max-height:164px;overflow:hidden;overflow-y:auto;
   -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
   -webkit-overflow-scrolling:touch;
 }
@@ -408,7 +408,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-vis
   padding:10px 11px;font:inherit;font-size:14px;color:var(--ink);
 }
 .sug .s:last-child{border-bottom:0}
-.sug .s.on,.sug .s:active{background:color-mix(in srgb, var(--surface-2) 90%, transparent)}
+.sug .s.on,.sug .s:active{background:var(--glass-body)}
 .sug .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sug .kc{flex:0 0 auto;font-size:11.5px;color:var(--muted)}
 
@@ -558,7 +558,7 @@ button.dayhead .sp{flex:1}
 button.dayhead .avg{white-space:nowrap}
 button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .nest{padding-left:10px;border-left:2px solid var(--glass-rim);margin:2px 0 6px}
-.row{display:flex;align-items:center;gap:4px;background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r);padding:5px 7px;box-shadow:var(--glass-frame)}
+.row{display:flex;align-items:center;gap:4px;background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r);padding:7px 9px;min-height:42px;box-shadow:var(--glass-frame)}
 .row.editing{border-color:var(--accent);background:var(--accent-soft)}
 /* One line per entry. The name is the only part that gives way; everything
    after it is fixed, and the macro figures wear the chart's colours so the
@@ -601,9 +601,10 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
   background:var(--bad);color:#fff;font:inherit;font-size:11px;font-weight:600;letter-spacing:.03em;
 }
 .swipe-act:active{filter:brightness(1.12)}
-.swipe-act .bin{width:15px;height:15px}
-.bin{width:15px;height:15px;display:block;fill:currentColor}
-.iconbtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:7px 3px;margin:-6px 0;border-radius:7px;font-size:14px;font-weight:600;min-width:26px;display:inline-flex;align-items:center;justify-content:center}
+.swipe-act .bin{width:19px;height:19px}
+.bin{width:17px;height:17px;display:block;fill:currentColor}
+.iconbtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:8px 4px;margin:-6px 0;border-radius:7px;font-size:17px;line-height:1;font-weight:600;min-width:29px;display:inline-flex;align-items:center;justify-content:center}
+.iconbtn.word{font-size:13px;line-height:1.2;padding:8px 6px;min-width:0}
 .iconbtn:hover{color:var(--ink);background:var(--glass-body)}
 .iconbtn:active{color:var(--ink);background:var(--glass-surface)}
 .iconbtn.del:hover{color:var(--bad)}
@@ -2537,8 +2538,8 @@ button{user-select:none;-webkit-user-select:none}
     '<path d="M6 8h12l-1 12.2A2 2 0 0 1 15 22H9a2 2 0 0 1-2-1.8L6 8z"/></svg>';
   function acts(id, edit, del, ask, no, yes) {
     return ask
-      ? '<button class="iconbtn" data-' + no + '="1">Keep</button>' +
-        '<button class="iconbtn" data-' + yes + '="' + id + '" style="color:var(--bad)">Delete</button>'
+      ? '<button class="iconbtn word" data-' + no + '="1">Keep</button>' +
+        '<button class="iconbtn word" data-' + yes + '="' + id + '" style="color:var(--bad)">Delete</button>'
       : '<button class="iconbtn" data-' + edit + '="' + id + '" aria-label="Edit">\u270e</button>' +
         '<button class="iconbtn del" data-' + del + '="' + id + '" aria-label="Delete">' + BIN + '</button>';
   }
