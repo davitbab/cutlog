@@ -31,7 +31,7 @@ try {
   --line:#e4e4e9; --line-2:#d1d1d6;
   --accent:#0b8f84; --accent-ink:#07655d; --accent-soft:#e2f1ef; --accent-dim:#0a5f57;
   --trend:#c0562a; --neutral-series:#8a94a1; --kcal:#5f7a9e;
-  --macro-p:#3d7ea6; --macro-c:#cc8a20; --macro-f:#b3453c;
+  --macro-p:#3d7ea6; --macro-c:#cc8a20; --macro-f:#b3453c; --macro-wash:20%;
   --good:#1c7a4a; --warn:#8a5a00; --warn-bg:#fdf4e3; --warn-line:#e8d5a8;
   --bad:#a3282b; --bad-bg:#fdeceb; --bad-line:#f0c4c2;
   --fx-good:#2563c9; --fx-good-rgb:37,99,201; --fx-bad:#c0392f; --fx-bad-rgb:192,57,47;
@@ -77,7 +77,7 @@ try {
     --line:#3a3a3c; --line-2:#48484a;
     --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
     --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-    --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82;
+    --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82; --macro-wash:26%;
     --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
     --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
     --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -104,7 +104,7 @@ try {
   --line:#3a3a3c; --line-2:#48484a;
   --accent:#22a89a; --accent-ink:#4fc4b6; --accent-soft:#12302d; --accent-dim:#15564e;
   --trend:#d4763a; --neutral-series:#77818e; --kcal:#7f9ac0;
-  --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82;
+  --macro-p:#6fa8d6; --macro-c:#e6ad55; --macro-f:#e08b82; --macro-wash:26%;
   --good:#4cb782; --warn:#e0b25f; --warn-bg:#2a2314; --warn-line:#4a3d1c;
   --bad:#e97a78; --bad-bg:#2c1718; --bad-line:#4d2526;
   --fx-good:#6aa8ff; --fx-good-rgb:106,168,255; --fx-bad:#f08a86; --fx-bad-rgb:240,138,134;
@@ -559,6 +559,21 @@ button.dayhead .avg{white-space:nowrap}
 button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 .nest{padding-left:10px;border-left:2px solid var(--glass-rim);margin:2px 0 6px}
 .row{display:flex;align-items:center;gap:4px;background:var(--glass-surface);border:1px solid var(--glass-rim);border-radius:var(--r);padding:7px 9px;min-height:42px;box-shadow:var(--glass-frame)}
+/* A food row carries its own macro bar: the same split the calorie chart
+   draws, by calories rather than grams, protein then carbs then fat. It
+   reads at a glance across a day of rows, which is what the three figures
+   never did -- so collapsed, the figures give way to it. */
+.row.mac-bg{background:
+  linear-gradient(90deg,
+    color-mix(in srgb, var(--macro-p) var(--macro-wash), transparent) 0 var(--mp),
+    color-mix(in srgb, var(--macro-c) var(--macro-wash), transparent) var(--mp) var(--mc),
+    color-mix(in srgb, var(--macro-f) var(--macro-wash), transparent) var(--mc) 100%),
+  var(--glass-surface)}
+/* calories logged, macros unknown -- one flat wash, the chart's own tell */
+.row.mac-none{background:
+  linear-gradient(color-mix(in srgb, var(--neutral-series) 12%, transparent),
+    color-mix(in srgb, var(--neutral-series) 12%, transparent)),
+  var(--glass-surface)}
 .row.editing{border-color:var(--accent);background:var(--accent-soft)}
 /* One line per entry. The name is the only part that gives way; everything
    after it is fixed, and the macro figures wear the chart's colours so the
@@ -584,6 +599,9 @@ button.dayhead.mo{font-weight:600;color:var(--ink-2)}
 /* The dots are back: with the figures this tight the colours alone were
    not enough to keep them apart. */
 .row .line .mac{display:flex;gap:4px}
+.row .line .mac,.row .line .msep{display:none}
+.row.full .line .mac{display:flex}
+.row.full .line .msep{display:block}
 .row .line .mac .dot{opacity:.4}
 .row .line i{font-style:normal}
 .mp{color:var(--macro-p)}.mc{color:var(--macro-c)}.mf{color:var(--macro-f)}
@@ -1601,15 +1619,22 @@ button{user-select:none;-webkit-user-select:none}
 
   function foodRow(f) {
     var ask = pendingFDel === f.id;
+    // 4/4/9, the same arithmetic the chart stacks its days with
+    var pk = (+f.protein || 0) * 4, ck = (+f.carbs || 0) * 4, fk = (+f.fat || 0) * 9;
+    var mtot = pk + ck + fk;
+    var cls = 'row' + (editFood === f.id ? ' editing' : '') + (mtot > 0 ? ' mac-bg' : ' mac-none');
+    var sty = mtot > 0
+      ? ' style="--mp:' + (pk / mtot * 100).toFixed(1) + '%;--mc:' + ((pk + ck) / mtot * 100).toFixed(1) + '%"'
+      : '';
     return swipe(f.id, "fdelyes",
-      '<div class="row' + (editFood === f.id ? ' editing' : '') + '">' +
+      '<div class="' + cls + '"' + sty + '>' +
       '<div class="line">' +
         '<span class="p1 nm">' + esc(f.name) + '</span>' +
         (ask ? '<i class="pipe">|</i>Delete this item?'
              : '<span class="g num">' + f.grams + 'g</span>' +
                '<i class="pipe">|</i>' +
                '<span class="p1">' + f.calories + '</span><i class="u">kCal</i>' +
-               '<i class="pipe">|</i><span class="mac num">' +
+               '<i class="pipe msep">|</i><span class="mac num">' +
                  '<i class="mp">' + f.protein + ' P</i>' +
                  '<i class="dot">\u00b7</i><i class="mc">' + f.carbs + ' C</i>' +
                  '<i class="dot">\u00b7</i><i class="mf">' + f.fat + ' F</i></span>') +
