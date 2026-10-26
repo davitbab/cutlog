@@ -335,6 +335,9 @@ table.fx.kv .arw{display:none}
 }
 .seg button[aria-pressed="true"]{background:var(--glass-key);color:var(--glass-btn-ink);font-weight:600;box-shadow:var(--glass-keyed)}
 .seg button:active,.subtabs button:active,.legend button:active{filter:brightness(.95)}
+/* the small switch in a card's header: the same control, sized to the label */
+.seg.mini{padding:2px;gap:2px;flex:0 0 auto;border-radius:8px}
+.seg.mini button{flex:0 0 auto;font-size:11px;padding:4px 10px;min-height:0;border-radius:6px}
 
 /* card + form */
 /* Settings: each section collapses behind a tappable row, like the fold
@@ -731,7 +734,13 @@ button{user-select:none;-webkit-user-select:none}
       </div>
     </div>
     <div class="card" id="trendCard">
-      <span class="lab" id="trendCardLab">Trend from weigh-ins</span>
+      <div class="cardhead">
+        <span class="lab" id="trendCardLab">Trend from weigh-ins</span>
+        <div class="seg mini" id="trendBasis" role="group" aria-label="Weigh-ins the trend reads">
+          <button type="button" data-basis="all" aria-pressed="false">All</button>
+          <button type="button" data-basis="current" aria-pressed="true">Current</button>
+        </div>
+      </div>
       <table class="fx kv">
         <tr><td>Projected finish</td><td class="num" id="trendCardVal">&ndash;</td></tr>
         <tr><td>Weekly pace</td><td class="num" id="trendPace">&ndash;</td></tr>
@@ -875,6 +884,7 @@ button{user-select:none;-webkit-user-select:none}
     <div class="pagename num">Charts</div>
     <div class="seg mb" id="rangeRow">
       <button type="button" data-range="all" aria-pressed="true">All</button>
+      <button type="button" data-range="current" aria-pressed="false">Current</button>
       <button type="button" data-range="d30" aria-pressed="false">30 days</button>
       <button type="button" data-range="week" aria-pressed="false">Week</button>
     </div>
@@ -1070,6 +1080,12 @@ button{user-select:none;-webkit-user-select:none}
     var target = (typeof g.target === "number" && g.target > 0) ? g.target : 0;
     return { set: set, start: start, target: target, startDate: startDate, endDate: endDate };
   }
+  /* The goal's window, both ends in. With a goal set, every figure the app
+     works out -- the progress bar, both cards, the Current chart -- reads only
+     what was logged inside it: a new goal laid over old dates picks up what
+     those dates hold, and one over dates with nothing in them starts clean.
+     With no goal there is no window, and everything counts. */
+  function inPeriod(G, date) { return !G.set || (date >= G.startDate && date <= G.endDate); }
   function fmtLong(s) { return parseD(s).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); }
   function fmtShort(s) { return parseD(s).toLocaleDateString(undefined, { day: "numeric", month: "short" }); }
 
@@ -1323,14 +1339,14 @@ button{user-select:none;-webkit-user-select:none}
      reading from the figure behind all of them -- every row rises when that
      figure rises -- and any one printed line moving re-stamps all of them.
      The key carries the group's own memory and owns no element of its own. */
-  function statGroup(key, v, dir, judge, rows, mark) {
+  function statGroup(key, v, dir, judge, rows, mark, quiet) {
     var p = PREV[key], a = p ? p.a : 0, c = p ? p.c : "", hit = false, moved = false;
     if (dir === null) v = null;
     rows.forEach(function (r) { if (!PREV[r.id] || PREV[r.id].t !== r.txt) moved = true; });
     if (mark) {
       // worked out from the log, so it stands whether or not a figure moved
       a = mark.a; c = mark.c;
-      hit = moved && (a !== 0 || c !== "");
+      hit = !quiet && moved && (a !== 0 || c !== "");
     } else if (moved) {
       if (v === null) { a = 0; c = ""; }
       else if (p && p.v !== null) {
@@ -1375,12 +1391,33 @@ button{user-select:none;-webkit-user-select:none}
     flushStats();
   }
 
+  /* Which weigh-ins the Trend card reads: the goal's window, or every one
+     there is. A way of looking rather than data, so it stays on the device
+     and out of sync, like the chart's range. */
+  var TREND = sget("cut-trend") === "all" ? "all" : "current", trendQuiet = false;
+  function renderBasis() {
+    document.querySelectorAll("#trendBasis button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.basis === TREND));
+    });
+  }
+  $("trendBasis").addEventListener("click", function (ev) {
+    var b = ev.target.closest("[data-basis]"); if (!b || b.dataset.basis === TREND) return;
+    TREND = b.dataset.basis;
+    sset("cut-trend", TREND);
+    // looking from somewhere else is not a move: the figures change, no glow
+    trendQuiet = true; render(); trendQuiet = false;
+  });
+
   function render() {
     touch();
     syncChips();
-    var days = dayAvgs();
+    var allDays = dayAvgs();
     var today = iso(new Date());
     var G = goal();
+    // what the goal's window holds; with no goal, that is everything
+    var days = allDays.filter(function (d) { return inPeriod(G, d.date); });
+    // a window that has already closed is read as of its last day
+    var asOf = G.set && today > G.endDate ? G.endDate : today;
     $("goalLeft").innerHTML = G.set
       ? '<span class="num">' + Math.max(0, dayDiff(today, G.endDate)) + "</span> days left"
       : "No goal set yet";
@@ -1426,19 +1463,29 @@ button{user-select:none;-webkit-user-select:none}
     // the share of the way there, which is what the bar is drawing anyway --
     // the weight itself is already on the card below, at ten times the size
     $("pNow").textContent = G.set && cur !== null ? Math.round(fillPct) + "%" : "";
-  /* Pace over the whole period: start weight against now, spread over every
-     calendar day since the start date. Signed: negative is loss. */
-    var sinceStart = dayDiff(G.startDate, today);
+  /* Pace: a starting weight against the latest, spread over every calendar
+     day between. Signed: negative is loss. The card's switch picks the
+     evidence. Current is the goal's window -- the starting weight you set,
+     against the last reading inside it. All is the whole scale history --
+     the first day ever weighed, against the last. */
+    var tAll = TREND === "all";
+    var tDays = tAll ? allDays : days;
+    var tCur = tDays.length ? tDays[tDays.length - 1].w : null;
+    var tFrom = tAll ? (tDays.length ? tDays[0].w : null) : G.start;
+    var tSince = tAll ? (tDays.length ? dayDiff(tDays[0].date, today) : 0) : dayDiff(G.startDate, asOf);
     // under a week the divisor is too small to mean anything
-    var perDay = (cur !== null && sinceStart >= 7) ? (cur - G.start) / sinceStart : null;
+    var perDay = (tCur !== null && tFrom !== null && tSince >= 7) ? (tCur - tFrom) / tSince : null;
     var pace = perDay !== null ? perDay * 7 : null;
+    // no goal, no window to tell apart from everything
+    $("trendBasis").hidden = !G.set;
+    renderBasis();
 
     /* Trend card: carry that same pace forward to the target date, so the rate
        shown and the weight shown are one calculation rather than two. */
     if (G.set && perDay !== null) {
-      var tEnd = cur + perDay * Math.max(0, dayDiff(today, G.endDate));
+      var tEnd = tCur + perDay * Math.max(0, dayDiff(today, G.endDate));
       var off = tEnd - G.target;
-      var plan = plannedWeight(G, today), gap = cur - plan;
+      var plan = plannedWeight(G, today), gap = tCur - plan;
       stat("trendPlan", plan.toFixed(1) + " kg", plan, null);   // the calendar, not a result
       $("trendGapLab").textContent = Math.abs(gap) < 0.05 ? "On plan" : gap > 0 ? "Behind plan" : "Ahead of plan";
       $("trendTargetLab").textContent = Math.abs(off) < 0.05 ? "On target" : off > 0 ? "Short of target" : "Past target";
@@ -1448,21 +1495,22 @@ button{user-select:none;-webkit-user-select:none}
          was last on screen. A weight put in by mistake and taken out again
          leaves the card exactly as it found it, because the two days being
          compared are the two days that are there. */
-      var prevW = days.length > 1 ? days[days.length - 2].w : null;
-      var step = prevW === null ? 0 : cur > prevW ? 1 : cur < prevW ? -1 : 0;
-      statGroup("trendRows", cur, gdir, null, [
+      var prevW = tDays.length > 1 ? tDays[tDays.length - 2].w : null;
+      var step = prevW === null ? 0 : tCur > prevW ? 1 : tCur < prevW ? -1 : 0;
+      statGroup("trendRows", tCur, gdir, null, [
         { id: "trendCardVal", txt: tEnd.toFixed(1) + " kg" },
         { id: "trendPace", txt: (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk" },
         { id: "trendGap", txt: Math.abs(gap) < 0.05 ? "0.0 kg" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg" },
         { id: "trendTarget", txt: Math.abs(off) < 0.05 ? "0.0 kg" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg" }
-      ], { a: step, c: step === 0 ? "" : gdir * (cur - prevW) > 0 ? "good" : "bad" });
+      ], { a: step, c: step === 0 ? "" : gdir * (tCur - prevW) > 0 ? "good" : "bad" }, trendQuiet);
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
       stat("trendPlan", "\u2013", null, null);
       statGroup("trendRows", null, null, null, ["trendCardVal", "trendPace", "trendGap", "trendTarget"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
     // average net intake per logged day; training-only days are skipped
-    var ixf = index().food, fdays = Object.keys(ixf), trainedKcal = 0, netSum = 0;
+    var ixf = index().food, trainedKcal = 0, netSum = 0;
+    var fdays = Object.keys(ixf).filter(function (d) { return inPeriod(G, d); });
     fdays.forEach(function (d) {
       var burn = trainTotal(d);
       trainedKcal += burn; netSum += ixf[d].calories - burn;
@@ -1482,7 +1530,7 @@ button{user-select:none;-webkit-user-select:none}
        With nothing logged that day, or no other day to call usual, there is
        no reading to take and the card carries no marks. */
     var focusD = $("fDate").value || today, projMark = { a: 0, c: "" };
-    if (ixf[focusD] && fdays.length > 1) {
+    if (ixf[focusD] && inPeriod(G, focusD) && fdays.length > 1) {
       var dayNet = ixf[focusD].calories - trainTotal(focusD);
       var usual = (netSum - dayNet) / (fdays.length - 1);
       var over = dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0;
@@ -1511,7 +1559,7 @@ button{user-select:none;-webkit-user-select:none}
     renderHistory();
     renderFood();
     renderTraining();
-    if (tab === "chart") renderChart(days);   // otherwise redrawn on arrival
+    if (tab === "chart") renderChart(allDays);   // otherwise redrawn on arrival
   }
   function snapshot() {
     return JSON.stringify({ entries: S.entries, foods: S.foods, workouts: S.workouts, maintenance: S.maintenance, cache: S.cache, goal: S.goal, exportedAt: new Date().toISOString() });
@@ -1879,8 +1927,11 @@ button{user-select:none;-webkit-user-select:none}
   var RANGE = sget("cut-range") || "all";
   if (RANGE === "month") { RANGE = "d30"; sset("cut-range", RANGE); }
   function renderRange() {
+    // no goal, no window to call current: the tab goes, and All stands in
+    var G = goal(), on = RANGE === "current" && !G.set ? "all" : RANGE;
     document.querySelectorAll("#rangeRow button").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.range === RANGE));
+      if (b.dataset.range === "current") b.hidden = !G.set;
+      b.setAttribute("aria-pressed", String(b.dataset.range === on));
     });
   }
   $("rangeRow").addEventListener("click", function (ev) {
@@ -1898,17 +1949,27 @@ button{user-select:none;-webkit-user-select:none}
     renderLegend();
     renderRange();
 
-    // the window crops what is drawn, not what the fit learns from
-    var today = iso(new Date()), winFrom = null;
-    if (RANGE === "week") winFrom = iso(new Date(Date.now() - 6 * MS));
-    else if (RANGE === "d30") winFrom = iso(new Date(Date.now() - 29 * MS));
-    var days = winFrom ? allDays.filter(function (d) { return d.date >= winFrom; }) : allDays;
+    /* All is every day ever logged. Current is the goal's window and nothing
+       outside it. 30 days and Week crop to the calendar. A window crops what
+       is drawn, not what the fit learns from: All fits the whole history,
+       every other window fits the goal's -- the evidence the cards read. */
+    var G = goal(), rng = RANGE === "current" && !G.set ? "all" : RANGE;
+    var today = iso(new Date()), winFrom = null, winTo = null;
+    if (rng === "week") winFrom = iso(new Date(Date.now() - 6 * MS));
+    else if (rng === "d30") winFrom = iso(new Date(Date.now() - 29 * MS));
+    else if (rng === "current") { winFrom = G.startDate; winTo = G.endDate; }
+    var days = allDays.filter(function (d) {
+      return (!winFrom || d.date >= winFrom) && (!winTo || d.date <= winTo);
+    });
+    var fitDays = rng === "all" ? allDays : allDays.filter(function (d) { return inPeriod(G, d.date); });
     host.querySelectorAll("svg").forEach(function (s) { s.remove(); });
     // drop any previous placeholder: this redraws on every visit
     var stale = host.querySelector(".empty"); if (stale) stale.remove();
     if (!allDays.length || !days.length) {
       host.insertAdjacentHTML("afterbegin", '<div class="empty" id="chartEmpty">' +
-        (allDays.length ? "Nothing logged in this window." : "Log a weight entry to draw the chart.") + '</div>');
+        (!allDays.length ? "Log a weight entry to draw the chart."
+          : rng === "current" ? "Nothing weighed in this goal period yet."
+          : "Nothing logged in this window.") + '</div>');
       return;
     }
 
@@ -1918,27 +1979,30 @@ button{user-select:none;-webkit-user-select:none}
     var pane = $("scroll").clientHeight || (window.innerHeight || 720) - 47;
     var H = Math.max(300, Math.min(620, pane - 215));
     var mL = 34, mR = 10, mT = 10, mB = 24;
-    var G = goal();
 
     var start, end;
-    if (winFrom) {
+    if (rng === "current") {
+      // the goal's window exactly, post to post
+      start = G.startDate;
+      end = G.endDate;
+    } else if (winFrom) {
       // a chosen window wins over the goal dates
       start = winFrom;
       end = today;
       if (days.length && dayDiff(end, days[days.length - 1].date) > 0) end = days[days.length - 1].date;
     } else {
-      // axis spans the goal window plus anything logged outside it
-      start = G.startDate;
-      if (dayDiff(days[0].date, start) > 0) start = days[0].date;
-      end = G.set ? G.endDate : days[days.length - 1].date;
-      var lastLogged = days[days.length - 1].date;
-      if (dayDiff(end, lastLogged) > 0) end = lastLogged;
+      // every day anything was logged -- scale, food or training -- plus the
+      // goal's window, so the plan line still has somewhere to sit
+      var ix = index(), ends = days.map(function (d) { return d.date; })
+        .concat(Object.keys(ix.food), Object.keys(ix.work));
+      if (G.set) ends.push(G.startDate, G.endDate);
+      ends.sort();
+      start = ends[0];
+      end = ends[ends.length - 1];
     }
     var span = Math.max(1, dayDiff(start, end));
 
-    // fit over every logged day, not just the visible window
-    var regAll = regression(allDays.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
-    var reg = regAll;
+    var reg = regression(fitDays.map(function (d) { return { x: dayDiff(start, d.date), y: d.w }; }));
     // ideal line: goal post to goal post
     var gx0 = dayDiff(start, G.startDate), gx1 = dayDiff(start, G.endDate);
     var idealM = (G.target - G.start) / Math.max(1, gx1 - gx0);
@@ -1964,9 +2028,9 @@ button{user-select:none;-webkit-user-select:none}
 
     // y domain across every series drawn
     var vals = days.map(function (d) { return d.w; });
-    // goal posts widen the axis only in the All window; the ideal and trend
-    // lines are projections and get clipped rather than widening anything
-    if (G.set && !winFrom) vals = vals.concat([G.target, G.start]);
+    // goal posts widen the axis only in the All and Current windows; the ideal
+    // and trend lines are projections, clipped rather than widening anything
+    if (G.set && (rng === "all" || rng === "current")) vals = vals.concat([G.target, G.start]);
     /* Gridlines land on whole kilos counted off the target, so in the All
        window the bottom line is the target and each line above it is one kilo
        more, up to the start weight. A reading outside that band pushes the
@@ -2001,7 +2065,9 @@ button{user-select:none;-webkit-user-select:none}
     var lblCount = W < 360 ? 3 : 5;
     for (var j = 0; j <= lblCount; j++) {
       var dx = Math.round(span * j / lblCount);
-      var dt = new Date(parseD(start).getTime() + dx * MS);
+      // calendar days, not 24-hour steps: across a clock change those land an
+      // hour early, on the day before
+      var dt = parseD(start); dt.setDate(dt.getDate() + dx);
       var anch = j === 0 ? "start" : j === lblCount ? "end" : "middle";
       svg.push('<text x="' + X(dx).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="' + anch + '" font-size="9.5" font-family="IBM Plex Mono,monospace" fill="var(--muted)">' +
         dt.toLocaleDateString(undefined, { day: "2-digit", month: "short" }) + '</text>');
@@ -2078,8 +2144,10 @@ button{user-select:none;-webkit-user-select:none}
           '<div class="tr"><span class="tk">P / C / F</span><span class="num">' +
           Math.round((pKByDay[best.date] || 0) / 4) + ' / ' + Math.round((cKByDay[best.date] || 0) / 4) + ' / ' + Math.round((fKByDay[best.date] || 0) / 9) + ' g</span></div>' : '') +
         (trainTotal(best.date) ? '<div class="tr"><span class="tk">Training</span><span class="num">\u2212' + trainTotal(best.date) + ' kcal</span></div>' : '') +
-        '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
-        '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>';
+        // the plan says nothing about a day outside its own window
+        (G.set && inPeriod(G, best.date) ?
+          '<div class="tr"><span class="tk">Ideal</span><span class="num">' + idealAt.toFixed(2) + ' kg</span></div>' +
+          '<div class="tr"><span class="tk">Gap</span><span class="num">' + (best.w - idealAt >= 0 ? "+" : "") + (best.w - idealAt).toFixed(2) + ' kg</span></div>' : '');
       tip.style.opacity = 1;
       var tw = tip.offsetWidth || 130;
       tip.style.left = Math.max(2, Math.min(W - tw - 2, best.x - tw / 2)) + "px";
