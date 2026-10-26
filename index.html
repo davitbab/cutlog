@@ -1247,6 +1247,31 @@ button{user-select:none;-webkit-user-select:none}
     return t ? t.calories : 0;
   }
   function netKcal(date) { return foodTotals(date).calories - trainTotal(date); }
+  /* A day with nothing logged to eat is read as maintenance -- eaten, just
+     not written down -- rather than skipped, which would leave the average
+     to the days careful enough to log, and those are the light ones. It only
+     covers days you were using the app, from the first entry of any kind up
+     to yesterday: today is still being eaten, so it counts once something is
+     on it. Training still comes off, and an assumed day has no macros. */
+  function firstLog() {
+    var f = null;
+    [S.entries, S.foods, S.workouts].forEach(function (a) {
+      a.forEach(function (r) { if (r.date && (!f || r.date < f)) f = r.date; });
+    });
+    return f;
+  }
+  // every counted day in [from, to]: { date, net, assumed }
+  function intakeDays(from, to) {
+    var food = index().food, first = firstLog(), today = iso(new Date()), out = [];
+    if (!first || to < first) return out;
+    var d = parseD(from > first ? from : first);
+    // a mistyped year must not run this for centuries
+    for (var i = 0, ds = iso(d); ds <= to && i < 4000; i++, d.setDate(d.getDate() + 1), ds = iso(d)) {
+      if (food[ds]) out.push({ date: ds, net: food[ds].calories - trainTotal(ds), assumed: false });
+      else if (ds < today) out.push({ date: ds, net: S.maintenance - trainTotal(ds), assumed: true });
+    }
+    return out;
+  }
 
 
   /* ---------- render ---------- */
@@ -1508,14 +1533,14 @@ button{user-select:none;-webkit-user-select:none}
       stat("trendPlan", "\u2013", null, null);
       statGroup("trendRows", null, null, null, ["trendCardVal", "trendPace", "trendGap", "trendTarget"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
-    // average net intake per logged day; training-only days are skipped
-    var ixf = index().food, trainedKcal = 0, netSum = 0;
-    var fdays = Object.keys(ixf).filter(function (d) { return inPeriod(G, d); });
-    fdays.forEach(function (d) {
-      var burn = trainTotal(d);
-      trainedKcal += burn; netSum += ixf[d].calories - burn;
-    });
-    var avgKcal = fdays.length ? Math.round(netSum / fdays.length) : null;
+    /* average net intake per day of the window, a day with no food logged
+       standing at maintenance. With no real day logged at all there is
+       nothing to average but the assumption, so the card waits. */
+    var lastF = Object.keys(index().food).sort().pop() || today;
+    var iDays = intakeDays(G.set ? G.startDate : "", G.set ? G.endDate : (lastF > today ? lastF : today));
+    var netSum = 0, realDays = 0, byD = {};
+    iDays.forEach(function (x) { netSum += x.net; byD[x.date] = x; if (!x.assumed) realDays++; });
+    var avgKcal = realDays ? Math.round(netSum / iDays.length) : null;
     var dleft = Math.max(0, dayDiff(today, G.endDate));
     /* Every row on the Projected card is one meal seen four ways, and no
        average moves far enough on a single day for its own drift to read as
@@ -1530,9 +1555,9 @@ button{user-select:none;-webkit-user-select:none}
        With nothing logged that day, or no other day to call usual, there is
        no reading to take and the card carries no marks. */
     var focusD = $("fDate").value || today, projMark = { a: 0, c: "" };
-    if (ixf[focusD] && inPeriod(G, focusD) && fdays.length > 1) {
-      var dayNet = ixf[focusD].calories - trainTotal(focusD);
-      var usual = (netSum - dayNet) / (fdays.length - 1);
+    if (byD[focusD] && !byD[focusD].assumed && iDays.length > 1) {
+      var dayNet = byD[focusD].net;
+      var usual = (netSum - dayNet) / (iDays.length - 1);
       var over = dayNet > usual + 1e-9 ? 1 : dayNet < usual - 1e-9 ? -1 : 0;
       var away = gdir < 0 ? over : -over;
       projMark = { a: over, c: away > 0 ? "bad" : away < 0 ? "good" : "" };
@@ -2019,6 +2044,11 @@ button{user-select:none;-webkit-user-select:none}
     });
     // net of training, the figure the projection uses
     Object.keys(kByDay).forEach(function (d) { kByDay[d] -= trainTotal(d); });
+    // the days nothing was logged to eat, at maintenance, as the average reads them
+    var assumedK = {};
+    intakeDays(start, end).forEach(function (x) {
+      if (x.assumed) { kByDay[x.date] = x.net; assumedK[x.date] = 1; }
+    });
     var kBars = Object.keys(kByDay).map(function (d) {
       return { dx: dayDiff(start, d), date: d, k: kByDay[d] };
     }).filter(function (b) { return b.dx >= 0 && b.dx <= span; });
@@ -2080,6 +2110,16 @@ button{user-select:none;-webkit-user-select:none}
         var h = (b.k / kMax) * (kBase - kTop);
         if (h < 0.7) return;
         var x = (X(b.dx) - bw / 2).toFixed(1);
+        /* assumed, not logged: an empty column with only its level marked.
+           Outlines would hatch together at a month's width; a cap does not,
+           so a run of unlogged days reads as one flat line at maintenance. */
+        if (assumedK[b.date]) {
+          svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
+            '" fill="var(--neutral-series)" opacity="0.08"/>');
+          svg.push('<rect class="kassumed" x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="1.5"' +
+            ' fill="var(--neutral-series)" opacity="0.85"/>');
+          return;
+        }
         // split by each macro's share of that day's macro calories, stacked
         // protein / carbs / fat from the bottom up; a day with calories but no
         // macros logged falls back to one flat grey bar, its split unknown
@@ -2138,7 +2178,8 @@ button{user-select:none;-webkit-user-select:none}
       var idealAt = idealAtX(dx);
       tip.innerHTML = '<div style="font-weight:600;margin-bottom:2px">' + esc(fmtD(best.date)) + '</div>' +
         '<div class="tr"><span class="tk">Weight</span><span class="num">' + best.w.toFixed(2) + ' kg' + (best.n > 1 ? ' (' + best.n + ')' : '') + '</span></div>' +
-        (kByDay[best.date] ? '<div class="tr"><span class="tk">Calories</span><span class="num">' + kByDay[best.date] + ' kcal</span></div>' : '') +
+        (kByDay[best.date] ? '<div class="tr"><span class="tk">' + (assumedK[best.date] ? 'Not logged' : 'Calories') +
+          '</span><span class="num">' + kByDay[best.date] + ' kcal</span></div>' : '') +
         ((pKByDay[best.date] || cKByDay[best.date] || fKByDay[best.date]) ?
           '<div class="tr"><span class="tk">P / C / F</span><span class="num">' +
           Math.round((pKByDay[best.date] || 0) / 4) + ' / ' + Math.round((cKByDay[best.date] || 0) / 4) + ' / ' + Math.round((fKByDay[best.date] || 0) / 9) + ' g</span></div>' : '') +
