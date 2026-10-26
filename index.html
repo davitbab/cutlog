@@ -1922,10 +1922,10 @@ button{user-select:none;-webkit-user-select:none}
     renderChart(dayAvgs());
   });
 
-  /* How much of the timeline the chart shows. Kept on the device like the
-     series switches. "month" was the calendar month to date, now 30 days. */
-  var RANGE = sget("cut-range") || "all";
-  if (RANGE === "month") { RANGE = "d30"; sset("cut-range", RANGE); }
+  /* How much of the timeline the chart shows. The page always opens on the
+     goal's own window -- the one worth a look -- and another range lasts
+     only until you leave. With no goal, Current stands down to All. */
+  var RANGE = "current";
   function renderRange() {
     // no goal, no window to call current: the tab goes, and All stands in
     var G = goal(), on = RANGE === "current" && !G.set ? "all" : RANGE;
@@ -1937,7 +1937,6 @@ button{user-select:none;-webkit-user-select:none}
   $("rangeRow").addEventListener("click", function (ev) {
     var b = ev.target.closest("[data-range]"); if (!b) return;
     RANGE = b.dataset.range;
-    sset("cut-range", RANGE);
     renderRange();
     renderChart(dayAvgs());
   });
@@ -3045,6 +3044,7 @@ button{user-select:none;-webkit-user-select:none}
   }
   /* Each page owns its own header and cards, so showing a page is one line. */
   function setTab(t) {
+    if (t === "chart" && tab !== "chart") RANGE = "current";   // arriving, not re-tapping
     tab = t;
     document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     ["weight", "food", "chart", "data"].forEach(function (k) { $("p-" + k).hidden = (k !== t); });
