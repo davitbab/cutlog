@@ -337,7 +337,9 @@ table.fx.kv .arw{display:none}
 .seg button:active,.subtabs button:active,.legend button:active{filter:brightness(.95)}
 /* the small switch in a card's header: the same control, sized to the label */
 .seg.mini{padding:2px;gap:2px;flex:0 0 auto;border-radius:8px}
-.seg.mini button{flex:0 0 auto;font-size:11px;padding:4px 10px;min-height:0;border-radius:6px}
+.seg.mini button{flex:0 0 auto;font-size:10.5px;padding:4px 7px;min-height:0;border-radius:6px}
+/* a card title's date: if the title has to wrap, the date moves down whole */
+.nw{white-space:nowrap}
 
 /* card + form */
 /* Settings: each section collapses behind a tappable row, like the fold
@@ -776,7 +778,13 @@ button{user-select:none;-webkit-user-select:none}
   <section id="p-food" hidden>
     <div class="pagename num">Calories</div>
     <div class="card" id="projCard">
-      <span class="lab" id="projLab">Projected from calories</span>
+      <div class="cardhead">
+        <span class="lab" id="projLab">Projected from calories</span>
+        <div class="seg mini" id="projBasis" role="group" aria-label="Days the projection averages">
+          <button type="button" data-basis="all" aria-pressed="false">All</button>
+          <button type="button" data-basis="current" aria-pressed="true">Current</button>
+        </div>
+      </div>
       <table class="fx kv">
         <tr><td>Weight at goal date</td><td class="num" id="projVal">&ndash;</td></tr>
         <tr><td>Weekly rate</td><td class="num" id="projRate">&ndash;</td></tr>
@@ -1416,21 +1424,32 @@ button{user-select:none;-webkit-user-select:none}
     flushStats();
   }
 
-  /* Which weigh-ins the Trend card reads: the goal's window, or every one
-     there is. A way of looking rather than data, so it stays on the device
-     and out of sync, like the chart's range. */
-  var TREND = sget("cut-trend") === "all" ? "all" : "current", trendQuiet = false;
+  /* What each estimate card reads: the goal's window, or everything there
+     is -- every weigh-in for the Trend card, every day for the Projected one.
+     Each card keeps its own, since they sit on different pages. A way of
+     looking rather than data, so it stays on the device and out of sync,
+     like the chart's range. */
+  var BASES = [
+    { el: "trendBasis", key: "cut-trend" },
+    { el: "projBasis", key: "cut-proj" }
+  ];
+  var BASIS = {}, viewQuiet = false;
+  BASES.forEach(function (o) { BASIS[o.el] = sget(o.key) === "all" ? "all" : "current"; });
   function renderBasis() {
-    document.querySelectorAll("#trendBasis button").forEach(function (b) {
-      b.setAttribute("aria-pressed", String(b.dataset.basis === TREND));
+    BASES.forEach(function (o) {
+      document.querySelectorAll("#" + o.el + " button").forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.basis === BASIS[o.el]));
+      });
     });
   }
-  $("trendBasis").addEventListener("click", function (ev) {
-    var b = ev.target.closest("[data-basis]"); if (!b || b.dataset.basis === TREND) return;
-    TREND = b.dataset.basis;
-    sset("cut-trend", TREND);
-    // looking from somewhere else is not a move: the figures change, no glow
-    trendQuiet = true; render(); trendQuiet = false;
+  BASES.forEach(function (o) {
+    $(o.el).addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-basis]"); if (!b || b.dataset.basis === BASIS[o.el]) return;
+      BASIS[o.el] = b.dataset.basis;
+      sset(o.key, BASIS[o.el]);
+      // looking from somewhere else is not a move: the figures change, no glow
+      viewQuiet = true; render(); viewQuiet = false;
+    });
   });
 
   function render() {
@@ -1455,8 +1474,9 @@ button{user-select:none;-webkit-user-select:none}
     $("timeBar").hidden = !G.set;            // no window to be part of the way through
     // the two cards answer the same question from different evidence, and the
     // label is the only place that says which
-    $("projLab").textContent = "Projected from calories" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
-    $("trendCardLab").textContent = "Trend from weigh-ins" + (G.set ? " \u00b7 " + fmtShort(G.endDate) : "");
+    var labDate = G.set ? ' <span class="nw">\u00b7 ' + esc(fmtShort(G.endDate)) + '</span>' : "";
+    $("projLab").innerHTML = "Projected from calories" + labDate;
+    $("trendCardLab").innerHTML = "Trend from weigh-ins" + labDate;
 
     // the pill appears only when saving is blocked
     $("storeWrap").hidden = persistent;
@@ -1493,7 +1513,7 @@ button{user-select:none;-webkit-user-select:none}
      evidence. Current is the goal's window -- the starting weight you set,
      against the last reading inside it. All is the whole scale history --
      the first day ever weighed, against the last. */
-    var tAll = TREND === "all";
+    var tAll = BASIS.trendBasis === "all";
     var tDays = tAll ? allDays : days;
     var tCur = tDays.length ? tDays[tDays.length - 1].w : null;
     var tFrom = tAll ? (tDays.length ? tDays[0].w : null) : G.start;
@@ -1502,7 +1522,7 @@ button{user-select:none;-webkit-user-select:none}
     var perDay = (tCur !== null && tFrom !== null && tSince >= 7) ? (tCur - tFrom) / tSince : null;
     var pace = perDay !== null ? perDay * 7 : null;
     // no goal, no window to tell apart from everything
-    $("trendBasis").hidden = !G.set;
+    $("trendBasis").hidden = $("projBasis").hidden = !G.set;
     renderBasis();
 
     /* Trend card: carry that same pace forward to the target date, so the rate
@@ -1527,17 +1547,22 @@ button{user-select:none;-webkit-user-select:none}
         { id: "trendPace", txt: (pace > 0 ? "+" : "") + pace.toFixed(2) + " kg/wk" },
         { id: "trendGap", txt: Math.abs(gap) < 0.05 ? "0.0 kg" : (gap > 0 ? "+" : "\u2212") + Math.abs(gap).toFixed(1) + " kg" },
         { id: "trendTarget", txt: Math.abs(off) < 0.05 ? "0.0 kg" : (off > 0 ? "+" : "\u2212") + Math.abs(off).toFixed(1) + " kg" }
-      ], { a: step, c: step === 0 ? "" : gdir * (tCur - prevW) > 0 ? "good" : "bad" }, trendQuiet);
+      ], { a: step, c: step === 0 ? "" : gdir * (tCur - prevW) > 0 ? "good" : "bad" }, viewQuiet);
     } else {
       $("trendGapLab").textContent = "Vs. plan"; $("trendTargetLab").textContent = "Vs. target";
       stat("trendPlan", "\u2013", null, null);
       statGroup("trendRows", null, null, null, ["trendCardVal", "trendPace", "trendGap", "trendTarget"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
-    /* average net intake per day of the window, a day with no food logged
-       standing at maintenance. With no real day logged at all there is
-       nothing to average but the assumption, so the card waits. */
+    /* average net intake per day, a day with no food logged standing at
+       maintenance. Current takes the goal's window, All every day since the
+       first entry; the weight carried forward is the latest each one sees.
+       With no real day logged at all there is nothing to average but the
+       assumption, so the card waits. */
+    var pAll = BASIS.projBasis === "all";
     var lastF = Object.keys(index().food).sort().pop() || today;
-    var iDays = intakeDays(G.set ? G.startDate : "", G.set ? G.endDate : (lastF > today ? lastF : today));
+    var everyDay = lastF > today ? lastF : today;
+    var iDays = pAll || !G.set ? intakeDays("", everyDay) : intakeDays(G.startDate, G.endDate);
+    var pCur = pAll ? (allDays.length ? allDays[allDays.length - 1].w : null) : cur;
     var netSum = 0, realDays = 0, byD = {};
     iDays.forEach(function (x) { netSum += x.net; byD[x.date] = x; if (!x.assumed) realDays++; });
     var avgKcal = realDays ? Math.round(netSum / iDays.length) : null;
@@ -1562,9 +1587,9 @@ button{user-select:none;-webkit-user-select:none}
       var away = gdir < 0 ? over : -over;
       projMark = { a: over, c: away > 0 ? "bad" : away < 0 ? "good" : "" };
     }
-    if (G.set && avgKcal !== null && cur !== null) {
+    if (G.set && avgKcal !== null && pCur !== null) {
       var def = S.maintenance - avgKcal;
-      var proj = cur - (def * dleft / KCAL_PER_KG);
+      var proj = pCur - (def * dleft / KCAL_PER_KG);
       var kgwk = -def * 7 / KCAL_PER_KG;
       /* All four ride on the average intake: eat more and every one of them
          rises, the deficit included -- it is printed as a balance, so a 450
@@ -1574,7 +1599,7 @@ button{user-select:none;-webkit-user-select:none}
         { id: "projRate", txt: (kgwk > 0 ? "+" : "") + kgwk.toFixed(2) + " kg/wk" },
         { id: "projKcal", txt: avgKcal + " kcal" },
         { id: "projDef", txt: (Math.abs(def) < 1 ? "0" : (def > 0 ? "\u2212" : "+") + Math.abs(def)) + " kcal" }
-      ], projMark);
+      ], projMark, viewQuiet);
     } else {
       statGroup("projRows", null, null, null, ["projVal", "projRate", "projKcal", "projDef"].map(function (id) { return { id: id, txt: "\u2013" }; }));
     }
@@ -2110,14 +2135,16 @@ button{user-select:none;-webkit-user-select:none}
         var h = (b.k / kMax) * (kBase - kTop);
         if (h < 0.7) return;
         var x = (X(b.dx) - bw / 2).toFixed(1);
-        /* assumed, not logged: an empty column with only its level marked.
-           Outlines would hatch together at a month's width; a cap does not,
-           so a run of unlogged days reads as one flat line at maintenance. */
+        /* assumed, not logged: an empty glass column -- a faint body and one
+           hairline all round, the top no heavier than the sides. Too narrow
+           for a hairline to sit inside (a month or more on screen), the body
+           alone draws it, and a run of them reads as one pane. */
         if (assumedK[b.date]) {
-          svg.push('<rect x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) +
-            '" fill="var(--neutral-series)" opacity="0.08"/>');
-          svg.push('<rect class="kassumed" x="' + x + '" y="' + (kBase - h).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="1.5"' +
-            ' fill="var(--neutral-series)" opacity="0.85"/>');
+          var rim = bw >= 5;
+          svg.push('<rect class="kassumed" x="' + (rim ? +x + 0.5 : +x).toFixed(1) + '" y="' + (kBase - h + (rim ? 0.5 : 0)).toFixed(1) +
+            '" width="' + (rim ? bw - 1 : bw).toFixed(1) + '" height="' + Math.max(0, rim ? h - 0.5 : h).toFixed(1) + '" rx="1.5"' +
+            ' fill="var(--neutral-series)" fill-opacity="0.12"' +
+            (rim ? ' stroke="var(--neutral-series)" stroke-opacity="0.5" stroke-width="1"' : '') + '/>');
           return;
         }
         // split by each macro's share of that day's macro calories, stacked
